@@ -1,7 +1,8 @@
-# Tanques Kawaii (prototipo)
+# Meowtillery (prototipo)
 
 Táctica por turnos en grilla al estilo **Fire Emblem**, donde las acciones salen de un
-**mazo de cartas** (al estilo Slay the Spire). Pixel art 2D, hecho en **Godot 4.3+** con GDScript.
+**mazo de cartas** (al estilo Slay the Spire) y los tanques los comandan **gatos**.
+Pixel art 2D, hecho en **Godot 4.3+** con GDScript.
 
 ## Cómo abrirlo
 
@@ -85,6 +86,8 @@ godot --headless --path . -s tests/test_combate.gd
 | `tests/test_combate.gd` | Pruebas de la lógica. |
 | `assets/` | Sprites. Los tanques son de 80×28 px a escala real (1 px = 13 cm) y se dibujan a ×1 en casillas de 64 px; la variante `_enemigo` es el mismo tanque en gris. |
 | `tools/generar_sprites.py` | Dibuja los sprites de tanques por código (`python tools/generar_sprites.py`). `tools/vista_previa.png` los muestra ampliados. |
+| `icon.png`, `icon.ico` | Ícono del juego (Earl Grey con su boina). |
+| `export_presets.cfg`, `tools/LEEME-regalo.txt` | Presets de exportación (Windows y Web) y el LEEME que va en el zip. |
 
 ### Campos de una carta
 
@@ -92,16 +95,21 @@ godot --headless --path . -s tests/test_combate.gd
 `alcance` ([mín, máx]), `bonus_flanco`, `salpicadura`, `escudo`, `radio` (a quién más
 afecta, en casillas), `encarar` + `requiere_objetivo`, `movimiento`, `moral`, `energia`, `texto`.
 
-## Publicar en la web (GitHub Pages)
+## Exportar
 
-El proyecto ya usa el renderizador *Compatibility* (WebGL 2), que es el que necesita
-la exportación web. Pasos, cuando toque:
+Hace falta tener las plantillas de exportación de Godot instaladas (Editor → Manage
+Export Templates). Los presets ya están en `export_presets.cfg`; desde esta carpeta:
 
-1. En Godot: **Editor → Manage Export Templates** → descargar las plantillas.
-2. **Project → Export → Add… → Web**. Dejar **Thread Support desactivado**: así no hace
-   falta configurar cabeceras especiales, que GitHub Pages no permite.
-3. Exportar como `index.html` a una carpeta (por ejemplo `build/web`) y publicarla
-   en GitHub Pages (se puede automatizar con una GitHub Action).
+```powershell
+godot --headless --path . --export-release "Windows Desktop" build/windows/Meowtillery.exe
+godot --headless --path . --export-release "Web" build/web/index.html
+```
+
+- **Windows:** un solo `.exe` con todo adentro. No está firmado, así que Windows avisa
+  la primera vez ("Más información" → "Ejecutar de todas formas").
+- **Web:** usa el renderizador *Compatibility* (WebGL 2) y **sin hilos**, así no hace falta
+  configurar cabeceras especiales y funciona en GitHub Pages o itch.io. La carpeta
+  `build/web` se sube tal cual.
 
 ## Pendiente
 

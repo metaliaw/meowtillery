@@ -1,3 +1,6 @@
 # Caché de Godot 4 (se regenera al abrir el proyecto)
 .godot/
 *.import
+
+# Juegos exportados (se regeneran con Godot: Project > Export)
+build/

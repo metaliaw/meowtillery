@@ -25,9 +25,9 @@ func _ready() -> void:
 	columna.add_theme_constant_override("separation", 22)
 	centro.add_child(columna)
 
-	columna.add_child(Estilo.titulo("TANQUES KAWAII", 64))
+	columna.add_child(Estilo.titulo("MEOWTILLERY", 64))
 	var sub := Label.new()
-	sub.text = "Táctica por turnos con cartas"
+	sub.text = "Táctica por turnos con cartas y gatos tanquistas"
 	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	columna.add_child(sub)
 

@@ -4,10 +4,12 @@ config_version=5
 
 [application]
 
-config/name="Tanques Kawaii"
-config/description="Prototipo de combate por turnos con pelotón de tanques y mazo de cartas."
+config/name="Meowtillery"
+config/description="Táctica por turnos con cartas: pelotones de tanques comandados por gatos."
 run/main_scene="res://scenes/menu.tscn"
 config/features=PackedStringArray("4.3")
+config/icon="res://icon.png"
+config/windows_native_icon="res://icon.ico"
 
 [autoload]
 

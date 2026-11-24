@@ -1,0 +1,22 @@
+MEOWTILLERY
+===========
+
+Táctica por turnos con cartas. Tus tanques los comandan gatos.
+
+CÓMO ABRIRLO
+1. Descomprime este zip en cualquier carpeta (clic derecho > "Extraer todo").
+2. Doble clic en Meowtillery.exe. No hay que instalar nada.
+
+Si Windows muestra "Windows protegió su PC": es porque el juego es casero y no está
+firmado por una empresa. Haz clic en "Más información" y después en
+"Ejecutar de todas formas". Solo pasa la primera vez.
+
+CÓMO SE JUEGA (lo explican Muffy y la teniente Michi en "Cómo se juega")
+- Clic en un tanque tuyo para elegirlo; clic en una casilla azul para moverlo.
+- Clic en un enemigo para elegirlo como blanco.
+- Clic en una carta para jugarla (pasa el mouse por encima para ver cuánto daño hará).
+- Dispara por el costado o por detrás: el blindaje del frente es el más grueso.
+- Mira el cartelito sobre cada enemigo: te dice qué va a hacer en su turno.
+- Cuando termines, "Terminar turno".
+
+Empieza en Recluta. Cuando ganes fácil, prueba Veterano. Y si te atreves, As.
