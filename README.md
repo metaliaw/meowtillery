@@ -4,6 +4,9 @@ Táctica por turnos en grilla al estilo **Fire Emblem**, donde las acciones sale
 **mazo de cartas** (al estilo Slay the Spire) y los tanques los comandan **gatos**.
 Pixel art 2D, hecho en **Godot 4.3+** con GDScript.
 
+**Jugar en el navegador:** <https://metaliaw.github.io/meowtillery/>
+(la versión web vive en `docs/` y GitHub Pages la publica desde ahí).
+
 ## Cómo abrirlo
 
 1. Instala Godot 4 (versión estándar, no .NET): <https://godotengine.org/download>
@@ -102,14 +105,17 @@ Export Templates). Los presets ya están en `export_presets.cfg`; desde esta car
 
 ```powershell
 godot --headless --path . --export-release "Windows Desktop" build/windows/Meowtillery.exe
-godot --headless --path . --export-release "Web" build/web/index.html
+godot --headless --path . --export-release "Web" docs/index.html
 ```
+
+Después de exportar la web, hacer commit de `docs/` y push: GitHub Pages se actualiza
+solo en ~1 minuto. `docs/.gdignore` evita que Godot importe esos archivos como parte
+del juego, y `docs/licencias/` lleva la licencia de la fuente y los créditos de sonido.
 
 - **Windows:** un solo `.exe` con todo adentro. No está firmado, así que Windows avisa
   la primera vez ("Más información" → "Ejecutar de todas formas").
 - **Web:** usa el renderizador *Compatibility* (WebGL 2) y **sin hilos**, así no hace falta
-  configurar cabeceras especiales y funciona en GitHub Pages o itch.io. La carpeta
-  `build/web` se sube tal cual.
+  configurar cabeceras especiales y funciona en GitHub Pages o itch.io.
 
 ## Pendiente
 
