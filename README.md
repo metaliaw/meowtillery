@@ -46,7 +46,10 @@ godot --headless --path . -s tests/test_combate.gd
 - **Moral.** Cada impacto de 5 o más baja 1 de moral. Con 0 la tripulación entra en
   pánico y ese tanque no puede atacar (*Arenga* la recupera). Un enemigo en pánico
   pierde su turno y se recupera.
-- **Fase enemiga.** Actúan como máximo 3 enemigos por turno (los más cercanos a tus
+- **Intenciones a la vista.** Sobre cada enemigo hay un cartelito con lo que hará:
+  mira roja + daño (ataque), escudo azul, grito morado (baja moral), "?" (pánico) o "zZ" (reserva).
+- **Fase enemiga.** Se anima enemigo por enemigo (se mueve, dispara, el número de daño
+  salta). Actúan como máximo 3 enemigos por turno (los más cercanos a tus
   tanques); si hay más, el resto queda **en reserva** (se ven oscurecidos y con "zZ").
   Así los 4 soviéticos tienen más cuerpos, pero no más acciones. Cada enemigo anuncia su acción. Si es un disparo, se acerca al
   aliado más cercano buscando pegarle por el flanco o la trasera.
@@ -63,7 +66,8 @@ godot --headless --path . -s tests/test_combate.gd
 | `tests/datos/` | Unidades fijas de prueba, para que las pruebas no cambien al equilibrar. |
 | `scripts/mapa.gd` | Grilla, costes y búsqueda de caminos. |
 | `scripts/combate.gd` | Toda la lógica del combate y la IA, sin nodos (se prueba sola). |
-| `scripts/tablero.gd` | Dibuja el mapa, unidades y resaltados. |
+| `scripts/tablero.gd` | Dibuja el mapa, unidades, resaltados e íconos de intención enemiga, y anima en orden cada acción que avisa el combate (señal `accion`): desplazamiento, disparo, golpe con número, explosión y textos. |
+| `tools/qa/` | `bot.gd` (jugador automático) y `simular.gd`: juega cientos de batallas para medir balance (`godot --headless --path . -s tools/qa/simular.gd`, o `-- --azar` para un bot al azar). |
 | `scripts/escena_combate.gd` | Interfaz: fichas, mano de cartas, registro. |
 | `scripts/menu.gd`, `scripts/tutorial.gd` | Pantalla de inicio y tutorial de 10 páginas guiado por Muffy (instructora) y la teniente Michi (explica las cartas). |
 | `scripts/gato_animado.gd` | Anima a un gato desde su hoja de sprites. Por defecto, Muffy (`assets/muchi/`, el archivo conserva el nombre original del personaje; arte propio de la autora, todos los derechos reservados). |
@@ -101,7 +105,10 @@ la exportación web. Pasos, cuando toque:
 - Línea de visión (hoy se dispara a través de todo).
 - Muerte permanente de la tripulación entre batallas, campaña con varios mapas,
   recompensas de cartas y guardado.
-- Animaciones de movimiento y disparo (los sonidos ya están). Música.
+- Música.
+- Resultados del QA (bot): el juego es fácil si se juega con criterio (99% de victorias),
+  las batallas duran ~12 turnos y Girar/Acelerar/¡Urá! casi no sirven. Falta: niveles de
+  dificultad, batallas más cortas, ficha visual del blindaje y pantalla de fichas técnicas.
 
 ## Tanques reales de referencia y derechos
 

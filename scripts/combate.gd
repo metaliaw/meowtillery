@@ -12,6 +12,14 @@ extends RefCounted
 signal cambio
 ## Algo que se ve o se oye: "mover", "disparo", "explosion", "turno", "victoria", "derrota".
 signal evento(nombre: String)
+## Cada cosa que pasa, en orden y con sus datos, para que el tablero la anime paso a paso.
+## Siempre trae "tipo" y "clave" (la unidad: "a0", "e2"...). Tipos:
+##   mover    {camino: [Vector2i], orientacion}
+##   girar    {orientacion}
+##   disparo  {objetivo: clave, orientacion}
+##   golpe    {al_casco, absorbido, casco, escudo, derriba}
+##   texto    {texto, color: "escudo"|"moral"|"malo", escudo, moral}
+signal accion(datos: Dictionary)
 
 const Mapa := preload("res://scripts/mapa.gd")
 
@@ -60,9 +68,11 @@ func iniciar(def_mapa: Dictionary, def_aliados: Array, def_enemigos: Array, def_
 	aliados.clear()
 	for i in def_aliados.size():
 		aliados.append(_crear_unidad(def_aliados[i], "aliado", _celda(def_mapa["aliados"][i]), Vector2i.RIGHT))
+		aliados[i]["clave"] = "a%d" % i
 	enemigos.clear()
 	for i in def_enemigos.size():
 		enemigos.append(_crear_unidad(def_enemigos[i], "enemigo", _celda(def_mapa["enemigos"][i]), Vector2i.LEFT))
+		enemigos[i]["clave"] = "e%d" % i
 	cartas.clear()
 	for c in def_cartas:
 		var carta: Dictionary = c.duplicate(true)
@@ -204,6 +214,8 @@ func jugar_carta(i_mano: int, i_actor: int, i_objetivo: int) -> bool:
 		if i_actor == orden:
 			orden_cumplida = true
 		var objetivo: Dictionary = enemigos[i_objetivo]
+		accion.emit({"tipo": "disparo", "clave": actor["clave"], "objetivo": objetivo["clave"],
+			"orientacion": actor["orientacion"]})
 		var lado := lado_de_impacto(objetivo, actor["pos"])
 		var dano := dano_de_carta(c, lado) + bonus_de_ataque(actor, c, objetivo)
 		golpear(objetivo, dano, int(c.get("penetracion", 0)), lado, mapa.cobertura(objetivo["pos"]))
@@ -220,11 +232,15 @@ func jugar_carta(i_mano: int, i_actor: int, i_objetivo: int) -> bool:
 	if c.has("escudo"):
 		for u in receptores:
 			u["escudo"] += int(c["escudo"])
+			_avisar(u, "+%d escudo" % int(c["escudo"]), "escudo")
 	if c.has("moral"):
 		for u in receptores:
 			u["moral"] = clampi(u["moral"] + int(c["moral"]), 0, u["moral_max"])
+			var m := int(c["moral"])
+			_avisar(u, ("+%d moral" if m > 0 else "%d moral") % m, "moral" if m > 0 else "malo")
 	if c.get("encarar", false):
 		actor["orientacion"] = direccion_hacia(actor["pos"], enemigos[i_objetivo]["pos"])
+		accion.emit({"tipo": "girar", "clave": actor["clave"], "orientacion": actor["orientacion"]})
 	if c.has("movimiento"):
 		for u in receptores:
 			u["mov_restante"] += int(c["movimiento"])
@@ -292,7 +308,16 @@ func golpear(u: Dictionary, dano: int, penetracion: int, lado: String, cobertura
 		texto += ". Fuera de combate!"
 		evento.emit("explosion")
 	_anotar(texto)
+	accion.emit({"tipo": "golpe", "clave": u.get("clave", ""), "al_casco": i["al_casco"],
+		"absorbido": i["absorbido"], "casco": u["casco"], "escudo": u["escudo"], "moral": u["moral"],
+		"derriba": not vivo(u)})
 	return i["al_casco"]
+
+
+## Texto flotante sobre una unidad (escudo, moral...), con su estado ya actualizado.
+func _avisar(u: Dictionary, texto: String, color: String) -> void:
+	accion.emit({"tipo": "texto", "clave": u.get("clave", ""), "texto": texto, "color": color,
+		"escudo": u["escudo"], "moral": u["moral"]})
 
 
 ## Daño base de una carta según el lado por el que pega.
@@ -448,6 +473,7 @@ func _revisar_orden() -> void:
 	else:
 		u["moral"] = maxi(u["moral"] - 1, 0)
 		_anotar("%s: «¿Y ese disparo, recluta?» %s pierde 1 de moral." % [oficial["nombre"], u["nombre"]])
+		_avisar(u, "Michi: -1 moral", "malo")
 
 
 func _elegir_intenciones() -> void:
@@ -500,6 +526,7 @@ func _cerrar_turno_de(lista: Array) -> void:
 		if vivo(u) and u.get("mania") == "ritual_te" and not u.get("se_movio", false) and u["moral"] < u["moral_max"]:
 			u["moral"] += 1
 			_anotar("%s se queda quieto tomando té: +1 moral." % u["nombre"])
+			_avisar(u, "té: +1 moral", "moral")
 
 
 func _turno_enemigo() -> void:
@@ -529,12 +556,15 @@ func _turno_enemigo_acciones() -> void:
 			_atacar_como_enemigo(e, a)
 		if a.has("moral"):
 			_anotar("%s usa %s." % [e["nombre"], a["nombre"]])
+			_avisar(e, a["nombre"] + "!", "malo")
 			for u in aliados:
 				if vivo(u) and Mapa.distancia(u["pos"], e["pos"]) <= int(a.get("radio", 99)):
 					u["moral"] = maxi(u["moral"] - int(a["moral"]), 0)
+					_avisar(u, "-%d moral" % int(a["moral"]), "malo")
 		if a.has("escudo"):
 			_anotar("%s usa %s." % [e["nombre"], a["nombre"]])
 			e["escudo"] += int(a["escudo"])
+			_avisar(e, "+%d escudo" % int(a["escudo"]), "escudo")
 		if _primer_vivo(aliados) < 0:
 			return
 
@@ -569,6 +599,8 @@ func _atacar_como_enemigo(e: Dictionary, a: Dictionary) -> void:
 	e["orientacion"] = direccion_hacia(e["pos"], objetivo["pos"])
 	_anotar("%s usa %s." % [e["nombre"], a["nombre"]])
 	evento.emit("disparo")
+	accion.emit({"tipo": "disparo", "clave": e["clave"], "objetivo": objetivo["clave"],
+		"orientacion": e["orientacion"]})
 	golpear(objetivo, int(a["dano"]) + bonus_de_ataque(e, a, objetivo), int(a.get("penetracion", 0)),
 		lado_de_impacto(objetivo, e["pos"]), mapa.cobertura(objetivo["pos"]))
 
@@ -587,10 +619,31 @@ func _aliado_mas_cercano(desde: Vector2i) -> Dictionary:
 
 ## Mueve la unidad y la deja mirando en la dirección de su último paso.
 func _mover_a(u: Dictionary, celda: Vector2i, opciones: Dictionary) -> void:
-	var anterior: Vector2i = opciones[celda][1]
+	# Camino completo, del origen al destino, siguiendo los "anterior" de Dijkstra.
+	# Se usa la red sin recortar: `opciones` no trae las casillas ocupadas por los
+	# propios, y el camino sí puede pasar por encima de ellas.
+	var red := _red_de_caminos(u)
+	if not red.has(celda):
+		red = opciones
+	var camino: Array = [celda]
+	while camino[0] != u["pos"]:
+		camino.push_front(red[camino[0]][1])
+	var anterior: Vector2i = camino[-2] if camino.size() > 1 else u["pos"]
 	u["orientacion"] = celda - anterior
 	u["pos"] = celda
 	u["se_movio"] = true
+	accion.emit({"tipo": "mover", "clave": u.get("clave", ""), "camino": camino, "orientacion": u["orientacion"]})
+
+
+## Dijkstra sin límite práctico ni recorte de casillas ocupadas por los propios
+## (los rivales sí bloquean): solo para rearmar caminos.
+func _red_de_caminos(u: Dictionary) -> Dictionary:
+	var rivales: Array = enemigos if u["bando"] == "aliado" else aliados
+	var bloqueadas := {}
+	for r in rivales:
+		if vivo(r):
+			bloqueadas[r["pos"]] = true
+	return mapa.alcanzables(u["pos"], 999, bloqueadas)
 
 
 func _primer_vivo(lista: Array) -> int:

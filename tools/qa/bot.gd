@@ -1,0 +1,176 @@
+extends RefCounted
+## Bot jugador para QA: juega el bando aliado con reglas simples y razonables.
+## No es una IA buena; sirve para medir balance a gran escala (tools/qa/simular.gd).
+##
+## Cada turno:
+##  1. Mueve cada tanque a la celda alcanzable que mejor combina daño posible
+##     (busca flanco o trasera), cobertura y poca amenaza enemiga.
+##  2. Juega cartas mientras haya energía, eligiendo la de más valor por energía:
+##     ataques por daño previsto (más si derriba o cumple la orden de Michi),
+##     escudo si el tanque está amenazado, moral si le falta.
+
+const Mapa := preload("res://scripts/mapa.gd")
+
+var cartas_jugadas: Dictionary = {}  # id -> veces
+## Bot "torpe": se acerca al azar y juega cualquier carta jugable. Sirve de línea base.
+var aleatorio := false
+var rng := RandomNumberGenerator.new()
+
+
+func jugar_turno(c) -> void:
+	if aleatorio:
+		_jugar_al_azar(c)
+		return
+	var amenaza := _amenaza(c)
+	for i in c.aliados.size():
+		_mover(c, i, amenaza)
+	while c.estado == "jugando":
+		var mejor := _mejor_jugada(c, amenaza)
+		if mejor.is_empty():
+			break
+		var id: String = c.mano[mejor["mano"]]
+		if not c.jugar_carta(mejor["mano"], mejor["actor"], mejor["objetivo"]):
+			break
+		cartas_jugadas[id] = cartas_jugadas.get(id, 0) + 1
+	if c.estado == "jugando":
+		c.terminar_turno()
+
+
+func _jugar_al_azar(c) -> void:
+	for i in c.aliados.size():
+		var u: Dictionary = c.aliados[i]
+		if not c.vivo(u):
+			continue
+		var celdas: Array = c.casillas_de_movimiento(u, u["mov_restante"]).keys()
+		# Entre las que no lo alejan del enemigo, una al azar.
+		var d0 := _distancia_enemigo(c, u["pos"])
+		celdas = celdas.filter(func(x): return _distancia_enemigo(c, x) <= d0)
+		if not celdas.is_empty():
+			c.mover(i, celdas[rng.randi_range(0, celdas.size() - 1)])
+	while c.estado == "jugando":
+		var jugables: Array = []
+		for m in c.mano.size():
+			for a in c.aliados.size():
+				for o in c.enemigos.size():
+					if c.motivo_no_jugable(m, a, o) == "":
+						jugables.append([m, a, o])
+		if jugables.is_empty():
+			break
+		var j: Array = jugables[rng.randi_range(0, jugables.size() - 1)]
+		var id: String = c.mano[j[0]]
+		c.jugar_carta(j[0], j[1], j[2])
+		cartas_jugadas[id] = cartas_jugadas.get(id, 0) + 1
+	if c.estado == "jugando":
+		c.terminar_turno()
+
+
+## Cuántos enemigos podrían atacar cada celda en su fase: {celda: n}.
+func _amenaza(c) -> Dictionary:
+	var res := {}
+	for e in c.enemigos:
+		for celda in c.celdas_amenaza(e):
+			res[celda] = res.get(celda, 0) + 1
+	return res
+
+
+func _mover(c, i: int, amenaza: Dictionary) -> void:
+	var u: Dictionary = c.aliados[i]
+	if not c.vivo(u) or c.estado != "jugando":
+		return
+	var opciones: Dictionary = c.casillas_de_movimiento(u, u["mov_restante"])
+	var mejor_celda: Vector2i = u["pos"]
+	var mejor := -INF
+	var original: Vector2i = u["pos"]
+	for celda in opciones:
+		u["pos"] = celda
+		var puntaje := _dano_posible(c, u) * 10.0
+		puntaje += c.mapa.cobertura(celda) * 3.0
+		puntaje -= amenaza.get(celda, 0) * 4.0
+		puntaje -= _distancia_enemigo(c, celda) * 0.5
+		puntaje -= opciones[celda][0] * 0.1  # a igualdad, moverse menos
+		if u.get("mania") == "ritual_te" and celda == original:
+			puntaje += 2.0
+		if puntaje > mejor:
+			mejor = puntaje
+			mejor_celda = celda
+	u["pos"] = original
+	if mejor_celda != original:
+		c.mover(i, mejor_celda)
+
+
+## Mejor daño que haría `u` desde donde está con alguna carta de ataque de la mano.
+func _dano_posible(c, u: Dictionary) -> float:
+	var mejor := 0.0
+	for id in c.mano:
+		var carta: Dictionary = c.cartas[id]
+		if carta.get("tipo") != "ataque":
+			continue
+		for e in c.enemigos:
+			if not c.vivo(e):
+				continue
+			var dist := Mapa.distancia(u["pos"], e["pos"])
+			if dist < carta["alcance"][0] or dist > carta["alcance"][1]:
+				continue
+			var lado: String = c.lado_de_impacto(e, u["pos"])
+			var i: Dictionary = c.calcular_impacto(e, c.dano_de_carta(carta, lado) + c.bonus_de_ataque(u, carta, e),
+				int(carta.get("penetracion", 0)), lado, c.mapa.cobertura(e["pos"]))
+			mejor = maxf(mejor, i["al_casco"] + (8.0 if i["derriba"] else 0.0))
+	return mejor
+
+
+func _distancia_enemigo(c, celda: Vector2i) -> int:
+	var d := 1 << 20
+	for e in c.enemigos:
+		if c.vivo(e):
+			d = mini(d, Mapa.distancia(celda, e["pos"]))
+	return d
+
+
+func _mejor_jugada(c, amenaza: Dictionary) -> Dictionary:
+	var mejor := {}
+	var mejor_valor := 0.0
+	for m in c.mano.size():
+		var carta: Dictionary = c.cartas[c.mano[m]]
+		for a in c.aliados.size():
+			for o in c.enemigos.size():
+				if c.motivo_no_jugable(m, a, o) != "":
+					continue
+				var valor := _valor(c, carta, m, a, o, amenaza)
+				var coste: float = maxf(c.coste_de(carta, c.aliados[a]), 0.5)
+				if valor / coste > mejor_valor:
+					mejor_valor = valor / coste
+					mejor = {"mano": m, "actor": a, "objetivo": o}
+				if not carta.get("requiere_objetivo", false) and carta.get("tipo") != "ataque":
+					break  # el blanco no importa
+	return mejor
+
+
+func _valor(c, carta: Dictionary, m: int, a: int, o: int, amenaza: Dictionary) -> float:
+	var u: Dictionary = c.aliados[a]
+	match carta.get("tipo"):
+		"ataque":
+			var v := 0.0
+			for imp in c.prever_carta(m, a, o):
+				v += imp["al_casco"] + (10.0 if imp["derriba"] else 0.0)
+			if a == c.orden and not c.orden_cumplida:
+				v += 4.0
+			return v
+		"defensa":
+			var v := 0.0
+			var radio := int(carta.get("radio", 0))
+			for otro in c.aliados:
+				if c.vivo(otro) and Mapa.distancia(otro["pos"], u["pos"]) <= radio and amenaza.has(otro["pos"]):
+					v += int(carta.get("escudo", 0)) * 0.7
+			if carta.get("quieto", false) and u["mov_restante"] > 0:
+				v *= 0.8
+			return v
+		"apoyo":
+			if carta.has("energia"):
+				return 2.5 if c.energia == 0 else 0.0
+			var falta := 0
+			var radio := int(carta.get("radio", 0))
+			for otro in c.aliados:
+				if c.vivo(otro) and Mapa.distancia(otro["pos"], u["pos"]) <= radio:
+					falta += mini(int(otro["moral_max"]) - int(otro["moral"]), int(carta.get("moral", 0)))
+			return falta * 0.8
+	return 0.0  # maniobras: el bot ya se movió

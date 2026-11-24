@@ -31,6 +31,7 @@ var _michi: Gato
 var _fila_michi: HBoxContainer
 var _orden: Label
 var _orden_anterior := -2  # para que Michi reaccione solo cuando cambia la orden
+var _fin_sonado := false
 var _mano: HBoxContainer
 var _boton_turno: Button
 var _capa_final: CenterContainer
@@ -46,7 +47,10 @@ func _nueva_partida() -> void:
 	combate = Combate.new()
 	# Diferido: así no se reconstruye la UI dentro del clic que la disparó.
 	combate.cambio.connect(_refrescar, CONNECT_DEFERRED)
-	combate.evento.connect(Sonido.cola)
+	combate.evento.connect(_al_evento)
+	# Cada acción se anima en el tablero, en orden (y ahí suenan disparos y explosiones).
+	combate.accion.connect(_tablero.encolar)
+	_fin_sonado = false
 	var con_michi := Partida.nueva_batalla(combate)
 	_fila_michi.visible = con_michi
 	_orden_anterior = -2
@@ -86,6 +90,7 @@ func _construir_interfaz() -> void:
 	_tablero = Tablero.new()
 	_tablero.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	_tablero.celda_pulsada.connect(_al_pulsar_celda)
+	_tablero.animacion_terminada.connect(_refrescar)
 	medio.add_child(_tablero)
 
 	var lateral := VBoxContainer.new()
@@ -162,7 +167,31 @@ func _etiqueta(padre: Control, color: Color) -> Label:
 	return l
 
 
+## Sonidos que no dependen de una animación del tablero.
+func _al_evento(nombre: String) -> void:
+	if nombre == "turno":
+		Sonido.tocar("turno")
+
+
+## Mientras el tablero anima: nada se puede tocar y no se muestran resaltados viejos.
+func _bloquear() -> void:
+	for b in _mano.get_children():
+		(b as Button).disabled = true
+	_boton_turno.disabled = true
+	_tablero.movimiento = {}
+	_tablero.amenaza = {}
+	_tablero.alcance = {}
+	_tablero.prevision = {}
+	_tablero.actor_pos = Vector2i(-1, -1)
+	_tablero.objetivo_pos = Vector2i(-1, -1)
+	_tablero.queue_redraw()
+
+
 func _refrescar() -> void:
+	if _tablero.animando:
+		_bloquear()  # se refresca de verdad cuando termina la animación
+		return
+	_tablero.sincronizar()
 	actor_sel = _seleccion_valida(combate.aliados, actor_sel)
 	objetivo_sel = _seleccion_valida(combate.enemigos, objetivo_sel)
 	var actor: Dictionary = combate.aliados[actor_sel]
@@ -202,6 +231,9 @@ func _refrescar() -> void:
 	_boton_turno.disabled = not jugando
 	_capa_final.visible = not jugando
 	_texto_final.text = "¡Victoria!" if combate.estado == "victoria" else "Derrota"
+	if not jugando and not _fin_sonado:
+		_fin_sonado = true
+		Sonido.tocar(combate.estado)
 
 
 func _refrescar_orden(ordenado: Dictionary) -> void:
@@ -287,7 +319,7 @@ func _boton_carta(i_mano: int) -> Button:
 
 ## Al pasar el mouse sobre una carta: qué haría con el tanque y el blanco elegidos.
 func _mostrar_prevision(i_mano: int) -> void:
-	if i_mano >= combate.mano.size():
+	if i_mano >= combate.mano.size() or not _puede_previsualizar():
 		return
 	var c: Dictionary = combate.cartas[combate.mano[i_mano]]
 	var actor: Dictionary = combate.aliados[actor_sel]
@@ -346,6 +378,11 @@ func _al_pulsar_celda(celda: Vector2i) -> void:
 	elif combate.mover(actor_sel, celda):
 		return  # mover() emite "cambio" y eso refresca
 	_refrescar.call_deferred()
+
+
+## Al pasar el mouse por una carta mientras se anima, no se muestra nada.
+func _puede_previsualizar() -> bool:
+	return not _tablero.animando
 
 
 ## Mantiene la selección si sigue en pie; si no, pasa a la primera unidad viva.

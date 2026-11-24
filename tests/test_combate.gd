@@ -36,6 +36,7 @@ func _init() -> void:
 	_probar_manias()
 	_probar_cartas_de_batallon()
 	_probar_michi()
+	_probar_acciones()
 	print("\nTODO OK" if _fallos == 0 else "\n%d FALLOS" % _fallos)
 	quit(1 if _fallos > 0 else 0)
 
@@ -379,6 +380,47 @@ func _probar_michi() -> void:
 	_comprobar(p.nueva_batalla(Combate.new()), "tras 3 batallas sin Michi, viene seguro")
 	_comprobar(p.batallas_sin_michi == 0, "y el contador vuelve a 0")
 	p.free()
+
+
+## La señal `accion` cuenta lo que pasa, en orden y con lo necesario para animarlo.
+func _probar_acciones() -> void:
+	var c := _batalla()
+	var acciones: Array = []
+	c.accion.connect(func(a): acciones.append(a))
+	var origen: Vector2i = c.aliados[0]["pos"]
+	c.mover(0, origen + Vector2i(2, 0))
+	_comprobar(acciones.size() == 1 and acciones[0]["tipo"] == "mover", "mover avisa una acción")
+	var camino: Array = acciones[0]["camino"]
+	_comprobar(camino[0] == origen and camino[-1] == origen + Vector2i(2, 0) and camino.size() == 3,
+		"el camino va del origen al destino, casilla por casilla")
+
+	# Pasar por encima de un tanque propio: el camino lo atraviesa sin romperse.
+	acciones.clear()
+	var amigo: Dictionary = c.aliados[1]
+	amigo["pos"] = c.aliados[0]["pos"] + Vector2i(1, 0)
+	c.aliados[0]["mov_restante"] = 3
+	var antes: Vector2i = c.aliados[0]["pos"]
+	_comprobar(c.mover(0, antes + Vector2i(2, 0)), "se puede mover atravesando a un tanque propio")
+	_comprobar(acciones[0]["camino"].has(amigo["pos"]), "y el camino pasa por su casilla")
+
+	acciones.clear()
+	var blanco: Dictionary = c.enemigos[0]
+	blanco["pos"] = c.aliados[0]["pos"] + Vector2i(3, 0)
+	c.mano = ["disparo_ap"]
+	c.jugar_carta(0, 0, 0)
+	var tipos: Array = acciones.map(func(a): return a["tipo"])
+	_comprobar(tipos == ["disparo", "golpe"], "un ataque avisa disparo y después golpe")
+	_comprobar(acciones[0]["objetivo"] == blanco["clave"] and acciones[1]["casco"] == blanco["casco"],
+		"el golpe trae el casco que le queda al blanco")
+
+	acciones.clear()
+	for e in c.enemigos:
+		e["intencion"] = {"nombre": "Prueba", "dano": 5, "penetracion": 0, "alcance": [1, 4]}
+	c.terminar_turno()
+	var claves: Array = acciones.filter(func(a): return a["tipo"] == "disparo").map(func(a): return a["clave"])
+	var ordenadas := claves.duplicate()
+	ordenadas.sort()
+	_comprobar(claves == ordenadas, "en la fase enemiga las acciones salen en orden, enemigo por enemigo")
 
 
 func _probar_cartas_de_batallon() -> void:
