@@ -122,7 +122,7 @@ func _dano_posible(c, u: Dictionary) -> float:
 			if not c.vivo(e):
 				continue
 			var dist := Mapa.distancia(u["pos"], e["pos"])
-			if dist < carta["alcance"][0] or dist > carta["alcance"][1]:
+			if dist < carta["alcance"][0] or dist > carta["alcance"][1] or not c.ve_a(carta, u["pos"], e["pos"]):
 				continue
 			var lado: String = c.lado_de_impacto(e, u["pos"])
 			var i: Dictionary = c.calcular_impacto(e, c.dano_de_carta(carta, lado) + c.bonus_de_ataque(u, carta, e),
@@ -179,7 +179,8 @@ func _valor(c, carta: Dictionary, id: String, a: int, o: int, amenaza: Dictionar
 		"ataque":
 			var v := 0.0
 			for imp in c.prever_uso(id, a, o):
-				v += imp["al_casco"] + (10.0 if imp["derriba"] else 0.0)
+				var p: float = imp.get("acierto", 1.0)
+				v += imp["al_casco"] * p + imp.get("roce", imp["al_casco"]) * (1.0 - p) + (10.0 * p if imp["derriba"] else 0.0)
 			if a == c.orden and not c.orden_cumplida:
 				v += 4.0
 			return v

@@ -43,6 +43,21 @@ static func distancia(a: Vector2i, b: Vector2i) -> int:
 	return absi(a.x - b.x) + absi(a.y - b.y)
 
 
+## ¿Se ve `hasta` desde `desde`? Las rocas (casillas intransitables) tapan la vista si la
+## línea entre los centros pasa por el medio de la roca; rozarle una esquina no cuenta.
+## El bosque y las ruinas no tapan: dan cobertura.
+func linea_de_vision(desde: Vector2i, hasta: Vector2i) -> bool:
+	var pasos := maxi(distancia(desde, hasta) * 8, 1)
+	for k in range(1, pasos):
+		var p := Vector2(desde).lerp(Vector2(hasta), float(k) / pasos)
+		var c := Vector2i(roundi(p.x), roundi(p.y))
+		if c == desde or c == hasta or not dentro(c) or coste(c) > 0:
+			continue
+		if absf(p.x - c.x) < 0.45 and absf(p.y - c.y) < 0.45:
+			return false
+	return true
+
+
 ## Dijkstra desde `origen` con un presupuesto de movimiento `mov`.
 ## `bloqueadas` son celdas que no se pueden atravesar (unidades rivales).
 ## `tope_coste` > 0 limita el coste de cada casilla (la manía "escaladora" usa 1).

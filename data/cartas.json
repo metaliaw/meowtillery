@@ -297,6 +297,7 @@
       7
     ],
     "recarga": 2,
-    "texto": "5 daño y 2 a los pegados.\nIgnora cobertura. Alc. 3-7."
+    "texto": "5 daño y 2 a los pegados.\nIgnora cobertura y rocas. Alc. 3-7.",
+    "ignora_vision": true
   }
 ]

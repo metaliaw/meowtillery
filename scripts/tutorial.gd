@@ -25,7 +25,7 @@ const PAGINAS := [
 		"anim": "happy",
 	},
 	{
-		"texto": "El campo de batalla es una mesa de cartas. El llano cuesta 1 de movimiento. El bosque y las ruinas cuestan 2, pero te cubren: +1 y +2 de blindaje. Las cartas boca abajo son rocas: por ahí no se pasa.",
+		"texto": "El campo de batalla es una mesa de cartas. El llano cuesta 1 de movimiento. El bosque y las ruinas cuestan 2, pero te cubren: +1 y +2 de blindaje. Las cartas boca abajo son rocas: por ahí no se pasa y no se ve, así que tampoco se dispara a través de ellas (la artillería sí, porque cae desde arriba).",
 		"imagenes": ["res://assets/terreno/llano_0.png", "res://assets/terreno/bosque_0.png",
 			"res://assets/terreno/ruinas_0.png", "res://assets/terreno/roca_0.png"],
 		"escala": 2,

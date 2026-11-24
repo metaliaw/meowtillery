@@ -74,6 +74,8 @@ var _sanos_en_fase: Dictionary = {}
 ## Tanque que llega con la carta "¡Refuerzos!" (definición de la unidad; vacío = no hay).
 var refuerzo: Dictionary = {}
 var refuerzo_usado := false
+## Para las pruebas: si es >= 0, reemplaza la tirada de puntería (0.0 acierta, 0.99 roza).
+var forzar_tirada := -1.0
 var _spawns_aliados: Array = []
 
 
@@ -279,9 +281,22 @@ func _motivo_comun(c: Dictionary, actor: Dictionary, i_objetivo: int) -> String:
 		var alc: Array = c["alcance"]
 		if dist < alc[0] or dist > alc[1]:
 			return "Fuera de alcance: distancia %d, alcance %d-%d." % [dist, alc[0], alc[1]]
+		if not ve_a(c, actor["pos"], enemigos[i_objetivo]["pos"]):
+			return "Sin línea de visión: hay una roca en medio."
 	if c.get("requiere_objetivo", false) and not hay_objetivo:
 		return "Elige un enemigo en pie."
 	return ""
+
+
+## Probabilidad de que un disparo propio pegue de lleno (si no, roza: mitad de daño).
+## Solo con dificultad "punteria" (Veterano y As); de cerca siempre se acierta.
+func probabilidad_acierto(actor: Dictionary, objetivo: Dictionary) -> float:
+	if not dificultad.get("punteria", false):
+		return 1.0
+	var dist := Mapa.distancia(actor["pos"], objetivo["pos"])
+	if dist <= 2:
+		return 1.0
+	return 0.85 if dist <= 4 else 0.7
 
 
 ## Cobertura del terreno en `celda` para este ataque (la artillería la ignora).
@@ -327,7 +342,8 @@ func _llamar_refuerzo() -> void:
 func _capturar_de(u: Dictionary) -> void:
 	if u["bando"] != "enemigo" or not u.has("habilidades"):
 		return
-	var opciones: Array = u["habilidades"].slice(1)  # sus cartas propias, sin el cañón básico
+	# Sus cartas propias, sin el cañón básico ni ¡Refuerzos! (el tanque es de su batallón).
+	var opciones: Array = u["habilidades"].slice(1).filter(func(id): return not cartas[id].get("refuerzo", false))
 	if opciones.is_empty():
 		return
 	capturas.append({"de": u["nombre"], "opciones": opciones})
@@ -423,6 +439,13 @@ func _aplicar(id: String, i_actor: int, i_objetivo: int) -> void:
 		if penal > 0:
 			_anotar("  (dispara sin encarar: -%d de daño)" % penal)
 		var dano := maxi(dano_de_carta(c, lado) + bonus_de_ataque(actor, c, objetivo) - penal, 1)
+		# Puntería (Veterano y As): de lejos el disparo puede rozar y hacer la mitad.
+		var prob := probabilidad_acierto(actor, objetivo)
+		var tirada: float = forzar_tirada if forzar_tirada >= 0.0 else rng.randf()
+		if tirada >= prob:
+			dano = maxi(dano / 2, 1)
+			_anotar("  ¡Roce! El disparo apenas lo toca (mitad de daño).")
+			_avisar(objetivo, "¡Roce!", "malo")
 		golpear(objetivo, dano, int(c.get("penetracion", 0)), lado, _cobertura_para(c, objetivo["pos"]))
 		var salpicadura := int(c.get("salpicadura", 0))
 		if salpicadura > 0:
@@ -610,6 +633,9 @@ func prever_uso(id: String, i_actor: int, i_objetivo: int) -> Array:
 	principal["principal"] = true
 	principal["bonus"] = bonus
 	principal["penal"] = penal
+	principal["acierto"] = probabilidad_acierto(actor, objetivo)
+	var dano_lleno := maxi(dano_de_carta(c, lado) + bonus - penal, 1)
+	principal["roce"] = calcular_impacto(objetivo, maxi(dano_lleno / 2, 1), pen, lado, cob)["al_casco"]
 	var por_lado := {}
 	for l in PREFERENCIA_LADO:
 		var i := calcular_impacto(objetivo, maxi(dano_de_carta(c, l) + bonus - penal, 1), pen, l, cob)
@@ -658,9 +684,14 @@ func celdas_amenaza(e: Dictionary) -> Dictionary:
 			for dx in range(-alc[1], alc[1] + 1):
 				var dist := absi(dx) + absi(dy)
 				var celda: Vector2i = origen + Vector2i(dx, dy)
-				if dist >= alc[0] and dist <= alc[1] and mapa.dentro(celda):
+				if dist >= alc[0] and dist <= alc[1] and mapa.dentro(celda) and not res.has(celda) 						and ve_a(a, origen, celda):
 					res[celda] = true
 	return res
+
+
+## Línea de visión para esta carta o acción (la artillería dispara por encima: no la necesita).
+func ve_a(c: Dictionary, desde: Vector2i, hasta: Vector2i) -> bool:
+	return c.get("ignora_vision", false) or mapa.linea_de_vision(desde, hasta)
 
 
 func _iniciar_turno() -> void:
@@ -872,7 +903,7 @@ func _atacar_como_enemigo(e: Dictionary, a: Dictionary) -> void:
 	if mejor_celda != e["pos"]:
 		_mover_a(e, mejor_celda, opciones)
 	var dist_final := Mapa.distancia(e["pos"], objetivo["pos"])
-	if dist_final < alc[0] or dist_final > alc[1]:
+	if dist_final < alc[0] or dist_final > alc[1] or not ve_a(a, e["pos"], objetivo["pos"]):
 		_anotar("%s avanza." % e["nombre"])
 		return
 	e["orientacion"] = direccion_hacia(e["pos"], objetivo["pos"])
@@ -896,7 +927,7 @@ func _plan_simple(e: Dictionary, a: Dictionary, opciones: Dictionary) -> Diction
 		var dist := Mapa.distancia(celda, objetivo["pos"])
 		var coste: int = opciones[celda][0]
 		var puntaje: float
-		if dist >= alc[0] and dist <= alc[1]:
+		if dist >= alc[0] and dist <= alc[1] and ve_a(a, celda, objetivo["pos"]):
 			puntaje = 1000 + PREFERENCIA_LADO[lado_de_impacto(objetivo, celda)] * 10 - coste
 		else:
 			puntaje = -dist * 10 - coste
@@ -921,7 +952,7 @@ func _plan_listo(e: Dictionary, a: Dictionary, opciones: Dictionary) -> Dictiona
 				continue
 			var dist := Mapa.distancia(celda, u["pos"])
 			cerca = mini(cerca, dist)
-			if dist < alc[0] or dist > alc[1]:
+			if dist < alc[0] or dist > alc[1] or not ve_a(a, celda, u["pos"]):
 				continue
 			var lado := lado_de_impacto(u, celda)
 			var imp := calcular_impacto(u, int(a["dano"]) + bonus_de_ataque(e, a, u), pen, lado, mapa.cobertura(u["pos"]))

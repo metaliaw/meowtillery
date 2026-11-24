@@ -193,6 +193,7 @@ func _carta(id: String, b: Dictionary) -> Control:
 	elegir.text = "Jugar con este batallón"
 	elegir.custom_minimum_size = Vector2(0, 48)
 	elegir.pressed.connect(func():
+		Partida.preparar_partida_libre()
 		Partida.elegir(id)
 		get_tree().change_scene_to_file(ESCENA_COMBATE))
 	# Al pasar por el botón, los gatos de ese batallón se alegran.

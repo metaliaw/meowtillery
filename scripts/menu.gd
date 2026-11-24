@@ -63,10 +63,12 @@ func _ready() -> void:
 
 	var botones := VBoxContainer.new()
 	botones.alignment = BoxContainer.ALIGNMENT_CENTER
-	botones.add_theme_constant_override("separation", 14)
+	botones.add_theme_constant_override("separation", 10)
 	fila.add_child(botones)
-	_boton(botones, "Iniciar juego", func(): get_tree().change_scene_to_file(ESCENA_COMBATE))
+	_boton(botones, "Batalla suelta", func(): get_tree().change_scene_to_file(ESCENA_COMBATE))
+	_boton(botones, "Campaña", func(): get_tree().change_scene_to_file("res://scenes/campana.tscn"))
 	_boton(botones, "Cómo se juega", func(): get_tree().change_scene_to_file(ESCENA_TUTORIAL))
+	_boton(botones, "Fichas técnicas", func(): get_tree().change_scene_to_file("res://scenes/fichas.tscn"))
 	if not OS.has_feature("web"):  # en el navegador no hay ventana que cerrar
 		_boton(botones, "Salir", func(): get_tree().quit())
 	botones.add_child(ControlSonido.new())
@@ -75,7 +77,7 @@ func _ready() -> void:
 func _boton(padre: Control, texto: String, accion: Callable) -> void:
 	var b := Button.new()
 	b.text = texto
-	b.custom_minimum_size = Vector2(260, 58)
+	b.custom_minimum_size = Vector2(260, 50)
 	b.add_theme_font_size_override("font_size", 22)
 	b.pressed.connect(accion)
 	b.mouse_entered.connect(func(): _muffy.animar("happy", 0.8))

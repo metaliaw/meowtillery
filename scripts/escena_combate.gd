@@ -42,6 +42,8 @@ var _boton_turno: Button
 var _capa_final: Control
 var _capa_pausa: Control
 var _capa_confirmar: Control
+var _boton_otra: Button
+var _boton_volver: Button
 var _capa_captura: Control
 var _texto_captura: Label
 var _opciones_captura: HBoxContainer
@@ -182,14 +184,14 @@ func _construir_interfaz() -> void:
 	final[1].add_child(caja_final)
 	_texto_final = Estilo.titulo("", 64)
 	caja_final.add_child(_texto_final)
-	var otra := Button.new()
-	otra.text = "Jugar de nuevo"
-	otra.pressed.connect(_nueva_partida)
-	caja_final.add_child(otra)
-	var volver := Button.new()
-	volver.text = "Volver al menú"
-	volver.pressed.connect(_ir_al_menu)
-	caja_final.add_child(volver)
+	_boton_otra = Button.new()
+	_boton_otra.text = "Jugar de nuevo"
+	_boton_otra.pressed.connect(_nueva_partida)
+	caja_final.add_child(_boton_otra)
+	_boton_volver = Button.new()
+	_boton_volver.text = "Volver al menú"
+	_boton_volver.pressed.connect(_salir_del_final)
+	caja_final.add_child(_boton_volver)
 
 	_construir_pausa()
 	_construir_confirmacion()
@@ -390,6 +392,13 @@ func _unhandled_input(evento: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 
 
+func _salir_del_final() -> void:
+	if Partida.modo_campana:
+		get_tree().change_scene_to_file("res://scenes/campana.tscn")
+	else:
+		_ir_al_menu()
+
+
 func _ir_al_menu() -> void:
 	get_tree().change_scene_to_file(ESCENA_MENU)
 
@@ -509,8 +518,15 @@ func _refrescar() -> void:
 (%d con cartas)" % pendientes.size()
 	_capa_final.visible = not jugando
 	_texto_final.text = "¡Victoria!" if combate.estado == "victoria" else "Derrota"
+	# En campaña: la victoria suma medallas y avanza; la derrota permite reintentar.
+	if Partida.modo_campana:
+		_boton_otra.text = "Reintentar batalla"
+		_boton_otra.visible = combate.estado != "victoria"
+		_boton_volver.text = "Continuar campaña" if combate.estado == "victoria" else "Volver a la campaña"
 	if not jugando and not _fin_sonado:
 		_fin_sonado = true
+		if Partida.modo_campana and combate.estado == "victoria":
+			Partida.campana_ganada(combate)
 		Sonido.tocar(combate.estado)
 		if combate.estado == "victoria":
 			# Después de la fanfarria, los gatos ronronean contentos.
@@ -548,7 +564,7 @@ func _celdas_a_tiro(actor: Dictionary) -> Dictionary:
 			for x in combate.mapa.ancho:
 				var celda := Vector2i(x, y)
 				var dist: int = Mapa.distancia(actor["pos"], celda)
-				if dist >= c["alcance"][0] and dist <= c["alcance"][1]:
+				if dist >= c["alcance"][0] and dist <= c["alcance"][1] and combate.ve_a(c, actor["pos"], celda):
 					res[celda] = true
 	return res
 
@@ -595,11 +611,15 @@ func _mostrar_prevision(id: String, i_botin: int = -1) -> void:
 		var marca := "-%d" % imp["al_casco"]
 		if imp["derriba"]:
 			marca += " KO"
+		if imp.get("acierto", 1.0) < 1.0:
+			marca += " %d%%" % roundi(imp["acierto"] * 100)
 		marcas[e["pos"]] = {"texto": marca, "derriba": imp["derriba"]}
 		if imp["principal"]:
 			lineas.append("%s de %s a %s, por %s:" % [c["nombre"], actor["nombre"], e["nombre"], _lado_con_articulo(imp["lado"])])
 			lineas.append("  %d daño - (blindaje %d + cobertura %d - penetración %d) = %d" % [
 				imp["dano"], imp["blindaje"], imp["cobertura"], imp["penetracion"], imp["al_casco"] + imp["absorbido"]])
+			if imp.get("acierto", 1.0) < 1.0:
+				lineas.append("  %d%% de pegar de lleno; si roza, hace %d." % [roundi(imp["acierto"] * 100), imp["roce"]])
 			if imp.get("penal", 0) > 0:
 				lineas.append("  Ya incluye -%d por disparar sin encararlo: usa Encarar primero." % imp["penal"])
 			if imp["absorbido"] > 0:

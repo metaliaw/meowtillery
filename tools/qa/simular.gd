@@ -3,6 +3,9 @@ extends SceneTree
 ##   godot --headless --path . -s tools/qa/simular.gd                  (bot razonable, cada dificultad)
 ##   godot --headless --path . -s tools/qa/simular.gd -- --azar        (además, bot al azar)
 ##   godot --headless --path . -s tools/qa/simular.gd -- --detalle     (bajas y cartas usadas)
+##   godot --headless --path . -s tools/qa/simular.gd -- --mapa=bosque (un mapa de campaña)
+##   godot --headless --path . -s tools/qa/simular.gd -- --campana     (cada batalla de cada campaña,
+##        con una medalla por batalla ganada antes para todos los gatos: el caso optimista)
 ## Imprime % de victorias, duración y bajas por bando y dificultad.
 
 const Combate := preload("res://scripts/combate.gd")
@@ -11,6 +14,7 @@ const Bot := preload("res://tools/qa/bot.gd")
 
 const BATALLAS := 100
 const TURNOS_MAX := 30
+var ruta_mapa: String = PartidaScript.MAPA_LIBRE
 ## Todos los enfrentamientos posibles (jugador, rival) entre los batallones de los datos.
 static func enfrentamientos() -> Array:
 	var ids: Array = PartidaScript.batallones().keys()
@@ -24,7 +28,14 @@ static func enfrentamientos() -> Array:
 
 func _initialize() -> void:
 	var args := OS.get_cmdline_user_args()
+	var mapa_arg: Array = Array(args).filter(func(x): return x.begins_with("--mapa="))
+	if not mapa_arg.is_empty():
+		ruta_mapa = "res://data/mapas/%s.json" % mapa_arg[0].substr(7)
 	var tipos_bot := ["razonable"] + (["azar"] if "--azar" in args else [])
+	if "--campana" in args:
+		_simular_campanas()
+		quit()
+		return
 	print("bot          dificultad  bando        gana  pierde  turnos  bajas propias/rivales")
 	for tipo in tipos_bot:
 		for dif in PartidaScript.DIFICULTADES:
@@ -40,6 +51,35 @@ func _initialize() -> void:
 	quit()
 
 
+func _simular_campanas() -> void:
+	print("batallón       batalla  mapa      dificultad  rival            gana (sin medallas / con)")
+	for jugador in PartidaScript.RIVALES_CAMPANA:
+		for n in PartidaScript.CAMPANA.size():
+			var paso: Dictionary = PartidaScript.CAMPANA[n]
+			var rival: String = PartidaScript.RIVALES_CAMPANA[jugador][n]
+			var medallas := {}
+			for u in PartidaScript.batallones()[jugador]["unidades"]:
+				medallas[u["id"]] = n
+			var sin := _ganadas(jugador, rival, paso["dificultad"], paso["mapa"], {})
+			var con := _ganadas(jugador, rival, paso["dificultad"], paso["mapa"], medallas)
+			print("%-14s %d        %-9s %-11s %-16s %3d%% / %3d%%" % [jugador, n + 1,
+				paso["mapa"].get_file().get_basename(), paso["dificultad"], rival, sin, con])
+
+
+func _ganadas(jugador: String, rival: String, dif: String, mapa: String, medallas: Dictionary) -> int:
+	var bot := Bot.new()
+	bot.rng.seed = 1234
+	var ganadas := 0
+	for semilla in BATALLAS:
+		var c := Combate.new()
+		PartidaScript.iniciar_combate(c, jugador, rival, semilla, false, dif, mapa, medallas)
+		while c.estado == "jugando" and c.turno <= TURNOS_MAX:
+			bot.jugar_turno(c)
+		if c.estado == "victoria":
+			ganadas += 1
+	return ganadas * 100 / BATALLAS
+
+
 func _simular(jugador: String, rival: String, dif: String, azar: bool, detalle: bool) -> void:
 	var resultados := {"victoria": 0, "derrota": 0, "empate": 0}
 	var turnos_total := 0
@@ -51,7 +91,7 @@ func _simular(jugador: String, rival: String, dif: String, azar: bool, detalle: 
 	bot.rng.seed = 1234
 	for semilla in BATALLAS:
 		var c := Combate.new()
-		PartidaScript.iniciar_combate(c, jugador, rival, semilla, false, dif)
+		PartidaScript.iniciar_combate(c, jugador, rival, semilla, false, dif, ruta_mapa)
 		while c.estado == "jugando" and c.turno <= TURNOS_MAX:
 			bot.jugar_turno(c)
 		var r: String = c.estado if c.estado != "jugando" else "empate"

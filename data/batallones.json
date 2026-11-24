@@ -434,7 +434,8 @@
             "alcance": [
               3,
               7
-            ]
+            ],
+            "ignora_vision": true
           }
         ]
       }

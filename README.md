@@ -22,6 +22,14 @@ godot --headless --path . -s tests/test_combate.gd
 
 ## Cómo se juega
 
+- **Batalla suelta o campaña.** *Batalla suelta*: una pelea con el batallón, rival y
+  dificultad que elijas. *Campaña*: 5 batallas seguidas (Recluta → Veterano → As) en
+  tres mapas (`data/mapas/`: las colinas, el bosque espeso y la ciudad en ruinas). Cada
+  gato que sigue en pie al ganar recibe una **medalla** (★, +2 de vida para el resto de la
+  campaña), y tras cada victoria se elige una de 3 cartas para el Arsenal. Si pierdes,
+  reintentas esa batalla. Se guarda sola en `user://campana.json`.
+- **Fichas técnicas.** Desde el menú: los 8 tanques con su sprite, datos reales
+  (país, peso, cañón, blindaje, velocidad, cuántos se fabricaron) y un "¿Sabías que…?".
 - **Batallones y gatos.** Antes del combate se elige batallón y rival (o rival al azar).
   Todas las peleas son **3 contra 3**: **británico** (precisión y té), **soviético**
   (ataques en grupo, humo y la carta *¡Refuerzos!* de Boris, que trae a Mishka en un
@@ -46,6 +54,12 @@ godot --headless --path . -s tests/test_combate.gd
 - **Apuntar.** Disparar a un blanco que no está en tu frente (las diagonales exactas
   cuentan como frente) resta 2 de daño. *Encarar* hacia el blanco lo evita y, de paso,
   le da tu frente blindado. La moral máxima es 5.
+- **Línea de visión.** Las rocas tapan: no se puede disparar si la línea entre los dos
+  tanques pasa por una (rozar la esquina no cuenta). La *Artillería* sí, porque cae
+  desde arriba. La zona roja de amenaza enemiga también la respeta.
+- **Roces (Veterano y As).** De lejos se puede rozar: a 1-2 casillas se acierta siempre,
+  a 3-4 un 85% y a 5 o más un 70%. Un roce hace la mitad del daño. La vista previa de la
+  carta muestra el % de acierto y el daño del roce. En Recluta nunca se roza.
 - **Dificultad.** Se elige junto al batallón. *Recluta*: actúan 2 enemigos por turno y
   pegan 1 menos. *Veterano*: la IA elige blanco y casilla por daño esperado (remata,
   flanquea, se cubre) y pega 1 más. *As*: además actúan todos los enemigos y pegan 2 más.
@@ -100,9 +114,11 @@ godot --headless --path . -s tests/test_combate.gd
 | `scripts/mapa.gd` | Grilla, costes y búsqueda de caminos. |
 | `scripts/combate.gd` | Toda la lógica del combate y la IA, sin nodos (se prueba sola). |
 | `scripts/tablero.gd` | Dibuja el mapa, unidades, resaltados e íconos de intención enemiga, y anima en orden cada acción que avisa el combate (señal `accion`): desplazamiento, disparo, golpe con número, explosión y textos. |
-| `tools/qa/` | `bot.gd` (jugador automático) y `simular.gd`: juega cientos de batallas para medir balance (`godot --headless --path . -s tools/qa/simular.gd`, o `-- --azar` para un bot al azar). |
+| `tools/qa/` | `bot.gd` (jugador automático) y `simular.gd`: juega cientos de batallas para medir balance (`godot --headless --path . -s tools/qa/simular.gd`, o `-- --azar` para un bot al azar, `-- --mapa=bosque` para un mapa de campaña). |
 | `scripts/escena_combate.gd` | Interfaz: fichas, mano de cartas, registro, menú de pausa. |
 | `scripts/ficha.gd` | Ficha visual de un tanque: retrato del gato, tanque visto desde arriba con el blindaje de cada lado (rojo = delgado, verde = grueso; anillo amarillo en el lado donde le pegas), barras de casco y moral, movimiento, escudo, terreno y manía. |
+| `scripts/campana.gd`, `data/mapas/` | Pantallas de campaña (elegir batallón, progreso con medallas y Arsenal, recompensa, final) y sus tres mapas. |
+| `scripts/fichas.gd`, `data/fichas.json` | Pantalla de fichas técnicas con datos reales de cada tanque. |
 | `scripts/menu.gd`, `scripts/tutorial.gd` | Pantalla de inicio y tutorial de 10 páginas guiado por Muffy (instructora) y la teniente Michi (explica las cartas). |
 | `scripts/gato_animado.gd` | Anima a un gato desde su hoja de sprites. Por defecto, Muffy (`assets/muchi/`, el archivo conserva el nombre original del personaje; arte propio de la autora, todos los derechos reservados). |
 | `scripts/estilo.gd` | Estética común tipo Balatro: tapete, botones-carta, títulos. |
@@ -148,12 +164,8 @@ del juego, y `docs/licencias/` lleva la licencia de la fuente y los créditos de
 - Más batallones (francés, italiano, de Alemania Oriental…).
 - Ojo con las fuentes de arte: los mapas de Dice Grimorium no publican licencia de uso
   comercial; usar arte propio o CC0 (p. ej. Kenney.nl).
-- Línea de visión (hoy se dispara a través de todo).
-- Muerte permanente de la tripulación entre batallas, campaña con varios mapas,
-  recompensas de cartas y guardado.
 - Música.
-- Entrega 3: puntería (roces) en Veterano y As.
-- Pantalla de fichas técnicas (datos reales de cada tanque).
+- Más mapas y campañas por batallón (con su propia historia).
 
 ## Tanques reales de referencia y derechos
 

@@ -1,0 +1,78 @@
+{
+  "nombre": "Las colinas",
+  "terreno": {
+    ".": {
+      "nombre": "Llano",
+      "coste": 1,
+      "cobertura": 0,
+      "color": "6b8a52",
+      "textura": "llano"
+    },
+    "b": {
+      "nombre": "Bosque",
+      "coste": 2,
+      "cobertura": 1,
+      "color": "3c6b45",
+      "textura": "bosque"
+    },
+    "r": {
+      "nombre": "Ruinas",
+      "coste": 2,
+      "cobertura": 2,
+      "color": "7d7670",
+      "textura": "ruinas"
+    },
+    "#": {
+      "nombre": "Roca",
+      "coste": -1,
+      "cobertura": 0,
+      "color": "3a3440",
+      "textura": "roca"
+    }
+  },
+  "filas": [
+    "....bb......",
+    ".b..bb..r...",
+    "......#.....",
+    "..r...#..bb.",
+    "......#..bb.",
+    ".bb.....r...",
+    "......r..b.."
+  ],
+  "aliados": [
+    [
+      0,
+      2
+    ],
+    [
+      1,
+      3
+    ],
+    [
+      0,
+      4
+    ],
+    [
+      1,
+      1
+    ]
+  ],
+  "enemigos": [
+    [
+      8,
+      1
+    ],
+    [
+      9,
+      3
+    ],
+    [
+      8,
+      5
+    ],
+    [
+      9,
+      6
+    ]
+  ]
+}

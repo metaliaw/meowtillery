@@ -52,6 +52,9 @@ func _init() -> void:
 	_probar_pendientes()
 	_probar_botin()
 	_probar_tercer_equipo()
+	_probar_vision()
+	_probar_roces()
+	_probar_campana()
 	print("\nTODO OK" if _fallos == 0 else "\n%d FALLOS" % _fallos)
 	quit(1 if _fallos > 0 else 0)
 
@@ -439,7 +442,7 @@ func _probar_acciones() -> void:
 
 	acciones.clear()
 	var blanco: Dictionary = c.enemigos[0]
-	blanco["pos"] = c.aliados[0]["pos"] + Vector2i(3, 0)
+	blanco["pos"] = c.aliados[0]["pos"] + Vector2i(2, -1)  # con vista (la roca está en la columna 6)
 	c.usar("disparo_17lb", 0, 0)
 	var tipos: Array = acciones.map(func(a): return a["tipo"])
 	_comprobar(tipos == ["disparo", "golpe"], "un ataque avisa disparo y después golpe")
@@ -644,6 +647,105 @@ func _probar_tercer_equipo() -> void:
 	r.aliados[2]["orientacion"] = Vector2i.RIGHT
 	var imp: Array = r.prever_uso("artilleria", 2, 0)
 	_comprobar(not imp.is_empty() and imp[0]["cobertura"] == 0, "Llamar artillería: no cuenta la cobertura")
+
+
+## Línea de visión: las rocas (columna 6, filas 2 a 4) tapan; la artillería no la necesita.
+func _probar_vision() -> void:
+	var m := Mapa.new()
+	m.cargar(Datos.leer("res://data/mapa.json"))
+	_comprobar(not m.linea_de_vision(Vector2i(4, 3), Vector2i(8, 3)), "una roca en medio tapa la vista")
+	_comprobar(m.linea_de_vision(Vector2i(4, 1), Vector2i(8, 1)), "por encima de las rocas se ve")
+	_comprobar(m.linea_de_vision(Vector2i(5, 1), Vector2i(7, 1)), "pegado a la roca, pero sin cruzarla, se ve")
+	var c := _batalla("estadounidense", "sovietico")
+	var pancake: Dictionary = c.aliados[0]
+	var blanco: Dictionary = c.enemigos[0]
+	pancake["pos"] = Vector2i(5, 3)
+	blanco["pos"] = Vector2i(7, 3)
+	_comprobar(c.motivo_uso("disparo_75", 0, 0).contains("visión"), "el cañón no dispara a través de la roca")
+	var donut: Dictionary = c.aliados[2]
+	donut["pos"] = Vector2i(3, 3)
+	donut["orientacion"] = Vector2i.RIGHT
+	c.energia = 3
+	_comprobar(c.motivo_uso("artilleria", 2, 0) == "", "la artillería dispara por encima de la roca")
+	# La IA tampoco dispara a través de rocas: queda tapado y no la alcanza.
+	var v := _con_dificultad("veterano")
+	for i in range(1, v.enemigos.size()):
+		v.enemigos[i]["casco"] = 0
+	var e: Dictionary = v.enemigos[0]
+	e["pos"] = Vector2i(7, 3)
+	e["movimiento"] = 0
+	e["intencion"] = {"nombre": "Prueba", "dano": 6, "penetracion": 3, "alcance": [1, 4]}
+	for i in v.aliados.size():
+		v.aliados[i]["pos"] = [Vector2i(5, 3), Vector2i(0, 0), Vector2i(0, 6)][i]
+	var vida: int = v.aliados[0]["casco"]
+	_comprobar(not v.celdas_amenaza(e).has(Vector2i(5, 3)), "la zona de amenaza respeta la roca")
+	v.terminar_turno()
+	_comprobar(v.aliados[0]["casco"] == vida, "el enemigo no le dispara a través de la roca")
+
+
+## Roces: en Veterano y As, de lejos el disparo puede pegar solo la mitad.
+func _probar_roces() -> void:
+	var r := _con_dificultad("recluta")
+	var v := _con_dificultad("veterano")
+	for c in [r, v]:
+		c.enemigos[0]["pos"] = c.aliados[0]["pos"] + Vector2i(1, -1)
+	_comprobar(r.probabilidad_acierto(r.aliados[0], r.enemigos[0]) == 1.0, "Recluta: nunca se roza")
+	_comprobar(v.probabilidad_acierto(v.aliados[0], v.enemigos[0]) == 1.0, "Veterano: de cerca siempre de lleno")
+	v.enemigos[0]["pos"] = v.aliados[0]["pos"] + Vector2i(3, -1)
+	_comprobar(v.probabilidad_acierto(v.aliados[0], v.enemigos[0]) == 0.85, "Veterano: a 4 casillas, 85%")
+	var p: Dictionary = v.prever_uso("disparo_17lb", 0, 0)[0]
+	_comprobar(p["acierto"] == 0.85 and p["roce"] < p["al_casco"], "la vista previa dice el % y cuánto hace si roza")
+	var vida: int = v.enemigos[0]["casco"]
+	v.forzar_tirada = 0.99
+	v.usar("disparo_17lb", 0, 0)
+	_comprobar(vida - v.enemigos[0]["casco"] == p["roce"], "con mala tirada, roza: hace lo anunciado para el roce")
+
+
+## Campaña: mapas, medallas (+vida), avance, recompensas al Arsenal y guardado.
+func _probar_campana() -> void:
+	for ruta in ["res://data/mapas/colinas.json", "res://data/mapas/bosque.json", "res://data/mapas/ciudad.json"]:
+		var m: Dictionary = Datos.leer(ruta)
+		_comprobar(m["filas"].size() == 7 and m["aliados"].size() >= 4, "el mapa %s carga" % m["nombre"])
+	var p := PartidaScript.new()
+	p.archivo_campana = "user://campana_prueba.json"
+	p.archivo_arsenal = "user://arsenal_prueba.json"
+	p.arsenal = []
+	p.empezar_campana("britanico")
+	p.preparar_batalla_campana()
+	_comprobar(p.modo_campana and p.dificultad == "recluta" and p.rival in ["sovietico", "estadounidense"], "batalla 1: Recluta")
+	var c := Combate.new()
+	p.nueva_batalla(c)
+	_comprobar(c.mapa.ancho == 12, "la batalla de campaña usa su mapa")
+	c.aliados[1]["casco"] = 0  # Crumpet cae: no gana medalla
+	for e in c.enemigos:
+		e["casco"] = 0
+	c.estado = "victoria"
+	p.campana_ganada(c)
+	_comprobar(p.campana["batalla"] == 1, "la victoria avanza a la batalla 2")
+	_comprobar(p.campana["medallas"].get("earl_grey", 0) == 1 and not p.campana["medallas"].has("crumpet"),
+		"medalla solo para los que siguen en pie")
+	_comprobar(p.campana["recompensa"].size() == 3, "quedan 3 cartas de recompensa para elegir")
+	var hay_refuerzos := false
+	for _i in 20:
+		hay_refuerzos = hay_refuerzos or p._opciones_recompensa().has("refuerzos")
+	_comprobar(not hay_refuerzos, "¡Refuerzos! nunca sale de recompensa")
+	var elegida: String = p.campana["recompensa"][0]
+	p.elegir_recompensa(elegida)
+	_comprobar(p.arsenal.has(elegida) and p.campana["recompensa"].is_empty(), "la recompensa va al Arsenal")
+	p.cargar_campana()
+	_comprobar(p.campana["batalla"] == 1 and p.campana["medallas"].get("earl_grey", 0) == 1, "la campaña se guarda y se carga")
+	p.preparar_batalla_campana()
+	var d := Combate.new()
+	p.nueva_batalla(d)
+	var earl: Dictionary = d.aliados[0]
+	_comprobar(earl["casco_max"] == 25 + PartidaScript.VIDA_POR_MEDALLA and earl["nombre"].ends_with("★"),
+		"con medalla, Earl Grey tiene +2 de vida y una estrella")
+	_comprobar(p.dificultad == "recluta" and p.mapa_actual.ends_with("bosque.json"), "batalla 2: el bosque")
+	p.abandonar_campana()
+	_comprobar(not p.campana_activa(), "se puede abandonar la campaña")
+	DirAccess.remove_absolute(p.archivo_campana)
+	DirAccess.remove_absolute(p.archivo_arsenal)
+	p.free()
 
 
 func _probar_cartas_de_batallon() -> void:
