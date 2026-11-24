@@ -26,6 +26,8 @@ var amenaza: Dictionary = {}     # celdas que el enemigo elegido puede atacar
 var alcance: Dictionary = {}     # celdas a tiro de las cartas de ataque en mano
 var actor_pos := Vector2i(-1, -1)
 var objetivo_pos := Vector2i(-1, -1)
+## Tanque al que la teniente Michi le ordenó atacar este turno (se marca con "!").
+var orden_pos := Vector2i(-1, -1)
 ## Vista previa de la carta bajo el mouse: {celda: {"texto": "-6", "derriba": bool}}.
 var prevision: Dictionary = {}
 var _texturas: Dictionary = {}
@@ -76,8 +78,18 @@ func _draw() -> void:
 
 	_marco(actor_pos, COLOR_ACTOR)
 	_marco(objetivo_pos, COLOR_OBJETIVO)
+	if m.dentro(orden_pos):
+		_insignia_orden(orden_pos)
 	for celda in prevision:
 		_etiqueta_dano(celda, prevision[celda])
+
+
+## Círculo amarillo con "!" en la esquina inferior izquierda: la orden de Michi.
+func _insignia_orden(celda: Vector2i) -> void:
+	var centro := Vector2(celda * TAM) + Vector2(11, TAM - 20)
+	draw_circle(centro, 8, COLOR_TINTA)
+	draw_circle(centro, 6, COLOR_ACTOR)
+	draw_string(get_theme_default_font(), centro + Vector2(-3, 6), "!", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, COLOR_TINTA)
 
 
 ## Cartelito con el daño que entraría, pegado arriba de la unidad. Rojo si la derriba.

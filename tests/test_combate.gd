@@ -35,6 +35,7 @@ func _init() -> void:
 	_probar_batallones()
 	_probar_manias()
 	_probar_cartas_de_batallon()
+	_probar_michi()
 	print("\nTODO OK" if _fallos == 0 else "\n%d FALLOS" % _fallos)
 	quit(1 if _fallos > 0 else 0)
 
@@ -345,6 +346,39 @@ func _probar_manias() -> void:
 	_comprobar(s.bonus_de_ataque(kasha, s.cartas["disparo_ap"], s.enemigos[0]) == 1, "camarada: +1 con un aliado pegado")
 	mishka["pos"] = Vector2i(5, 3)
 	_comprobar(s.bonus_de_ataque(kasha, s.cartas["disparo_ap"], s.enemigos[0]) == 0, "camarada solo, sin bono")
+
+
+func _probar_michi() -> void:
+	var sin := _batalla()
+	_comprobar(sin.oficial.is_empty() and sin.orden == -1, "sin inspección no hay órdenes")
+
+	var c := Combate.new()
+	PartidaScript.iniciar_combate(c, "britanico", "sovietico", 7, true)
+	_comprobar(c.orden >= 0 and c.orden < c.aliados.size(), "con Michi, un tanque recibe la orden")
+	var i_crumpet := _indice(c.aliados, "crumpet")
+	c.orden = i_crumpet  # Crumpet no tiene manía de moral que enrede la cuenta
+	var crumpet: Dictionary = c.aliados[i_crumpet]
+	c.enemigos[0]["pos"] = crumpet["pos"] + Vector2i(3, 0)
+	c.mano = ["disparo_ap"]
+	_enemigos_quietos(c)
+	c.jugar_carta(0, i_crumpet, 0)
+	_comprobar(c.orden_cumplida, "si el tanque ordenado ataca, la orden se cumple")
+	c.terminar_turno()
+	_comprobar(c.energia == Combate.ENERGIA_POR_TURNO + 1, "orden cumplida: +1 energía el turno siguiente")
+
+	c.orden = i_crumpet
+	c.orden_cumplida = false
+	var moral_antes: int = crumpet["moral"]
+	_enemigos_quietos(c)
+	c.terminar_turno()
+	_comprobar(crumpet["moral"] == moral_antes - 1, "orden ignorada: el ordenado pierde 1 de moral")
+	_comprobar(c.energia == Combate.ENERGIA_POR_TURNO, "y no hay energía extra")
+
+	var p := PartidaScript.new()
+	p.batallas_sin_michi = PartidaScript.BATALLAS_SIN_MICHI_MAX
+	_comprobar(p.nueva_batalla(Combate.new()), "tras 3 batallas sin Michi, viene seguro")
+	_comprobar(p.batallas_sin_michi == 0, "y el contador vuelve a 0")
+	p.free()
 
 
 func _probar_cartas_de_batallon() -> void:

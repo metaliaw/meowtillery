@@ -39,6 +39,14 @@ var turno := 0
 var estado := "jugando"  # "jugando" | "victoria" | "derrota"
 var registro: Array = []
 var rng := RandomNumberGenerator.new()
+## Oficial al mando del pelotón (la teniente Michi). Vacío = sin oficial.
+## Se asigna antes de iniciar(). Con manía "mandona" da una orden por turno.
+var oficial: Dictionary = {}
+## Índice del aliado al que el oficial ordenó atacar este turno (-1 = ninguno).
+var orden := -1
+var orden_cumplida := false
+## Energía extra para el próximo turno (premio del oficial).
+var energia_extra := 0
 
 
 ## semilla >= 0 hace la partida reproducible (útil en pruebas).
@@ -68,6 +76,9 @@ func iniciar(def_mapa: Dictionary, def_aliados: Array, def_enemigos: Array, def_
 	turno = 0
 	estado = "jugando"
 	registro.clear()
+	orden = -1
+	orden_cumplida = false
+	energia_extra = 0
 	_iniciar_turno()
 
 
@@ -190,6 +201,8 @@ func jugar_carta(i_mano: int, i_actor: int, i_objetivo: int) -> bool:
 	if c.has("dano"):
 		evento.emit("disparo")
 		actor["ataques_turno"] = int(actor.get("ataques_turno", 0)) + 1
+		if i_actor == orden:
+			orden_cumplida = true
 		var objetivo: Dictionary = enemigos[i_objetivo]
 		var lado := lado_de_impacto(objetivo, actor["pos"])
 		var dano := dano_de_carta(c, lado) + bonus_de_ataque(actor, c, objetivo)
@@ -231,6 +244,7 @@ func terminar_turno() -> void:
 	descarte.append_array(mano)
 	mano.clear()
 	_cerrar_turno_de(aliados)
+	_revisar_orden()
 	evento.emit("turno")
 	_turno_enemigo()
 	_comprobar_fin()
@@ -394,7 +408,8 @@ func celdas_amenaza(e: Dictionary) -> Dictionary:
 
 func _iniciar_turno() -> void:
 	turno += 1
-	energia = ENERGIA_POR_TURNO
+	energia = ENERGIA_POR_TURNO + energia_extra
+	energia_extra = 0
 	for u in aliados:
 		u["escudo"] = 0
 		u["mov_restante"] = u["movimiento"]
@@ -403,6 +418,36 @@ func _iniciar_turno() -> void:
 	_robar(CARTAS_POR_TURNO)
 	_elegir_intenciones()
 	_anotar("== Turno %d ==" % turno)
+	_dar_orden()
+
+
+## Manía "mandona" del oficial: elige un tanque que pueda disparar y le ordena atacar.
+func _dar_orden() -> void:
+	orden = -1
+	orden_cumplida = false
+	if oficial.get("mania") != "mandona":
+		return
+	var candidatos: Array = []
+	for i in aliados.size():
+		if vivo(aliados[i]) and not en_panico(aliados[i]):
+			candidatos.append(i)
+	if candidatos.is_empty():
+		return
+	orden = candidatos[rng.randi_range(0, candidatos.size() - 1)]
+	_anotar("%s: «¡%s, dispara este turno!»" % [oficial["nombre"], aliados[orden]["nombre"]])
+
+
+## Al terminar el turno: premio si la orden se cumplió, reto si no.
+func _revisar_orden() -> void:
+	if orden < 0 or not vivo(aliados[orden]):
+		return
+	var u: Dictionary = aliados[orden]
+	if orden_cumplida:
+		energia_extra = 1
+		_anotar("%s: «Aceptable.» +1 energía el próximo turno." % oficial["nombre"])
+	else:
+		u["moral"] = maxi(u["moral"] - 1, 0)
+		_anotar("%s: «¿Y ese disparo, recluta?» %s pierde 1 de moral." % [oficial["nombre"], u["nombre"]])
 
 
 func _elegir_intenciones() -> void:

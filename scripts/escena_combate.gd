@@ -11,6 +11,7 @@ const Datos := preload("res://scripts/datos.gd")
 const Tablero := preload("res://scripts/tablero.gd")
 const Mapa := preload("res://scripts/mapa.gd")
 const Estilo := preload("res://scripts/estilo.gd")
+const Gato := preload("res://scripts/gato_animado.gd")
 
 const ESCENA_MENU := "res://scenes/menu.tscn"
 const LINEAS_DE_REGISTRO := 8
@@ -26,6 +27,10 @@ var _ficha_actor: Label
 var _ficha_objetivo: Label
 var _registro: Label
 var _vista_previa: Label
+var _michi: Gato
+var _fila_michi: HBoxContainer
+var _orden: Label
+var _orden_anterior := -2  # para que Michi reaccione solo cuando cambia la orden
 var _mano: HBoxContainer
 var _boton_turno: Button
 var _capa_final: CenterContainer
@@ -42,7 +47,11 @@ func _nueva_partida() -> void:
 	# Diferido: así no se reconstruye la UI dentro del clic que la disparó.
 	combate.cambio.connect(_refrescar, CONNECT_DEFERRED)
 	combate.evento.connect(Sonido.cola)
-	Partida.iniciar_combate(combate, Partida.jugador, Partida.rival)
+	var con_michi := Partida.nueva_batalla(combate)
+	_fila_michi.visible = con_michi
+	_orden_anterior = -2
+	if con_michi:
+		combate.registro.insert(0, "¡Inspección sorpresa! La teniente Michi toma el mando.")
 	actor_sel = 0
 	objetivo_sel = 0
 	_tablero.preparar(combate)
@@ -84,11 +93,25 @@ func _construir_interfaz() -> void:
 	lateral.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	lateral.add_theme_constant_override("separation", 10)
 	medio.add_child(lateral)
+	# La teniente Michi, oficial al mando, con la orden del turno.
+	var fila_michi := HBoxContainer.new()
+	fila_michi.add_theme_constant_override("separation", 8)
+	lateral.add_child(fila_michi)
+	_fila_michi = fila_michi
+	_michi = Gato.new(2, load(Partida.OFICIAL["gato"]))
+	_michi.tooltip_text = Partida.OFICIAL["mania_texto"]
+	_michi.mouse_filter = Control.MOUSE_FILTER_STOP
+	fila_michi.add_child(_michi)
+	_orden = _etiqueta(fila_michi, Estilo.ACENTO)
+	_orden.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_orden.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	_ficha_actor = _etiqueta(lateral, Color("ffe08a"))
 	_ficha_objetivo = _etiqueta(lateral, Color("ff9eb5"))
 	_vista_previa = _etiqueta(lateral, Color.WHITE)
 	_registro = _etiqueta(lateral, Color(1, 1, 1, 0.7))
 	_registro.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	# Recorta en vez de crecer: si no, un registro largo empuja la mano fuera de la pantalla.
+	_registro.clip_text = true
 
 	var abajo := HBoxContainer.new()
 	abajo.add_theme_constant_override("separation", 8)
@@ -154,7 +177,10 @@ func _refrescar() -> void:
 	_tablero.movimiento = combate.casillas_de_movimiento(actor, actor["mov_restante"]) if jugando and combate.vivo(actor) else {}
 	_tablero.amenaza = combate.celdas_amenaza(objetivo) if jugando else {}
 	_tablero.alcance = _celdas_a_tiro(actor) if jugando and combate.vivo(actor) else {}
+	var ordenado: Dictionary = combate.aliados[combate.orden] if combate.orden >= 0 else {}
+	_tablero.orden_pos = ordenado["pos"] if jugando and not ordenado.is_empty() and combate.vivo(ordenado) else Vector2i(-1, -1)
 	_tablero.queue_redraw()
+	_refrescar_orden(ordenado)
 
 	_ficha_actor.text = _ficha(actor) + "\nMovimiento %d/%d" % [actor["mov_restante"], actor["movimiento"]]
 	var ficha_obj := _ficha(objetivo) + "\nPlanea: " + combate.texto_intencion(objetivo)
@@ -163,7 +189,10 @@ func _refrescar() -> void:
 			actor["nombre"], Mapa.distancia(actor["pos"], objetivo["pos"]),
 			combate.lado_de_impacto(objetivo, actor["pos"])]
 	_ficha_objetivo.text = ficha_obj
-	_registro.text = "\n".join(combate.registro.slice(-LINEAS_DE_REGISTRO))
+	# Lo más nuevo arriba: si no cabe todo, lo que se recorta es lo más viejo.
+	var ultimas: Array = combate.registro.slice(-LINEAS_DE_REGISTRO)
+	ultimas.reverse()
+	_registro.text = "\n".join(ultimas)
 
 	_vaciar(_mano)
 	for i in combate.mano.size():
@@ -173,6 +202,22 @@ func _refrescar() -> void:
 	_boton_turno.disabled = not jugando
 	_capa_final.visible = not jugando
 	_texto_final.text = "¡Victoria!" if combate.estado == "victoria" else "Derrota"
+
+
+func _refrescar_orden(ordenado: Dictionary) -> void:
+	if combate.oficial.is_empty():
+		return  # esta batalla no hubo inspección
+	if ordenado.is_empty():
+		_orden.text = "Michi: «Hoy no hay órdenes. No te acostumbres.»"
+	elif combate.orden_cumplida:
+		_orden.text = "Michi: «Aceptable.» +1 energía el próximo turno."
+	else:
+		_orden.text = "Michi: «¡%s, dispara!» Si no, -1 moral." % ordenado["nombre"]
+	# Gestos: enojada al dar una orden nueva, feliz (a su manera) cuando la cumplen.
+	var estado_orden := combate.orden + (100 if combate.orden_cumplida else 0)
+	if estado_orden != _orden_anterior and _michi.is_inside_tree():
+		_michi.animar("happy" if combate.orden_cumplida else "angry", 1.2)
+	_orden_anterior = estado_orden
 
 
 func _ficha(u: Dictionary) -> String:

@@ -37,7 +37,7 @@ const PAGINAS := [
 		"anim": "alert",
 	},
 	{
-		"texto": "Y ella es la teniente Michi, que explica las cartas. Un consejo: no intentes hacerle cariño.",
+		"texto": "Y ella es la teniente Michi, que explica las cartas. A veces aparece en batalla de inspección sorpresa y da órdenes: obedécela. Y un consejo: no intentes hacerle cariño.",
 		"anim": "alert",
 	},
 	{

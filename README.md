@@ -25,6 +25,10 @@ godot --headless --path . -s tests/test_combate.gd
   *terca* (girar cuesta 1 más), *recarga lenta* (un ataque por turno), *camarada* (+1 de
   daño con un compañero pegado) y *valiente* (los golpes no lo dejan en pánico).
   El mazo es el general más las cartas del batallón.
+- **Inspección sorpresa de la teniente Michi.** En cada batalla hay 1 probabilidad en 3
+  de que Michi tome el mando (y viene segura si lleva 3 batallas sin aparecer). Su manía,
+  *mandona*: cada turno ordena a un tanque que ataque (se marca con "!"). Si obedece,
+  +1 de energía el turno siguiente; si no, ese tanque pierde 1 de moral.
 - **Fase del jugador.** Clic en un tanque tuyo para elegirlo: en azul, a dónde puede
   moverse. Clic en una casilla azul para moverlo (puedes repartir su movimiento en
   varios pasos). Clic en un enemigo para elegirlo como blanco: en rojo, lo que puede
