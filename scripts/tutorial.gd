@@ -4,6 +4,7 @@ extends Control
 
 const Estilo := preload("res://scripts/estilo.gd")
 const Gato := preload("res://scripts/gato_animado.gd")
+const Globo := preload("res://scripts/globo.gd")
 
 const ESCENA_COMBATE := "res://scenes/eleccion.tscn"  # primero se elige batallón
 const ESCENA_MENU := "res://scenes/menu.tscn"
@@ -64,7 +65,7 @@ var _pagina := 0
 var _muffy: Gato
 var _michi: Gato
 var _quien: Label
-var _texto: Label
+var _globo: Globo
 var _imagenes: HBoxContainer
 var _contador: Label
 var _anterior: Button
@@ -87,7 +88,7 @@ func _ready() -> void:
 	columna.add_child(Estilo.titulo("CÓMO SE JUEGA", 44))
 
 	var fila := HBoxContainer.new()
-	fila.add_theme_constant_override("separation", 24)
+	fila.add_theme_constant_override("separation", 30)  # espacio para la colita del globo
 	columna.add_child(fila)
 	_muffy = Gato.new(7)
 	_muffy.size_flags_vertical = Control.SIZE_SHRINK_END
@@ -99,11 +100,10 @@ func _ready() -> void:
 	_quien = Estilo.titulo("", 24)
 	_quien.add_theme_constant_override("outline_size", 8)
 	derecha.add_child(_quien)
-	var globo := PanelContainer.new()
-	globo.custom_minimum_size = Vector2(620, 170)
-	_texto = Estilo.texto_en_papel("", 19)
-	globo.add_child(_texto)
-	derecha.add_child(globo)
+	# Globo de cómic: la colita apunta a quien habla (Muffy a la izquierda, Michi a la derecha).
+	_globo = Globo.new("", 19)
+	_globo.custom_minimum_size = Vector2(620, 170)
+	derecha.add_child(_globo)
 	_imagenes = HBoxContainer.new()
 	_imagenes.alignment = BoxContainer.ALIGNMENT_CENTER
 	_imagenes.add_theme_constant_override("separation", 16)
@@ -154,8 +154,10 @@ func _avanzar() -> void:
 func _ir_a(indice: int) -> void:
 	_pagina = clampi(indice, 0, PAGINAS.size() - 1)
 	var p: Dictionary = PAGINAS[_pagina]
-	_texto.text = p["texto"]
+	_globo.texto = p["texto"]
+	_globo.cola = "derecha" if p.get("habla", "muffy") == "michi" else "izquierda"
 	_quien.text = NOMBRES[p.get("habla", "muffy")]
+	_quien.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT if _globo.cola == "derecha" else HORIZONTAL_ALIGNMENT_LEFT
 	for hijo in _imagenes.get_children():
 		_imagenes.remove_child(hijo)
 		hijo.queue_free()
@@ -170,6 +172,7 @@ func _ir_a(indice: int) -> void:
 	var otro := _muffy if _hablante() == _michi else _michi
 	otro.animar("idle")
 	_hablante().animar("talk", SEGUNDOS_HABLANDO)
+	Sonido.tocar("grunido" if _hablante() == _michi else "maullido_suave")
 	if p.has("anim"):
 		get_tree().create_timer(SEGUNDOS_HABLANDO).timeout.connect(_gesto.bind(_pagina, p["anim"]))
 

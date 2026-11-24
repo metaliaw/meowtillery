@@ -5,7 +5,7 @@ extends SceneTree
 ##
 ## Casi todas usan unidades fijas de prueba (tests/datos/), para que los números no
 ## cambien al equilibrar los batallones: Rosita (0,2), Menta (1,3), Bombón (0,4);
-## Gruñón (10,1), Cascarrabias (11,3), Jefe Ceño (10,5).
+## Gruñón (8,1), Cascarrabias (9,3), Jefe Ceño (8,5).
 ## _probar_batallones() usa los datos reales de data/batallones.json.
 
 const Combate := preload("res://scripts/combate.gd")
@@ -17,6 +17,12 @@ var _fallos := 0
 
 
 func _init() -> void:
+	# Si algún script no compila, las pruebas no pueden dar "TODO OK".
+	for s in [Combate, Mapa, PartidaScript]:
+		if not s.can_instantiate():
+			printerr("FALLO el script %s no compila" % s.resource_path)
+			quit(1)
+			return
 	_probar_mapa()
 	_probar_lado_de_impacto()
 	_probar_golpear()
@@ -37,6 +43,7 @@ func _init() -> void:
 	_probar_cartas_de_batallon()
 	_probar_michi()
 	_probar_acciones()
+	_probar_dificultad()
 	print("\nTODO OK" if _fallos == 0 else "\n%d FALLOS" % _fallos)
 	quit(1 if _fallos > 0 else 0)
 
@@ -115,7 +122,7 @@ func _probar_inicio() -> void:
 	var c := _nuevo()
 	_comprobar(c.mano.size() == Combate.CARTAS_POR_TURNO, "se roban 5 cartas")
 	_comprobar(c.energia == Combate.ENERGIA_POR_TURNO and c.turno == 1, "turno 1 con 3 de energía")
-	_comprobar(c.aliados[0]["pos"] == Vector2i(0, 2) and c.enemigos[0]["pos"] == Vector2i(10, 1), "posiciones del mapa")
+	_comprobar(c.aliados[0]["pos"] == Vector2i(0, 2) and c.enemigos[0]["pos"] == Vector2i(8, 1), "posiciones del mapa")
 	_comprobar(c.unidad_en(Vector2i(1, 3)) == {"bando": "aliado", "indice": 1}, "unidad_en encuentra a Menta")
 	var con_intencion := c.enemigos.filter(func(e): return not e["intencion"].is_empty())
 	_comprobar(con_intencion.size() == c.enemigos.size(), "cada enemigo anuncia su intención")
@@ -275,7 +282,7 @@ func _indice(lista: Array, id: String) -> int:
 func _probar_batallones() -> void:
 	var c := _batalla()
 	_comprobar(c.aliados.size() == 3 and c.enemigos.size() == 4, "3 británicos contra 4 soviéticos")
-	_comprobar(c.enemigos[3]["pos"] == Vector2i(11, 6), "el cuarto soviético tiene su lugar en el mapa")
+	_comprobar(c.enemigos[3]["pos"] == Vector2i(9, 6), "el cuarto soviético tiene su lugar en el mapa")
 	_comprobar(c.mazo.size() + c.mano.size() == 16, "mazo: 12 generales + 4 británicas")
 	_comprobar(c.mazo.has("te") or c.mano.has("te"), "el mazo británico trae Hora del té")
 	var s := _batalla("sovietico", "britanico")
@@ -421,6 +428,53 @@ func _probar_acciones() -> void:
 	var ordenadas := claves.duplicate()
 	ordenadas.sort()
 	_comprobar(claves == ordenadas, "en la fase enemiga las acciones salen en orden, enemigo por enemigo")
+
+	# El golpe que deja a un tanque en pánico trae el maullido de susto.
+	var p := _batalla()
+	var avisos: Array = []
+	p.accion.connect(func(a): avisos.append(a))
+	var victima: Dictionary = p.enemigos[1]
+	victima["moral"] = 1
+	p.golpear(victima, 9, 9, "trasera")
+	_comprobar(avisos[-1].get("voz") == "susto", "entrar en pánico suena con un maullido de susto")
+
+
+func _con_dificultad(dif: String) -> Combate:
+	var c := Combate.new()
+	PartidaScript.iniciar_combate(c, "britanico", "sovietico", 7, false, dif)
+	return c
+
+
+func _probar_dificultad() -> void:
+	var recluta := _con_dificultad("recluta")
+	var en_reserva := recluta.enemigos.filter(func(e): return e["intencion"].get("reserva", false))
+	_comprobar(en_reserva.size() == 2, "Recluta: de 4 soviéticos solo actúan 2")
+	var as_ := _con_dificultad("as")
+	_comprobar(as_.enemigos.all(func(e): return not e["intencion"].get("reserva", false)), "As: actúan todos")
+
+	# El daño anunciado ya trae el ajuste de la dificultad.
+	var base: Dictionary = recluta.enemigos[0]
+	for c in [recluta, as_]:
+		var e: Dictionary = c.enemigos[0]
+		e["acciones"] = [{"nombre": "Prueba", "dano": 6, "alcance": [1, 4]}]
+		c._elegir_intenciones()
+	_comprobar(recluta.enemigos[0]["intencion"]["dano"] == 5, "Recluta: el enemigo pega 1 menos (y lo anuncia)")
+	_comprobar(as_.enemigos[0]["intencion"]["dano"] == 8, "As: el enemigo pega 2 más (y lo anuncia)")
+
+	# IA lista: entre dos blancos a tiro, remata al que puede derribar.
+	var v := _con_dificultad("veterano")
+	for i in range(1, v.enemigos.size()):
+		v.enemigos[i]["casco"] = 0
+	var e: Dictionary = v.enemigos[0]
+	e["pos"] = Vector2i(4, 3)
+	e["intencion"] = {"nombre": "Prueba", "dano": 6, "penetracion": 3, "alcance": [1, 4]}
+	v.aliados[0]["pos"] = Vector2i(2, 2)
+	v.aliados[1]["pos"] = Vector2i(2, 4)
+	v.aliados[1]["casco"] = 2
+	v.aliados[2]["pos"] = Vector2i(0, 6)
+	v.terminar_turno()
+	_comprobar(not v.vivo(v.aliados[1]), "Veterano: la IA remata al tanque casi destruido")
+	_comprobar(v.aliados[0]["casco"] == v.aliados[0]["casco_max"], "y no gasta el disparo en el que está sano")
 
 
 func _probar_cartas_de_batallon() -> void:

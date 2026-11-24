@@ -5,7 +5,12 @@
     "lema": "Primero el té, después la guerra.",
     "descripcion": "Gatos flemáticos y puntuales. Disparan lejos y con precisión, se esconden bien y recuperan la moral con té.",
     "color": "ffe08a",
-    "cartas": ["te", "tiro_precision", "tiro_precision", "casco_oculto"],
+    "cartas": [
+      "te",
+      "tiro_precision",
+      "tiro_precision",
+      "casco_oculto"
+    ],
     "unidades": [
       {
         "id": "earl_grey",
@@ -13,16 +18,34 @@
         "inspirado_en": "Centurion Mk1",
         "sprite": "res://assets/centurion.png",
         "gato": "res://assets/gatos/earl_grey.png",
-        "escotilla": [32, 4],
-        "casco": 32,
-        "blindaje": { "frente": 4, "flanco": 2, "trasera": 1 },
+        "escotilla": [
+          32,
+          4
+        ],
+        "casco": 22,
+        "blindaje": {
+          "frente": 4,
+          "flanco": 2,
+          "trasera": 1
+        },
         "movimiento": 3,
         "moral": 10,
         "mania": "ritual_te",
         "mania_texto": "Ritual del té: si no se mueve en su turno, recupera 1 de moral.",
         "acciones": [
-          { "nombre": "Tiro de precisión", "dano": 7, "penetracion": 4, "alcance": [2, 6] },
-          { "nombre": "Hora del té", "escudo": 4 }
+          {
+            "nombre": "Tiro de precisión",
+            "dano": 7,
+            "penetracion": 4,
+            "alcance": [
+              2,
+              6
+            ]
+          },
+          {
+            "nombre": "Hora del té",
+            "escudo": 4
+          }
         ]
       },
       {
@@ -31,15 +54,30 @@
         "inspirado_en": "Sherman Firefly",
         "sprite": "res://assets/firefly.png",
         "gato": "res://assets/gatos/crumpet.png",
-        "escotilla": [34, 6],
-        "casco": 26,
-        "blindaje": { "frente": 3, "flanco": 1, "trasera": 0 },
+        "escotilla": [
+          34,
+          6
+        ],
+        "casco": 18,
+        "blindaje": {
+          "frente": 3,
+          "flanco": 1,
+          "trasera": 0
+        },
         "movimiento": 5,
         "moral": 9,
         "mania": "asustadizo",
         "mania_texto": "Asustadizo: rápido, pero si le pegan por la trasera pierde 2 de moral.",
         "acciones": [
-          { "nombre": "Disparo de 17 libras", "dano": 8, "penetracion": 4, "alcance": [1, 5] }
+          {
+            "nombre": "Disparo de 17 libras",
+            "dano": 8,
+            "penetracion": 4,
+            "alcance": [
+              1,
+              5
+            ]
+          }
         ]
       },
       {
@@ -48,16 +86,35 @@
         "inspirado_en": "Churchill Mk VII",
         "sprite": "res://assets/churchill.png",
         "gato": "res://assets/gatos/marmalade.png",
-        "escotilla": [39, 4],
-        "casco": 38,
-        "blindaje": { "frente": 5, "flanco": 3, "trasera": 1 },
+        "escotilla": [
+          39,
+          4
+        ],
+        "casco": 27,
+        "blindaje": {
+          "frente": 5,
+          "flanco": 3,
+          "trasera": 1
+        },
         "movimiento": 2,
         "moral": 11,
         "mania": "terca",
         "mania_texto": "Terca: blindaje enorme, pero girar le cuesta 1 de energía más.",
         "acciones": [
-          { "nombre": "Disparo de 75", "dano": 5, "penetracion": 1, "alcance": [1, 3] },
-          { "nombre": "Bufido", "moral": 2, "radio": 3 }
+          {
+            "nombre": "Disparo de 75",
+            "dano": 5,
+            "penetracion": 1,
+            "alcance": [
+              1,
+              3
+            ]
+          },
+          {
+            "nombre": "Bufido",
+            "moral": 2,
+            "radio": 3
+          }
         ]
       }
     ]
@@ -68,7 +125,13 @@
     "lema": "Somos muchos y no nos da frío.",
     "descripcion": "Gatos serios y numerosos, pintados para la nieve. Atacan en grupo, se cubren con humo y avanzan todos juntos.",
     "color": "ff9eb5",
-    "cartas": ["cortina_termica", "cortina_termica", "ura", "andanada", "andanada"],
+    "cartas": [
+      "cortina_termica",
+      "cortina_termica",
+      "ura",
+      "andanada",
+      "andanada"
+    ],
     "unidades": [
       {
         "id": "boris",
@@ -76,16 +139,35 @@
         "inspirado_en": "IS-2",
         "sprite": "res://assets/is2.png",
         "gato": "res://assets/gatos/boris.png",
-        "escotilla": [30, 5],
-        "casco": 34,
-        "blindaje": { "frente": 5, "flanco": 2, "trasera": 1 },
+        "escotilla": [
+          30,
+          5
+        ],
+        "casco": 24,
+        "blindaje": {
+          "frente": 5,
+          "flanco": 2,
+          "trasera": 1
+        },
         "movimiento": 3,
         "moral": 10,
         "mania": "recarga_lenta",
         "mania_texto": "Recarga lenta: su cañón de 122 mm solo dispara una carta de ataque por turno.",
         "acciones": [
-          { "nombre": "Cañonazo de 122", "dano": 11, "penetracion": 3, "alcance": [2, 5] },
-          { "nombre": "Bufido", "moral": 2, "radio": 4 }
+          {
+            "nombre": "Cañonazo de 122",
+            "dano": 11,
+            "penetracion": 3,
+            "alcance": [
+              2,
+              5
+            ]
+          },
+          {
+            "nombre": "Bufido",
+            "moral": 2,
+            "radio": 4
+          }
         ]
       },
       {
@@ -94,16 +176,34 @@
         "inspirado_en": "T-34-85",
         "sprite": "res://assets/t34_85.png",
         "gato": "res://assets/gatos/kasha.png",
-        "escotilla": [33, 5],
-        "casco": 22,
-        "blindaje": { "frente": 3, "flanco": 2, "trasera": 1 },
+        "escotilla": [
+          33,
+          5
+        ],
+        "casco": 15,
+        "blindaje": {
+          "frente": 3,
+          "flanco": 2,
+          "trasera": 1
+        },
         "movimiento": 4,
         "moral": 8,
         "mania": "camarada",
         "mania_texto": "Camarada: +1 de daño si tiene otro tanque de su bando pegado.",
         "acciones": [
-          { "nombre": "Disparo de 85", "dano": 6, "penetracion": 2, "alcance": [1, 4] },
-          { "nombre": "Cortina térmica", "escudo": 3 }
+          {
+            "nombre": "Disparo de 85",
+            "dano": 6,
+            "penetracion": 2,
+            "alcance": [
+              1,
+              4
+            ]
+          },
+          {
+            "nombre": "Cortina térmica",
+            "escudo": 3
+          }
         ]
       },
       {
@@ -112,16 +212,39 @@
         "inspirado_en": "T-34-85",
         "sprite": "res://assets/t34_85.png",
         "gato": "res://assets/gatos/mishka.png",
-        "escotilla": [33, 5],
-        "casco": 22,
-        "blindaje": { "frente": 3, "flanco": 2, "trasera": 1 },
+        "escotilla": [
+          33,
+          5
+        ],
+        "casco": 15,
+        "blindaje": {
+          "frente": 3,
+          "flanco": 2,
+          "trasera": 1
+        },
         "movimiento": 4,
         "moral": 8,
         "mania": "camarada",
         "mania_texto": "Camarada: +1 de daño si tiene otro tanque de su bando pegado.",
         "acciones": [
-          { "nombre": "Disparo de 85", "dano": 6, "penetracion": 2, "alcance": [1, 4] },
-          { "nombre": "Embestida", "dano": 5, "penetracion": 1, "alcance": [1, 1] }
+          {
+            "nombre": "Disparo de 85",
+            "dano": 6,
+            "penetracion": 2,
+            "alcance": [
+              1,
+              4
+            ]
+          },
+          {
+            "nombre": "Embestida",
+            "dano": 5,
+            "penetracion": 1,
+            "alcance": [
+              1,
+              1
+            ]
+          }
         ]
       },
       {
@@ -130,16 +253,34 @@
         "inspirado_en": "T-34-85",
         "sprite": "res://assets/t34_85.png",
         "gato": "res://assets/gatos/pelmeni.png",
-        "escotilla": [33, 5],
-        "casco": 22,
-        "blindaje": { "frente": 3, "flanco": 2, "trasera": 1 },
+        "escotilla": [
+          33,
+          5
+        ],
+        "casco": 15,
+        "blindaje": {
+          "frente": 3,
+          "flanco": 2,
+          "trasera": 1
+        },
         "movimiento": 4,
         "moral": 8,
         "mania": "valiente",
         "mania_texto": "Valiente: los golpes nunca lo dejan en pánico (su moral no baja de 1 por impactos).",
         "acciones": [
-          { "nombre": "Disparo de 85", "dano": 6, "penetracion": 2, "alcance": [1, 4] },
-          { "nombre": "Cortina térmica", "escudo": 3 }
+          {
+            "nombre": "Disparo de 85",
+            "dano": 6,
+            "penetracion": 2,
+            "alcance": [
+              1,
+              4
+            ]
+          },
+          {
+            "nombre": "Cortina térmica",
+            "escudo": 3
+          }
         ]
       }
     ]

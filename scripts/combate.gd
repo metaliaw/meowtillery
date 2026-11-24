@@ -55,6 +55,11 @@ var orden := -1
 var orden_cumplida := false
 ## Energía extra para el próximo turno (premio del oficial).
 var energia_extra := 0
+## Nivel de dificultad (ver Partida.DIFICULTADES). Vacío = reglas base.
+##   acciones_max: cuántos enemigos actúan por turno
+##   bonus_dano:   se suma al daño de cada ataque enemigo (mínimo 1)
+##   ia_lista:     la IA elige blanco y casilla por daño esperado, remata y busca cobertura
+var dificultad: Dictionary = {}
 
 
 ## semilla >= 0 hace la partida reproducible (útil en pruebas).
@@ -298,9 +303,11 @@ static func calcular_impacto(u: Dictionary, dano: int, penetracion: int, lado: S
 ## Aplica un impacto y devuelve el daño que llegó al casco.
 func golpear(u: Dictionary, dano: int, penetracion: int, lado: String, cobertura: int = 0) -> int:
 	var i := calcular_impacto(u, dano, penetracion, lado, cobertura)
+	var moral_antes: int = u["moral"]
 	u["escudo"] -= i["absorbido"]
 	u["casco"] = i["casco_final"]
 	u["moral"] = maxi(u["moral"] - i["moral_perdida"], 0)
+	var entra_en_panico: bool = moral_antes > 0 and u["moral"] == 0 and vivo(u)
 	var texto := "  %s recibe %d en %s" % [u["nombre"], i["al_casco"], _nombre_lado(lado)]
 	if i["absorbido"] > 0:
 		texto += " (%d absorbido)" % i["absorbido"]
@@ -310,14 +317,15 @@ func golpear(u: Dictionary, dano: int, penetracion: int, lado: String, cobertura
 	_anotar(texto)
 	accion.emit({"tipo": "golpe", "clave": u.get("clave", ""), "al_casco": i["al_casco"],
 		"absorbido": i["absorbido"], "casco": u["casco"], "escudo": u["escudo"], "moral": u["moral"],
-		"derriba": not vivo(u)})
+		"derriba": not vivo(u), "voz": "susto" if entra_en_panico else ""})
 	return i["al_casco"]
 
 
 ## Texto flotante sobre una unidad (escudo, moral...), con su estado ya actualizado.
-func _avisar(u: Dictionary, texto: String, color: String) -> void:
+## `voz`: sonido de gato que acompaña al texto ("" = ninguno).
+func _avisar(u: Dictionary, texto: String, color: String, voz: String = "") -> void:
 	accion.emit({"tipo": "texto", "clave": u.get("clave", ""), "texto": texto, "color": color,
-		"escudo": u["escudo"], "moral": u["moral"]})
+		"escudo": u["escudo"], "moral": u["moral"], "voz": voz})
 
 
 ## Daño base de una carta según el lado por el que pega.
@@ -404,7 +412,7 @@ func texto_intencion(u: Dictionary) -> String:
 	if a.get("paralizado", false):
 		return "En pánico: pierde el turno"
 	if a.get("reserva", false):
-		return "En reserva: este turno no actúa (solo actúan %d)" % ACCIONES_ENEMIGAS_MAX
+		return "En reserva: este turno no actúa (solo actúan %d)" % acciones_max()
 	if a.has("dano"):
 		return "%s: %d daño, alcance %d-%d, al más cercano" % [a["nombre"], int(a["dano"]), a["alcance"][0], a["alcance"][1]]
 	if a.has("moral"):
@@ -473,7 +481,7 @@ func _revisar_orden() -> void:
 	else:
 		u["moral"] = maxi(u["moral"] - 1, 0)
 		_anotar("%s: «¿Y ese disparo, recluta?» %s pierde 1 de moral." % [oficial["nombre"], u["nombre"]])
-		_avisar(u, "Michi: -1 moral", "malo")
+		_avisar(u, "Michi: -1 moral", "malo", "grunido")
 
 
 func _elegir_intenciones() -> void:
@@ -491,18 +499,27 @@ func _elegir_intenciones() -> void:
 			var a: Dictionary = acciones[rng.randi_range(0, acciones.size() - 1)].duplicate(true)
 			if a.has("alcance"):
 				a["alcance"] = _rango(a["alcance"])
+			if a.has("dano"):
+				# La dificultad ya va incluida en lo que anuncia, así el ícono no miente.
+				a["dano"] = maxi(int(a["dano"]) + int(dificultad.get("bonus_dano", 0)), 1)
 			e["intencion"] = a
 
 
+## Cuántos enemigos actúan por turno con la dificultad actual.
+func acciones_max() -> int:
+	return int(dificultad.get("acciones_max", ACCIONES_ENEMIGAS_MAX))
+
+
 ## Índices de los enemigos que no actúan este turno: de los que pueden actuar (en pie y
-## sin pánico), actúan los ACCIONES_ENEMIGAS_MAX más cercanos a algún aliado.
+## sin pánico), actúan los acciones_max() más cercanos a algún aliado.
 ## Los empates los gana el de menor índice, para que sea predecible.
 func _enemigos_en_reserva() -> Dictionary:
+	var maximo := acciones_max()
 	var listos: Array = []
 	for i in enemigos.size():
 		if vivo(enemigos[i]) and not en_panico(enemigos[i]):
 			listos.append(i)
-	if listos.size() <= ACCIONES_ENEMIGAS_MAX:
+	if listos.size() <= maximo:
 		return {}
 	var distancia := func(i: int) -> int:
 		var mejor := 1 << 30
@@ -515,7 +532,7 @@ func _enemigos_en_reserva() -> Dictionary:
 		var db: int = distancia.call(b)
 		return da < db or (da == db and a < b))
 	var reserva := {}
-	for i in listos.slice(ACCIONES_ENEMIGAS_MAX):
+	for i in listos.slice(maximo):
 		reserva[i] = true
 	return reserva
 
@@ -569,27 +586,18 @@ func _turno_enemigo_acciones() -> void:
 			return
 
 
-## IA simple: elige la celda alcanzable desde la que puede disparar al aliado más
-## cercano, prefiriendo flanco/trasera y moverse poco. Si no llega, se acerca.
+## Elige dónde moverse y a quién disparar, y lo hace.
+## IA simple: va por el aliado más cercano, prefiriendo flanco/trasera y moverse poco.
+## IA lista (Veterano/As): prueba cada casilla y cada blanco y se queda con el mayor
+## daño esperado; prefiere rematar, pegarle al más dañado y quedar en cobertura.
 func _atacar_como_enemigo(e: Dictionary, a: Dictionary) -> void:
-	var objetivo := _aliado_mas_cercano(e["pos"])
-	if objetivo.is_empty():
-		return
-	var alc: Array = a["alcance"]
 	var opciones := casillas_de_movimiento(e, e["movimiento"])
-	var mejor_celda: Vector2i = e["pos"]
-	var mejor_puntaje := -INF
-	for celda in opciones:
-		var dist := Mapa.distancia(celda, objetivo["pos"])
-		var coste: int = opciones[celda][0]
-		var puntaje: float
-		if dist >= alc[0] and dist <= alc[1]:
-			puntaje = 1000 + PREFERENCIA_LADO[lado_de_impacto(objetivo, celda)] * 10 - coste
-		else:
-			puntaje = -dist * 10 - coste
-		if puntaje > mejor_puntaje:
-			mejor_puntaje = puntaje
-			mejor_celda = celda
+	var plan := _plan_listo(e, a, opciones) if dificultad.get("ia_lista", false) else _plan_simple(e, a, opciones)
+	if plan.is_empty():
+		return
+	var objetivo: Dictionary = plan["objetivo"]
+	var alc: Array = a["alcance"]
+	var mejor_celda: Vector2i = plan["celda"]
 	if mejor_celda != e["pos"]:
 		_mover_a(e, mejor_celda, opciones)
 	var dist_final := Mapa.distancia(e["pos"], objetivo["pos"])
@@ -603,6 +611,61 @@ func _atacar_como_enemigo(e: Dictionary, a: Dictionary) -> void:
 		"orientacion": e["orientacion"]})
 	golpear(objetivo, int(a["dano"]) + bonus_de_ataque(e, a, objetivo), int(a.get("penetracion", 0)),
 		lado_de_impacto(objetivo, e["pos"]), mapa.cobertura(objetivo["pos"]))
+
+
+func _plan_simple(e: Dictionary, a: Dictionary, opciones: Dictionary) -> Dictionary:
+	var objetivo := _aliado_mas_cercano(e["pos"])
+	if objetivo.is_empty():
+		return {}
+	var alc: Array = a["alcance"]
+	var mejor_celda: Vector2i = e["pos"]
+	var mejor_puntaje := -INF
+	for celda in opciones:
+		var dist := Mapa.distancia(celda, objetivo["pos"])
+		var coste: int = opciones[celda][0]
+		var puntaje: float
+		if dist >= alc[0] and dist <= alc[1]:
+			puntaje = 1000 + PREFERENCIA_LADO[lado_de_impacto(objetivo, celda)] * 10 - coste
+		else:
+			puntaje = -dist * 10 - coste
+		if puntaje > mejor_puntaje:
+			mejor_puntaje = puntaje
+			mejor_celda = celda
+	return {"celda": mejor_celda, "objetivo": objetivo}
+
+
+func _plan_listo(e: Dictionary, a: Dictionary, opciones: Dictionary) -> Dictionary:
+	var alc: Array = a["alcance"]
+	var pen := int(a.get("penetracion", 0))
+	var original: Vector2i = e["pos"]
+	var mejor := {}
+	var mejor_puntaje := -INF
+	for celda in opciones:
+		var coste: int = opciones[celda][0]
+		e["pos"] = celda  # para que el bono de "camarada" mire desde la casilla candidata
+		var cerca := 1 << 20
+		for u in aliados:
+			if not vivo(u):
+				continue
+			var dist := Mapa.distancia(celda, u["pos"])
+			cerca = mini(cerca, dist)
+			if dist < alc[0] or dist > alc[1]:
+				continue
+			var lado := lado_de_impacto(u, celda)
+			var imp := calcular_impacto(u, int(a["dano"]) + bonus_de_ataque(e, a, u), pen, lado, mapa.cobertura(u["pos"]))
+			var herido := 1.0 - float(u["casco"]) / float(u["casco_max"])
+			var puntaje: float = 1000.0 + imp["al_casco"] * 10.0 + (300.0 if imp["derriba"] else 0.0) \
+				+ herido * 20.0 + mapa.cobertura(celda) * 4.0 - coste
+			if puntaje > mejor_puntaje:
+				mejor_puntaje = puntaje
+				mejor = {"celda": celda, "objetivo": u}
+		# Sin blanco a tiro: acercarse, mejor si es a cubierto.
+		var acercarse := -cerca * 10.0 + mapa.cobertura(celda) * 3.0 - coste
+		if mejor_puntaje < 1000.0 and acercarse > mejor_puntaje:
+			mejor_puntaje = acercarse
+			mejor = {"celda": celda, "objetivo": _aliado_mas_cercano(celda)}
+	e["pos"] = original
+	return mejor if not mejor.is_empty() and not mejor["objetivo"].is_empty() else {}
 
 
 func _aliado_mas_cercano(desde: Vector2i) -> Dictionary:

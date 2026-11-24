@@ -23,6 +23,7 @@ func _ready() -> void:
 	columna.add_theme_constant_override("separation", 14)
 	centro.add_child(columna)
 	columna.add_child(Estilo.titulo("ELIGE TU BATALLÓN", 40))
+	columna.add_child(_selector_dificultad())
 
 	var cartas := HBoxContainer.new()
 	cartas.add_theme_constant_override("separation", 20)
@@ -37,6 +38,39 @@ func _ready() -> void:
 	volver.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	volver.pressed.connect(func(): get_tree().change_scene_to_file(ESCENA_MENU))
 	columna.add_child(volver)
+
+
+## Tres botones (Recluta / Veterano / As) y una línea que explica el elegido.
+func _selector_dificultad() -> Control:
+	var caja := VBoxContainer.new()
+	caja.add_theme_constant_override("separation", 4)
+	var fila := HBoxContainer.new()
+	fila.alignment = BoxContainer.ALIGNMENT_CENTER
+	fila.add_theme_constant_override("separation", 10)
+	caja.add_child(fila)
+	var etiqueta := Label.new()
+	etiqueta.text = "Dificultad:"
+	fila.add_child(etiqueta)
+	var explicacion := Label.new()
+	explicacion.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	explicacion.add_theme_color_override("font_color", Estilo.ACENTO)
+	var grupo := ButtonGroup.new()
+	for id in Partida.DIFICULTADES:
+		var d: Dictionary = Partida.DIFICULTADES[id]
+		var b := Button.new()
+		b.text = d["nombre"]
+		b.toggle_mode = true
+		b.button_group = grupo
+		b.custom_minimum_size = Vector2(130, 36)
+		b.button_pressed = id == Partida.dificultad
+		b.toggled.connect(func(activo: bool):
+			if activo:
+				Partida.dificultad = id
+				explicacion.text = d["texto"])
+		fila.add_child(b)
+	explicacion.text = Partida.DIFICULTADES[Partida.dificultad]["texto"]
+	caja.add_child(explicacion)
+	return caja
 
 
 func _carta(id: String, b: Dictionary) -> Control:

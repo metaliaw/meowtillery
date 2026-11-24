@@ -12,6 +12,7 @@ const Tablero := preload("res://scripts/tablero.gd")
 const Mapa := preload("res://scripts/mapa.gd")
 const Estilo := preload("res://scripts/estilo.gd")
 const Gato := preload("res://scripts/gato_animado.gd")
+const Globo := preload("res://scripts/globo.gd")
 
 const ESCENA_MENU := "res://scenes/menu.tscn"
 const LINEAS_DE_REGISTRO := 8
@@ -29,7 +30,7 @@ var _registro: Label
 var _vista_previa: Label
 var _michi: Gato
 var _fila_michi: HBoxContainer
-var _orden: Label
+var _orden: Globo
 var _orden_anterior := -2  # para que Michi reaccione solo cuando cambia la orden
 var _fin_sonado := false
 var _mano: HBoxContainer
@@ -100,14 +101,17 @@ func _construir_interfaz() -> void:
 	medio.add_child(lateral)
 	# La teniente Michi, oficial al mando, con la orden del turno.
 	var fila_michi := HBoxContainer.new()
-	fila_michi.add_theme_constant_override("separation", 8)
+	fila_michi.add_theme_constant_override("separation", 22)  # espacio para la colita del globo
 	lateral.add_child(fila_michi)
 	_fila_michi = fila_michi
 	_michi = Gato.new(2, load(Partida.OFICIAL["gato"]))
 	_michi.tooltip_text = Partida.OFICIAL["mania_texto"]
 	_michi.mouse_filter = Control.MOUSE_FILTER_STOP
 	fila_michi.add_child(_michi)
-	_orden = _etiqueta(fila_michi, Estilo.ACENTO)
+	# Lo que dice Michi va en un globo de cómic que apunta a ella.
+	_orden = Globo.new("", 14, "izquierda")
+	_orden.cola_pos = 0.5
+	fila_michi.add_child(_orden)
 	_orden.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_orden.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	_ficha_actor = _etiqueta(lateral, Color("ffe08a"))
@@ -198,8 +202,11 @@ func _refrescar() -> void:
 	var objetivo: Dictionary = combate.enemigos[objetivo_sel]
 	var jugando := combate.estado == "jugando"
 
-	_info.text = "Turno %d   ·   Energía %d/%d   ·   Mazo %d   ·   Descarte %d" % [
-		combate.turno, combate.energia, Combate.ENERGIA_POR_TURNO, combate.mazo.size(), combate.descarte.size()]
+	var energia := "Energía %d" % combate.energia
+	if combate.energia > Combate.ENERGIA_POR_TURNO:
+		energia += " (+%d extra)" % (combate.energia - Combate.ENERGIA_POR_TURNO)  # Michi o Recarga
+	_info.text = "%s   ·   Turno %d   ·   %s   ·   Mazo %d   ·   Descarte %d" % [
+		combate.dificultad.get("nombre", ""), combate.turno, energia, combate.mazo.size(), combate.descarte.size()]
 
 	_tablero.actor_pos = actor["pos"] if combate.vivo(actor) else Vector2i(-1, -1)
 	_tablero.objetivo_pos = objetivo["pos"] if combate.vivo(objetivo) else Vector2i(-1, -1)
@@ -240,15 +247,17 @@ func _refrescar_orden(ordenado: Dictionary) -> void:
 	if combate.oficial.is_empty():
 		return  # esta batalla no hubo inspección
 	if ordenado.is_empty():
-		_orden.text = "Michi: «Hoy no hay órdenes. No te acostumbres.»"
+		_orden.texto = "Hoy no hay órdenes. No te acostumbres."
 	elif combate.orden_cumplida:
-		_orden.text = "Michi: «Aceptable.» +1 energía el próximo turno."
+		_orden.texto = "Aceptable. +1 energía el próximo turno."
 	else:
-		_orden.text = "Michi: «¡%s, dispara!» Si no, -1 moral." % ordenado["nombre"]
+		_orden.texto = "¡%s, dispara este turno! Si no, -1 moral." % ordenado["nombre"]
 	# Gestos: enojada al dar una orden nueva, feliz (a su manera) cuando la cumplen.
 	var estado_orden := combate.orden + (100 if combate.orden_cumplida else 0)
 	if estado_orden != _orden_anterior and _michi.is_inside_tree():
 		_michi.animar("happy" if combate.orden_cumplida else "angry", 1.2)
+		if not ordenado.is_empty():
+			Sonido.tocar("ronroneo" if combate.orden_cumplida else "grunido")
 	_orden_anterior = estado_orden
 
 

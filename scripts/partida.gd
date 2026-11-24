@@ -18,8 +18,19 @@ const OFICIAL := {
 const PROBABILIDAD_MICHI := 1.0 / 3.0
 const BATALLAS_SIN_MICHI_MAX := 3
 
+## Niveles de dificultad (ver Combate.dificultad). Calibrados con tools/qa/simular.gd.
+const DIFICULTADES := {
+	"recluta": {"nombre": "Recluta", "texto": "Para aprender. Actúan 2 enemigos por turno y pegan 1 menos.",
+		"acciones_max": 2, "bonus_dano": -1, "ia_lista": false},
+	"veterano": {"nombre": "Veterano", "texto": "El enemigo piensa: remata, flanquea, se cubre y pega 1 más.",
+		"acciones_max": 3, "bonus_dano": 1, "ia_lista": true},
+	"as": {"nombre": "As", "texto": "Sin piedad: actúan todos los enemigos y pegan 2 más.",
+		"acciones_max": 4, "bonus_dano": 2, "ia_lista": true},
+}
+
 var jugador := "britanico"
 var rival := "sovietico"
+var dificultad := "recluta"
 var batallas_sin_michi := 0
 
 
@@ -27,7 +38,7 @@ var batallas_sin_michi := 0
 func nueva_batalla(combate) -> bool:
 	var viene := batallas_sin_michi >= BATALLAS_SIN_MICHI_MAX or randf() < PROBABILIDAD_MICHI
 	batallas_sin_michi = 0 if viene else batallas_sin_michi + 1
-	iniciar_combate(combate, jugador, rival, -1, viene)
+	iniciar_combate(combate, jugador, rival, -1, viene, dificultad)
 	return viene
 
 
@@ -46,11 +57,13 @@ func elegir(id_batallon: String) -> void:
 
 ## Arma el combate: mazo = cartas generales + las del batallón propio.
 ## Con `con_michi`, la teniente Michi está al mando y da órdenes.
-static func iniciar_combate(combate, id_jugador: String, id_rival: String, semilla: int = -1, con_michi: bool = false) -> void:
+static func iniciar_combate(combate, id_jugador: String, id_rival: String, semilla: int = -1,
+		con_michi: bool = false, id_dificultad: String = "") -> void:
 	var b := batallones()
 	var mazo: Array = Datos.leer("res://data/mazo_inicial.json")
 	mazo = mazo + b[id_jugador]["cartas"]
 	combate.oficial = OFICIAL if con_michi else {}
+	combate.dificultad = DIFICULTADES.get(id_dificultad, {})
 	combate.iniciar(
 		Datos.leer("res://data/mapa.json"),
 		b[id_jugador]["unidades"],

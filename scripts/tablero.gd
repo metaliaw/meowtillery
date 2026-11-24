@@ -178,10 +178,14 @@ func _iniciar(a: Dictionary, v: Dictionary) -> void:
 			if a["derriba"]:
 				_sonar("explosion")
 				_explosiones.append({"pos": _centro(v), "t": 0.0})
+			elif a.get("voz", "") != "":
+				_sonar(a["voz"])  # el gato se asusta (entra en pánico)
 		"texto":
 			if a.has("escudo"):
 				v["escudo"] = a["escudo"]
 			_flotar(v, a["texto"], COLORES_TEXTO.get(a["color"], Color.WHITE))
+			if a.get("voz", "") != "":
+				_sonar(a["voz"])
 
 
 func _flotar(v: Dictionary, texto: String, color: Color) -> void:
@@ -243,9 +247,9 @@ func _draw() -> void:
 				draw_string(fuente, r.position + Vector2(17, 14), "+%d" % cobertura,
 					HORIZONTAL_ALIGNMENT_LEFT, -1, 11, COLOR_TINTA)
 			if amenaza.has(celda):
-				# Tinte suave y borde: el mapa no se vuelve café y la zona se sigue leyendo.
+				# Tinte suave y solo el contorno exterior de la zona: se lee sin ensuciar el mapa.
 				draw_rect(r, COLOR_AMENAZA)
-				draw_rect(r.grow(-2), COLOR_BORDE_AMENAZA, false, 2.0)
+				_contorno_zona(celda, r)
 			if movimiento.has(celda):
 				draw_rect(r, COLOR_MOVIMIENTO)
 			if alcance.has(celda):
@@ -265,6 +269,17 @@ func _draw() -> void:
 	for celda in prevision:
 		_etiqueta_dano(celda, prevision[celda])
 	_dibujar_efectos(fuente)
+
+
+## Dibuja los lados de la celda que dan hacia afuera de la zona de amenaza.
+func _contorno_zona(celda: Vector2i, r: Rect2) -> void:
+	var a := r.position + Vector2(2, 2)
+	var b := r.position + Vector2(TAM - 2, 2)
+	var c := r.position + Vector2(TAM - 2, TAM - 2)
+	var d := r.position + Vector2(2, TAM - 2)
+	for lado in [[Vector2i.UP, a, b], [Vector2i.RIGHT, b, c], [Vector2i.DOWN, c, d], [Vector2i.LEFT, d, a]]:
+		if not amenaza.has(celda + lado[0]):
+			draw_line(lado[1], lado[2], COLOR_BORDE_AMENAZA, 3.0)
 
 
 func _dibujar_efectos(fuente: Font) -> void:

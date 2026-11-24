@@ -11,9 +11,13 @@ const ARCHIVOS := {
 	"hover": "hover.wav", "clic": "clic.wav", "carta": "carta.wav", "mover": "mover.wav",
 	"error": "error.wav", "victoria": "victoria.wav", "derrota": "derrota.wav",
 	"turno": "turno.wav", "disparo": "disparo.ogg", "explosion": "explosion.ogg",
+	# Gatos: Muffy maúlla, Michi gruñe (y ronronea cuando aprueba), un gato asustado maúlla agudo.
+	"maullido": "maullido.ogg", "maullido_suave": "maullido_suave.ogg", "ronroneo": "ronroneo.ogg",
+	"susto": "susto.ogg", "grunido": "grunido.ogg",
 }
 ## Ajuste de volumen por sonido (dB): el cañón y la explosión son fuertes y el hover se repite mucho.
-const VOLUMEN := {"hover": -14.0, "clic": -6.0, "disparo": -8.0, "explosion": -6.0, "turno": -6.0}
+const VOLUMEN := {"hover": -14.0, "clic": -6.0, "disparo": -8.0, "explosion": -6.0, "turno": -6.0,
+	"maullido": -6.0, "maullido_suave": -6.0, "ronroneo": -4.0, "susto": -8.0, "grunido": -5.0}
 const REPRODUCTORES := 8
 ## Separación entre sonidos encolados (segundos).
 const PAUSA_COLA := 0.35

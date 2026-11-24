@@ -18,3 +18,19 @@ explosion.ogg
   "Synthesized explosion" de qubodup, OpenGameArt, CC0 (el autor pide crédito, aunque CC0 no lo exige).
   https://opengameart.org/content/synthesized-explosion
   Convertido de FLAC a OGG.
+
+maullido.ogg, grunido.ogg
+  "Meow" de IgnasD, OpenGameArt, CC0.
+  https://opengameart.org/content/meow
+  grunido.ogg es el mismo maullido bajado de tono (más grave y lento): la voz mañosa de Michi.
+
+maullido_suave.ogg, ronroneo.ogg
+  "Cat Purr & Meow" de Kerzoven, OpenGameArt, CC0.
+  https://opengameart.org/content/cat-purr-meow
+  Originales: cat_softmew.wav -> maullido_suave (recortado a 2 s), cat_mewpurr.wav -> ronroneo.
+
+susto.ogg
+  "Kitten Mew" de antumdeluge, OpenGameArt, CC0.
+  https://opengameart.org/content/kitten-mew
+
+Todos los maullidos se normalizaron de volumen y se convirtieron a OGG con ffmpeg.

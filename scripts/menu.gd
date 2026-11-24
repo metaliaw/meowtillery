@@ -3,6 +3,7 @@ extends Control
 
 const Estilo := preload("res://scripts/estilo.gd")
 const Gato := preload("res://scripts/gato_animado.gd")
+const Globo := preload("res://scripts/globo.gd")
 
 const ESCENA_COMBATE := "res://scenes/eleccion.tscn"  # primero se elige batallón
 const ESCENA_TUTORIAL := "res://scenes/tutorial.tscn"
@@ -46,13 +47,18 @@ func _ready() -> void:
 	var lado_muffy := VBoxContainer.new()
 	lado_muffy.add_theme_constant_override("separation", 8)
 	fila.add_child(lado_muffy)
-	var globo := PanelContainer.new()
+	var globo := Globo.new("¡Hola! Soy Muffy.\n¿Te enseño a jugar?", 17, "abajo")
+	globo.cola_pos = 0.45
 	globo.custom_minimum_size = Vector2(250, 0)
-	globo.add_child(Estilo.texto_en_papel("¡Hola! Soy Muffy.\n¿Te enseño a jugar?", 17))
 	lado_muffy.add_child(globo)
 	_muffy = Gato.new(5)
 	_muffy.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	lado_muffy.add_child(_muffy)
+	# Muffy saluda con un maullido al abrir el menú.
+	get_tree().create_timer(0.6).timeout.connect(func():
+		if is_inside_tree():
+			Sonido.tocar("maullido")
+			_muffy.animar("talk", 0.6))
 
 	var botones := VBoxContainer.new()
 	botones.alignment = BoxContainer.ALIGNMENT_CENTER

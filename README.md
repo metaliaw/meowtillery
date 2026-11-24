@@ -25,6 +25,11 @@ godot --headless --path . -s tests/test_combate.gd
   *terca* (girar cuesta 1 más), *recarga lenta* (un ataque por turno), *camarada* (+1 de
   daño con un compañero pegado) y *valiente* (los golpes no lo dejan en pánico).
   El mazo es el general más las cartas del batallón.
+- **Dificultad.** Se elige junto al batallón. *Recluta*: actúan 2 enemigos por turno y
+  pegan 1 menos. *Veterano*: la IA elige blanco y casilla por daño esperado (remata,
+  flanquea, se cubre) y pega 1 más. *As*: además actúan todos los enemigos y pegan 2 más.
+  Con el bot de QA (100 batallas por caso): Recluta ~100% de victorias jugando bien y
+  ~70-90% jugando al azar; Veterano ~75-80%; As ~60%. Una batalla dura ~8-9 turnos.
 - **Inspección sorpresa de la teniente Michi.** En cada batalla hay 1 probabilidad en 3
   de que Michi tome el mando (y viene segura si lleva 3 batallas sin aparecer). Su manía,
   *mandona*: cada turno ordena a un tanque que ataque (se marca con "!"). Si obedece,
@@ -73,7 +78,8 @@ godot --headless --path . -s tests/test_combate.gd
 | `scripts/gato_animado.gd` | Anima a un gato desde su hoja de sprites. Por defecto, Muffy (`assets/muchi/`, el archivo conserva el nombre original del personaje; arte propio de la autora, todos los derechos reservados). |
 | `scripts/estilo.gd` | Estética común tipo Balatro: tapete, botones-carta, títulos. |
 | `assets/fuentes/` | [Pixelify Sans](https://github.com/eifetx/Pixelify-Sans), SIL Open Font License 1.1 (`OFL.txt`): se puede incluir y vender con el juego, siempre que la licencia vaya junto a la fuente. Se usa sin suavizado (`Estilo.fuente()`). |
-| `assets/sonidos/` | Efectos CC0 (Kenney y OpenGameArt). Origen de cada uno en `CREDITOS.txt`. |
+| `assets/sonidos/` | Efectos CC0 (Kenney y OpenGameArt), incluidos maullidos, ronroneo y el gruñido de Michi. Origen de cada uno en `CREDITOS.txt`. |
+| `scripts/globo.gd` | Globo de diálogo de cómic con colita que apunta a quien habla (menú, tutorial, órdenes de Michi). |
 | `scripts/sonido.gd` | Autoload `Sonido`: todos los botones suenan solos (hover, clic, error si está deshabilitado); el combate avisa disparos, derribos y movimientos con la señal `evento` y suenan en cola. |
 | `tools/generar_terreno.py` | Dibuja las losetas-carta del terreno (`assets/terreno/`). |
 | `tests/test_combate.gd` | Pruebas de la lógica. |
@@ -106,9 +112,8 @@ la exportación web. Pasos, cuando toque:
 - Muerte permanente de la tripulación entre batallas, campaña con varios mapas,
   recompensas de cartas y guardado.
 - Música.
-- Resultados del QA (bot): el juego es fácil si se juega con criterio (99% de victorias),
-  las batallas duran ~12 turnos y Girar/Acelerar/¡Urá! casi no sirven. Falta: niveles de
-  dificultad, batallas más cortas, ficha visual del blindaje y pantalla de fichas técnicas.
+- Del QA: Girar/Acelerar/¡Urá! casi no sirven. Falta ficha visual del blindaje y
+  pantalla de fichas técnicas.
 
 ## Tanques reales de referencia y derechos
 
