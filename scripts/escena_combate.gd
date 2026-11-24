@@ -95,15 +95,29 @@ func _construir_interfaz() -> void:
 	_tablero.animacion_terminada.connect(_refrescar)
 	medio.add_child(_tablero)
 
+	# Columna derecha: Michi fija arriba y, debajo, fichas, vista previa y registro dentro
+	# de una caja con scroll propio. Así el texto largo nunca empuja la mano ni los botones.
+	var lado := VBoxContainer.new()
+	lado.custom_minimum_size = Vector2(ANCHO_PANEL, 0)
+	lado.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	lado.add_theme_constant_override("separation", 10)
+	medio.add_child(lado)
+	var scroll := ScrollContainer.new()
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	var margen_scroll := MarginContainer.new()  # que la barra de scroll no tape el final de las líneas
+	margen_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	margen_scroll.add_theme_constant_override("margin_right", 14)
+	scroll.add_child(margen_scroll)
 	var lateral := VBoxContainer.new()
-	lateral.custom_minimum_size = Vector2(ANCHO_PANEL, 0)
 	lateral.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	lateral.add_theme_constant_override("separation", 10)
-	medio.add_child(lateral)
+	margen_scroll.add_child(lateral)
 	# La teniente Michi, oficial al mando, con la orden del turno.
 	var fila_michi := HBoxContainer.new()
 	fila_michi.add_theme_constant_override("separation", 22)  # espacio para la colita del globo
-	lateral.add_child(fila_michi)
+	lado.add_child(fila_michi)
+	lado.add_child(scroll)
 	_fila_michi = fila_michi
 	_michi = Gato.new(2, load(Partida.OFICIAL["gato"]))
 	_michi.tooltip_text = Partida.OFICIAL["mania_texto"]
@@ -115,13 +129,12 @@ func _construir_interfaz() -> void:
 	fila_michi.add_child(_orden)
 	_orden.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_orden.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	# La vista previa va primero: es lo que se mira al pasar el mouse por una carta y
+	# así nunca queda escondida bajo el scroll.
+	_vista_previa = _etiqueta(lateral, Color.WHITE)
 	_ficha_actor = _etiqueta(lateral, Color("ffe08a"))
 	_ficha_objetivo = _etiqueta(lateral, Color("ff9eb5"))
-	_vista_previa = _etiqueta(lateral, Color.WHITE)
 	_registro = _etiqueta(lateral, Color(1, 1, 1, 0.7))
-	_registro.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	# Recorta en vez de crecer: si no, un registro largo empuja la mano fuera de la pantalla.
-	_registro.clip_text = true
 
 	var abajo := HBoxContainer.new()
 	abajo.add_theme_constant_override("separation", 8)
@@ -384,11 +397,13 @@ func _boton_carta(i_mano: int) -> Button:
 	var b := Button.new()
 	# El coste puede depender del tanque elegido (manías).
 	b.text = "%s  [%d]\n%s" % [c["nombre"], combate.coste_de(c, combate.aliados[actor_sel]), c["texto"]]
-	# Ancho repartido y texto en varias líneas: si no, la mano empuja el panel fuera de la pantalla.
+	# Ancho repartido, texto en varias líneas y alto fijo: el texto no puede agrandar la carta
+	# (clip_text), así la fila de abajo nunca se corre.
 	b.custom_minimum_size = Vector2(120, 100)
 	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	b.add_theme_font_size_override("font_size", 15)
+	b.clip_text = true
+	b.add_theme_font_size_override("font_size", 14)
 	var motivo := combate.motivo_no_jugable(i_mano, actor_sel, objetivo_sel)
 	b.disabled = motivo != ""
 	b.set_meta("sonido", "carta")

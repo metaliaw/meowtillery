@@ -39,6 +39,12 @@ const DUR_TRAZO := 0.3
 const DUR_EXPLOSION := 0.6
 const DUR_FLOTANTE := 1.1
 const DUR_TEMBLOR := 0.35
+## Kill cam: primer plano del tanque derribado (al estilo de los juegos de tanques).
+const DUR_KILLCAM := 2.0
+const IMPACTO_KC := 0.45   # cuándo llega el proyectil dentro de la kill cam
+const SALTO_GATO_KC := 1.0 # cuándo salta el gato por la escotilla
+const DUR_ESCAPE := 1.4    # el gato corre hacia su lado del mapa
+const RESTOS := Color(0.32, 0.28, 0.26)
 
 var combate  # scripts/combate.gd
 var movimiento: Dictionary = {}  # celdas a las que puede ir el tanque elegido
@@ -61,12 +67,16 @@ var _flotantes: Array = []   # {pos, texto, color, t}
 var _trazos: Array = []      # {de, a, t}
 var _explosiones: Array = [] # {pos, t}
 var _temblor: Dictionary = {}  # clave -> segundos restantes
+var _killcam: Dictionary = {}  # {clave, lado, dano, t} mientras se muestra
+var _escapes: Array = []       # gatos corriendo a salvo: {hoja, de, hacia_x, t}
 
 
 func preparar(c) -> void:
 	combate = c
 	custom_minimum_size = Vector2(c.mapa.ancho, c.mapa.alto) * TAM
 	_cola.clear()
+	_killcam = {}
+	_escapes.clear()
 	animando = false
 	sincronizar()
 	queue_redraw()
@@ -88,7 +98,8 @@ func encolar(datos: Dictionary) -> void:
 # ------------------------------------------------------------------ animación ---
 
 func _process(delta: float) -> void:
-	var hay_efectos := not (_flotantes.is_empty() and _trazos.is_empty() and _explosiones.is_empty() and _temblor.is_empty())
+	var hay_efectos := not (_flotantes.is_empty() and _trazos.is_empty() and _explosiones.is_empty() \
+		and _temblor.is_empty() and _escapes.is_empty()) or _hay_restos()
 	_envejecer(delta)
 	if not _cola.is_empty():
 		_avanzar(delta)
@@ -101,9 +112,10 @@ func _process(delta: float) -> void:
 
 
 func _envejecer(delta: float) -> void:
-	for lista in [_flotantes, _trazos, _explosiones]:
+	for lista in [_flotantes, _trazos, _explosiones, _escapes]:
 		for e in lista:
 			e["t"] += delta
+	_escapes = _escapes.filter(func(e): return e["t"] < DUR_ESCAPE)
 	_flotantes = _flotantes.filter(func(e): return e["t"] < DUR_FLOTANTE)
 	_trazos = _trazos.filter(func(e): return e["t"] < DUR_TRAZO)
 	_explosiones = _explosiones.filter(func(e): return e["t"] < DUR_EXPLOSION)
@@ -145,12 +157,44 @@ func _avanzar(delta: float) -> void:
 			dur = DUR_DISPARO
 		"golpe":
 			dur = DUR_GOLPE
-			if a["derriba"] and _t > DUR_GOLPE * 0.5:
-				v["vivo"] = false
+			if a["derriba"]:
+				dur = DUR_KILLCAM
+				_killcam["t"] = _t
 	if _t >= dur:
+		if a["tipo"] == "golpe" and a["derriba"]:
+			_terminar_killcam(a, v)
 		_cola.pop_front()
 		_t = 0.0
 		_iniciada = false
+
+
+## Al cerrar la kill cam: el tanque queda en llamas y el gato sale corriendo hacia su lado.
+func _terminar_killcam(a: Dictionary, v: Dictionary) -> void:
+	_killcam = {}
+	v["vivo"] = false
+	_explosiones.append({"pos": _centro(v), "t": 0.0})
+	var u := _unidad(a["clave"])
+	if u.has("gato"):
+		var hacia_x: float = -40.0 if u["bando"] == "aliado" else size.x + 40.0
+		_escapes.append({"hoja": _textura(u["gato"]), "de": _centro(v) + Vector2(0, -18), "hacia_x": hacia_x, "t": 0.0})
+	_flotar(v, "¡A salvo!", COLORES_TEXTO["moral"])
+
+
+func _unidad(clave: String) -> Dictionary:
+	if clave.length() < 2 or combate == null:
+		return {}
+	var lista: Array = combate.aliados if clave[0] == "a" else combate.enemigos
+	var i := int(clave.substr(1))
+	return lista[i] if i < lista.size() else {}
+
+
+func _hay_restos() -> bool:
+	if combate == null:
+		return false
+	for u in combate.aliados + combate.enemigos:
+		if not _estado(u)["vivo"]:
+			return true
+	return false
 
 
 func _iniciar(a: Dictionary, v: Dictionary) -> void:
@@ -168,6 +212,11 @@ func _iniciar(a: Dictionary, v: Dictionary) -> void:
 		"golpe":
 			v["casco"] = a["casco"]
 			v["escudo"] = a["escudo"]
+			if a["derriba"]:
+				# El derribo se cuenta en primer plano (kill cam) en vez de en el tablero.
+				_killcam = {"clave": a["clave"], "lado": a.get("lado", "flanco"), "dano": a["al_casco"], "t": 0.0}
+				_sonar("explosion")
+				return
 			_temblor[a["clave"]] = DUR_TEMBLOR
 			var texto := "-%d" % a["al_casco"]
 			var color: Color = COLORES_TEXTO["dano"]
@@ -175,10 +224,7 @@ func _iniciar(a: Dictionary, v: Dictionary) -> void:
 				texto = "escudo -%d" % a["absorbido"]
 				color = COLORES_TEXTO["escudo"]
 			_flotar(v, texto, color)
-			if a["derriba"]:
-				_sonar("explosion")
-				_explosiones.append({"pos": _centro(v), "t": 0.0})
-			elif a.get("voz", "") != "":
+			if a.get("voz", "") != "":
 				_sonar(a["voz"])  # el gato se asusta (entra en pánico)
 		"texto":
 			if a.has("escudo"):
@@ -257,6 +303,11 @@ func _draw() -> void:
 			if not con_textura:
 				draw_rect(r, Color(0, 0, 0, 0.18), false, 1.0)
 
+	# Primero los restos en llamas (quedan debajo), después los tanques en pie.
+	for u in combate.aliados + combate.enemigos:
+		var e := _estado(u)
+		if not e["vivo"]:
+			_dibujar_restos(u, e)
 	for u in combate.aliados + combate.enemigos:
 		var e := _estado(u)
 		if e["vivo"]:
@@ -269,6 +320,116 @@ func _draw() -> void:
 	for celda in prevision:
 		_etiqueta_dano(celda, prevision[celda])
 	_dibujar_efectos(fuente)
+	_dibujar_escapes()
+	if not _killcam.is_empty():
+		_dibujar_killcam(fuente)
+
+
+## Tanque derribado: chamuscado, con fueguitos que titilan y humo que sube.
+func _dibujar_restos(u: Dictionary, e: Dictionary) -> void:
+	var esquina: Vector2 = e["celda"] * TAM
+	var centro := esquina + Vector2(TAM, TAM) / 2
+	var tex := _textura(u["sprite"])
+	var tam_sprite := tex.get_size() * maxi(1, TAM / int(tex.get_size().x))
+	var escala := Vector2(-1, 1) if e["orientacion"] == Vector2i.LEFT else Vector2(1, 1)
+	draw_set_transform(centro, 0.0, escala)
+	draw_texture_rect(tex, Rect2(-tam_sprite / 2 - Vector2(0, 4), tam_sprite), false, RESTOS)
+	draw_set_transform(Vector2.ZERO)
+	var t := Time.get_ticks_msec() / 1000.0
+	for k in 3:
+		var base := centro + Vector2(-14 + k * 14, -4)
+		var llama := 0.65 + 0.35 * sin(t * 9.0 + k * 2.1)
+		draw_circle(base + Vector2(0, -3 * llama), 6.0 * llama, Color(1.0, 0.45, 0.1, 0.9))
+		draw_circle(base + Vector2(0, -5 * llama), 3.5 * llama, Color(1.0, 0.85, 0.3))
+	for k in 3:
+		var fase := fmod(t * 0.45 + k / 3.0, 1.0)
+		var humo := centro + Vector2(sin(t + k) * 4 + (k - 1) * 8, -12 - fase * 32)
+		draw_circle(humo, 4.0 + fase * 6.0, Color(0.22, 0.22, 0.24, 0.5 * (1.0 - fase)))
+
+
+## El gato que escapó corre dando saltitos hacia el borde de su bando.
+func _dibujar_escapes() -> void:
+	for es in _escapes:
+		var p: float = es["t"] / DUR_ESCAPE
+		var de: Vector2 = es["de"]
+		var pos := Vector2(lerpf(de.x, es["hacia_x"], p), de.y - absf(sin(p * PI * 5.0)) * 10.0)
+		# Cuadro "happy" de su hoja (fila 2), a tamaño natural.
+		draw_texture_rect_region(es["hoja"], Rect2(pos - Vector2(16, 16), Vector2(32, 32)), Rect2(0, 64, 32, 32))
+
+
+## Kill cam: primer plano del tanque derribado. El proyectil entra por el lado del
+## impacto, el tanque explota y se chamusca, y el gato salta por la escotilla a salvo.
+func _dibujar_killcam(fuente: Font) -> void:
+	var u := _unidad(_killcam["clave"])
+	if u.is_empty():
+		return
+	var t: float = _killcam["t"]
+	var v: Dictionary = _vista.get(_killcam["clave"], {})
+	draw_rect(Rect2(Vector2.ZERO, size), Color(0, 0, 0, 0.6))
+	var panel := Rect2(size / 2 - Vector2(240, 140), Vector2(480, 280))
+	draw_rect(Rect2(panel.position + Vector2(5, 5), panel.size), Color(0, 0, 0, 0.5))
+	draw_rect(panel, Color("eef1f8"))
+	draw_rect(panel, COLOR_TINTA, false, 3.0)
+	var cabecera := Rect2(panel.position, Vector2(panel.size.x, 30))
+	draw_rect(cabecera, Color("e84a5f"))
+	draw_rect(cabecera, COLOR_TINTA, false, 3.0)
+	draw_string(fuente, cabecera.position + Vector2(12, 22), "KILL CAM", HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color.WHITE)
+	draw_string(fuente, cabecera.position + Vector2(120, 22), "%s · %s" % [u["nombre"], u.get("inspirado_en", "")],
+		HORIZONTAL_ALIGNMENT_LEFT, panel.size.x - 130, 15, Color.WHITE)
+
+	# Tanque a ×4. Tiembla y se chamusca después del impacto.
+	var tex := _textura(u["sprite"])
+	var escala_kc := 4.0
+	var tam := tex.get_size() * escala_kc
+	var mira_izq: bool = v.get("orientacion", u["orientacion"]) == Vector2i.LEFT
+	var s := -1.0 if mira_izq else 1.0  # hacia dónde apunta el cañón en pantalla
+	var centro := panel.get_center() + Vector2(0, 20)
+	var tras_impacto := clampf((t - IMPACTO_KC) / 0.5, 0.0, 1.0)
+	if t > IMPACTO_KC:
+		centro.x += sin(t * 70.0) * 5.0 * (1.0 - tras_impacto)
+	var tinte := Color.WHITE.lerp(RESTOS, tras_impacto)
+	draw_set_transform(centro, 0.0, Vector2(s, 1))
+	var origen := -tam / 2
+	draw_texture_rect(tex, Rect2(origen, tam), false, tinte)
+	# El gato: asustado en la escotilla y, después, salta fuera feliz.
+	if u.has("gato"):
+		var hoja := _textura(u["gato"])
+		var escotilla := Vector2(u["escotilla"][0], u["escotilla"][1]) * escala_kc
+		var salto := clampf((t - SALTO_GATO_KC) / 0.5, 0.0, 1.0)
+		var fila := 2 if salto > 0.0 else (FILA_SUSTO if t > IMPACTO_KC else 0)
+		var alto_gato := 32.0 * 2.5
+		var pos := origen + escotilla + Vector2(-alto_gato / 2, -alto_gato * 0.75 - salto * 50.0)
+		draw_texture_rect_region(hoja, Rect2(pos, Vector2(alto_gato, alto_gato)), Rect2(0, fila * 32, 32, 32))
+	draw_set_transform(Vector2.ZERO)
+
+	# Proyectil antes del impacto; explosión después.
+	var punto := centro + Vector2(0, 6)
+	var lado: String = _killcam["lado"]
+	if lado == "frente":
+		punto = centro + Vector2(s * tam.x * 0.3, 0)
+	elif lado == "trasera":
+		punto = centro + Vector2(-s * tam.x * 0.4, 0)
+	if t < IMPACTO_KC:
+		var p := t / IMPACTO_KC
+		if lado == "flanco":
+			# Del flanco: viene hacia la cámara; se dibuja como una mira que se cierra.
+			draw_arc(punto, lerpf(60.0, 8.0, p), 0, TAU, 24, Color("e84a5f"), 3.0)
+		else:
+			var desde := punto + Vector2((s if lado == "frente" else -s) * 220.0, -6)
+			var bala := desde.lerp(punto, p)
+			draw_line(bala - (punto - desde).normalized() * 30.0, bala, Color(1, 0.9, 0.5, 0.6), 4.0)
+			draw_circle(bala, 5.0, Color(1, 0.95, 0.7))
+	else:
+		var pe := clampf((t - IMPACTO_KC) / 0.6, 0.0, 1.0)
+		draw_circle(punto, 10.0 + 50.0 * pe, Color(1.0, 0.55, 0.15, 0.85 * (1.0 - pe)))
+		draw_circle(punto, 6.0 + 26.0 * pe, Color(1.0, 0.92, 0.55, 1.0 - pe))
+
+	var nombres_lado := {"frente": "el frente", "flanco": "el flanco", "trasera": "la trasera"}
+	var texto := "¡Derribado! Impacto por %s · -%d" % [nombres_lado.get(lado, lado), _killcam["dano"]]
+	if t > SALTO_GATO_KC:
+		texto = "¡%s salta del tanque y escapa a salvo!" % u["nombre"]
+	var pie := panel.position + Vector2(0, panel.size.y - 14)
+	draw_string(fuente, pie, texto, HORIZONTAL_ALIGNMENT_CENTER, panel.size.x, 17, COLOR_TINTA)
 
 
 ## Dibuja los lados de la celda que dan hacia afuera de la zona de amenaza.

@@ -56,7 +56,7 @@ const PAGINAS := [
 		"anim": "angry",
 	},
 	{
-		"texto": "Cuando no te quede nada por hacer, pulsa Terminar turno. ¡Derrota a todos los enemigos para ganar! ¿Lista la tripulación?",
+		"texto": "Cuando no te quede nada por hacer, pulsa Terminar turno. ¡Derrota a todos los enemigos para ganar! Y tranquilo: si un tanque cae, su gato siempre salta y escapa a salvo. ¿Lista la tripulación?",
 		"anim": "happy",
 	},
 ]

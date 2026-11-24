@@ -17,7 +17,7 @@ signal evento(nombre: String)
 ##   mover    {camino: [Vector2i], orientacion}
 ##   girar    {orientacion}
 ##   disparo  {objetivo: clave, orientacion}
-##   golpe    {al_casco, absorbido, casco, escudo, derriba}
+##   golpe    {al_casco, absorbido, casco, escudo, derriba, lado, voz}
 ##   texto    {texto, color: "escudo"|"moral"|"malo", escudo, moral}
 signal accion(datos: Dictionary)
 
@@ -312,12 +312,12 @@ func golpear(u: Dictionary, dano: int, penetracion: int, lado: String, cobertura
 	if i["absorbido"] > 0:
 		texto += " (%d absorbido)" % i["absorbido"]
 	if not vivo(u):
-		texto += ". Fuera de combate!"
+		texto += ". ¡Fuera de combate! El gato escapa a salvo."
 		evento.emit("explosion")
 	_anotar(texto)
 	accion.emit({"tipo": "golpe", "clave": u.get("clave", ""), "al_casco": i["al_casco"],
 		"absorbido": i["absorbido"], "casco": u["casco"], "escudo": u["escudo"], "moral": u["moral"],
-		"derriba": not vivo(u), "voz": "susto" if entra_en_panico else ""})
+		"derriba": not vivo(u), "voz": "susto" if entra_en_panico else "", "lado": lado})
 	return i["al_casco"]
 
 
