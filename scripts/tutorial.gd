@@ -172,7 +172,7 @@ func _ir_a(indice: int) -> void:
 	var otro := _muffy if _hablante() == _michi else _michi
 	otro.animar("idle")
 	_hablante().animar("talk", SEGUNDOS_HABLANDO)
-	Sonido.tocar("grunido" if _hablante() == _michi else "maullido_suave")
+	Sonido.tocar("michi_voz" if _hablante() == _michi else "maullido_suave")
 	if p.has("anim"):
 		get_tree().create_timer(SEGUNDOS_HABLANDO).timeout.connect(_gesto.bind(_pagina, p["anim"]))
 

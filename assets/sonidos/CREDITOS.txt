@@ -19,10 +19,16 @@ explosion.ogg
   https://opengameart.org/content/synthesized-explosion
   Convertido de FLAC a OGG.
 
-maullido.ogg, grunido.ogg
+michi_voz.ogg, michi_grunido.ogg, michi_aprueba.ogg
+  La voz de la teniente Michi: grabaciones propias de la gata Michi, hechas por la autora
+  del juego. Todos los derechos reservados (no son CC0).
+  Recortadas de una sola grabación: maullido claro -> michi_voz, maullido áspero ->
+  michi_grunido, "mrrp" corto -> michi_aprueba. Limpieza con ffmpeg: pasa-altos 120 Hz,
+  reducción de ruido, recorte de silencios, volumen nivelado y fundidos cortos.
+
+maullido.ogg
   "Meow" de IgnasD, OpenGameArt, CC0.
   https://opengameart.org/content/meow
-  grunido.ogg es el mismo maullido bajado de tono (más grave y lento): la voz mañosa de Michi.
 
 maullido_suave.ogg, ronroneo.ogg
   "Cat Purr & Meow" de Kerzoven, OpenGameArt, CC0.

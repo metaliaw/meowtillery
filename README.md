@@ -82,7 +82,7 @@ godot --headless --path . -s tests/test_combate.gd
 | `scripts/gato_animado.gd` | Anima a un gato desde su hoja de sprites. Por defecto, Muffy (`assets/muchi/`, el archivo conserva el nombre original del personaje; arte propio de la autora, todos los derechos reservados). |
 | `scripts/estilo.gd` | Estética común tipo Balatro: tapete, botones-carta, títulos. |
 | `assets/fuentes/` | [Pixelify Sans](https://github.com/eifetx/Pixelify-Sans), SIL Open Font License 1.1 (`OFL.txt`): se puede incluir y vender con el juego, siempre que la licencia vaya junto a la fuente. Se usa sin suavizado (`Estilo.fuente()`). |
-| `assets/sonidos/` | Efectos CC0 (Kenney y OpenGameArt), incluidos maullidos, ronroneo y el gruñido de Michi. Origen de cada uno en `CREDITOS.txt`. |
+| `assets/sonidos/` | Efectos CC0 (Kenney y OpenGameArt), incluidos maullidos y ronroneo. La voz de Michi (`michi_*.ogg`) es la de la gata de verdad, grabada por la autora (todos los derechos reservados). Origen de cada uno en `CREDITOS.txt`. Las grabaciones originales (`grabaciones/`) no se suben. |
 | `scripts/globo.gd` | Globo de diálogo de cómic con colita que apunta a quien habla (menú, tutorial, órdenes de Michi). |
 | `scripts/sonido.gd` | Autoload `Sonido`: todos los botones suenan solos (hover, clic, error si está deshabilitado); el combate avisa disparos, derribos y movimientos con la señal `evento` y suenan en cola. |
 | `tools/generar_terreno.py` | Dibuja las losetas-carta del terreno (`assets/terreno/`). |

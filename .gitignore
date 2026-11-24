@@ -5,3 +5,6 @@
 # Juegos exportados (se regeneran con Godot: Project > Export)
 build/*
 !build/.gdignore
+
+# Grabaciones originales (personales). Solo los recortes elegidos pasan a assets/sonidos/.
+grabaciones/

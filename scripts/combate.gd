@@ -481,7 +481,7 @@ func _revisar_orden() -> void:
 	else:
 		u["moral"] = maxi(u["moral"] - 1, 0)
 		_anotar("%s: «¿Y ese disparo, recluta?» %s pierde 1 de moral." % [oficial["nombre"], u["nombre"]])
-		_avisar(u, "Michi: -1 moral", "malo", "grunido")
+		_avisar(u, "Michi: -1 moral", "malo", "michi_grunido")
 
 
 func _elegir_intenciones() -> void:

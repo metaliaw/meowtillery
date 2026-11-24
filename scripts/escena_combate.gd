@@ -328,6 +328,9 @@ func _refrescar() -> void:
 	if not jugando and not _fin_sonado:
 		_fin_sonado = true
 		Sonido.tocar(combate.estado)
+		if combate.estado == "victoria":
+			# Después de la fanfarria, los gatos ronronean contentos.
+			get_tree().create_timer(0.7).timeout.connect(func(): Sonido.tocar("ronroneo"))
 
 
 func _refrescar_orden(ordenado: Dictionary) -> void:
@@ -344,7 +347,7 @@ func _refrescar_orden(ordenado: Dictionary) -> void:
 	if estado_orden != _orden_anterior and _michi.is_inside_tree():
 		_michi.animar("happy" if combate.orden_cumplida else "angry", 1.2)
 		if not ordenado.is_empty():
-			Sonido.tocar("ronroneo" if combate.orden_cumplida else "grunido")
+			Sonido.tocar("michi_aprueba" if combate.orden_cumplida else "michi_grunido")
 	_orden_anterior = estado_orden
 
 
