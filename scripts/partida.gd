@@ -36,6 +36,8 @@ const LLEVAR_MAX := 2
 
 var jugador := "britanico"
 var rival := "sovietico"
+## Rival elegido en la pantalla de batallón ("" = al azar entre los demás).
+var rival_elegido := ""
 var dificultad := "recluta"
 var batallas_sin_michi := 0
 var arsenal: Array = []
@@ -111,13 +113,11 @@ static func batallones() -> Dictionary:
 	return Datos.leer("res://data/batallones.json")
 
 
-## El rival es el otro batallón (por ahora hay dos).
+## El rival es el elegido o, si es "al azar" (o el mismo batallón), uno de los demás.
 func elegir(id_batallon: String) -> void:
 	jugador = id_batallon
-	for id in batallones():
-		if id != id_batallon:
-			rival = id
-			return
+	var otros: Array = batallones().keys().filter(func(id): return id != id_batallon)
+	rival = rival_elegido if otros.has(rival_elegido) else otros[randi() % otros.size()]
 
 
 ## Arma el combate. No hay mazo compartido: cada gato trae sus propias cartas
@@ -129,6 +129,7 @@ static func iniciar_combate(combate, id_jugador: String, id_rival: String, semil
 	var mazo: Array = []
 	combate.oficial = OFICIAL if con_michi else {}
 	combate.dificultad = DIFICULTADES.get(id_dificultad, {})
+	combate.refuerzo = b[id_jugador].get("refuerzo", {})
 	combate.iniciar(
 		Datos.leer("res://data/mapa.json"),
 		b[id_jugador]["unidades"],

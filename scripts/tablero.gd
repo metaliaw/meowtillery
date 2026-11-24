@@ -23,7 +23,7 @@ const COLOR_FLECHA := Color("ffe08a")
 const COLOR_TAPETE := Color("1b3833")
 const COLOR_TINTA := Color("1c1a24")
 const COLORES_TEXTO := {"escudo": Color("8ad0ff"), "moral": Color("ffe08a"), "malo": Color("d6a2ff"),
-	"dano": Color("ff6b6b")}
+	"dano": Color("ff6b6b"), "vida": Color("7ee08a")}
 ## Recorte de la cabeza (con gorro) dentro de un cuadro de 32×32 de la hoja del gato.
 const CABEZA := Rect2(3, 0, 26, 20)
 ## Fila de la hoja con la cara de susto ("alert"), para el pánico.
@@ -231,6 +231,8 @@ func _iniciar(a: Dictionary, v: Dictionary) -> void:
 		"texto":
 			if a.has("escudo"):
 				v["escudo"] = a["escudo"]
+			if a.has("casco"):
+				v["casco"] = a["casco"]  # reparaciones: la barra sube junto con el texto
 			_flotar(v, a["texto"], COLORES_TEXTO.get(a["color"], Color.WHITE))
 			if a.get("voz", "") != "":
 				_sonar(a["voz"])

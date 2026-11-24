@@ -559,7 +559,7 @@ func _boton_carta(id: String) -> Button:
 	# El coste puede depender del tanque elegido (manías).
 	b.text = "%s  [%d]\n%s" % [c["nombre"], combate.coste_de(c, combate.aliados[actor_sel]), c["texto"]]
 	var recarga := int(c.get("recarga", 0))
-	if recarga > 0:
+	if recarga > 0 and recarga < 50:  # recargas enormes = "una vez por batalla" (ya lo dice el texto)
 		b.text += "\nRecarga: %d turno%s" % [recarga, "" if recarga == 1 else "s"]
 	# Ancho repartido, texto en varias líneas y alto fijo: el texto no puede agrandar la carta
 	# (clip_text), así la fila de abajo nunca se corre.

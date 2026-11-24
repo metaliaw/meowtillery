@@ -7,7 +7,7 @@ const Gato := preload("res://scripts/gato_animado.gd")
 
 const ESCENA_COMBATE := "res://scenes/combate.tscn"
 const ESCENA_MENU := "res://scenes/menu.tscn"
-const ANCHO_CARTA := 590
+const ANCHO_CARTA := 396
 
 
 var _nombres_cartas := {}  # id -> nombre, para mostrar las cartas de cada gato
@@ -27,13 +27,18 @@ func _ready() -> void:
 	centro.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(centro)
 	var columna := VBoxContainer.new()
-	columna.add_theme_constant_override("separation", 14)
+	columna.add_theme_constant_override("separation", 10)
 	centro.add_child(columna)
 	columna.add_child(Estilo.titulo("ELIGE TU BATALLÓN", 40))
-	columna.add_child(_selector_dificultad())
+	var opciones := HBoxContainer.new()
+	opciones.alignment = BoxContainer.ALIGNMENT_CENTER
+	opciones.add_theme_constant_override("separation", 40)
+	opciones.add_child(_selector_dificultad())
+	opciones.add_child(_selector_rival())
+	columna.add_child(opciones)
 
 	var cartas := HBoxContainer.new()
-	cartas.add_theme_constant_override("separation", 20)
+	cartas.add_theme_constant_override("separation", 14)
 	columna.add_child(cartas)
 	var batallones: Dictionary = Partida.batallones()
 	for id in batallones:
@@ -83,6 +88,36 @@ func _refrescar_arsenal() -> void:
 		_arsenal.add_child(b)
 
 
+## Rival: al azar o un batallón fijo. Si eliges el mismo que juegas, sale uno al azar.
+func _selector_rival() -> Control:
+	var caja := VBoxContainer.new()
+	caja.add_theme_constant_override("separation", 4)
+	var fila := HBoxContainer.new()
+	fila.add_theme_constant_override("separation", 8)
+	caja.add_child(fila)
+	var etiqueta := Label.new()
+	etiqueta.text = "Rival:"
+	fila.add_child(etiqueta)
+	var grupo := ButtonGroup.new()
+	var nombres := {"": "Al azar"}
+	var batallones: Dictionary = Partida.batallones()
+	for id in batallones:
+		nombres[id] = String(batallones[id]["nombre"]).replace("Batallón ", "")
+	for id in nombres:
+		var b := Button.new()
+		b.text = nombres[id]
+		b.toggle_mode = true
+		b.button_group = grupo
+		b.custom_minimum_size = Vector2(0, 36)
+		b.add_theme_font_size_override("font_size", 14)
+		b.button_pressed = id == Partida.rival_elegido
+		b.toggled.connect(func(activo: bool):
+			if activo:
+				Partida.rival_elegido = id)
+		fila.add_child(b)
+	return caja
+
+
 ## Tres botones (Recluta / Veterano / As) y una línea que explica el elegido.
 func _selector_dificultad() -> Control:
 	var caja := VBoxContainer.new()
@@ -97,6 +132,9 @@ func _selector_dificultad() -> Control:
 	var explicacion := Label.new()
 	explicacion.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	explicacion.add_theme_color_override("font_color", Estilo.ACENTO)
+	explicacion.add_theme_font_size_override("font_size", 13)
+	explicacion.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	explicacion.custom_minimum_size = Vector2(470, 0)  # que el texto largo no ensanche la pantalla
 	var grupo := ButtonGroup.new()
 	for id in Partida.DIFICULTADES:
 		var d: Dictionary = Partida.DIFICULTADES[id]
@@ -123,13 +161,13 @@ func _carta(id: String, b: Dictionary) -> Control:
 	caja.add_theme_constant_override("separation", 6)
 	panel.add_child(caja)
 
-	var titulo := Estilo.texto_en_papel(b["nombre"], 26)
+	var titulo := Estilo.texto_en_papel(b["nombre"], 22)
 	titulo.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	caja.add_child(titulo)
-	var lema := Estilo.texto_en_papel("«%s»" % b["lema"], 16)
+	var lema := Estilo.texto_en_papel("«%s»" % b["lema"], 14)
 	lema.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	caja.add_child(lema)
-	caja.add_child(Estilo.texto_en_papel(b["descripcion"], 14))
+	caja.add_child(Estilo.texto_en_papel(b["descripcion"], 12))
 
 	var gatos: Array[Gato] = []
 	for u in b["unidades"]:
@@ -142,14 +180,13 @@ func _carta(id: String, b: Dictionary) -> Control:
 		datos.add_theme_constant_override("separation", 0)
 		datos.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		datos.add_child(Estilo.texto_en_papel("%s · %s" % [u["nombre"], u["inspirado_en"]], 15))
-		datos.add_child(Estilo.texto_en_papel(u["mania_texto"], 13))
+		datos.add_child(Estilo.texto_en_papel(u["mania_texto"], 12))
 		var nombres_cartas: Array = u.get("habilidades", []).map(func(id): return _nombres_cartas.get(id, id))
 		if not nombres_cartas.is_empty():
-			var cartas_gato := Estilo.texto_en_papel("Cartas: " + ", ".join(nombres_cartas), 13)
+			var cartas_gato := Estilo.texto_en_papel("Cartas: " + ", ".join(nombres_cartas), 12)
 			cartas_gato.add_theme_color_override("font_color", Color("3b6fb0"))
 			datos.add_child(cartas_gato)
 		fila.add_child(datos)
-		fila.add_child(Estilo.imagen(u["sprite"], 1))
 		caja.add_child(fila)
 
 	var elegir := Button.new()

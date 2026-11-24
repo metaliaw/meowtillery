@@ -71,6 +71,10 @@ var botin: Array = []
 var capturas: Array = []
 ## Claves de los tanques propios que empezaron sanos la fase enemiga en curso (salvavidas).
 var _sanos_en_fase: Dictionary = {}
+## Tanque que llega con la carta "¡Refuerzos!" (definición de la unidad; vacío = no hay).
+var refuerzo: Dictionary = {}
+var refuerzo_usado := false
+var _spawns_aliados: Array = []
 
 
 ## semilla >= 0 hace la partida reproducible (útil en pruebas).
@@ -81,6 +85,8 @@ func iniciar(def_mapa: Dictionary, def_aliados: Array, def_enemigos: Array, def_
 		rng.randomize()
 	mapa = Mapa.new()
 	mapa.cargar(def_mapa)
+	_spawns_aliados = def_mapa["aliados"].map(func(par): return _celda(par))
+	refuerzo_usado = false
 	aliados.clear()
 	for i in def_aliados.size():
 		aliados.append(_crear_unidad(def_aliados[i], "aliado", _celda(def_mapa["aliados"][i]), Vector2i.RIGHT))
@@ -248,6 +254,8 @@ func motivo_uso(id: String, i_actor: int, i_objetivo: int) -> String:
 		if actor["usadas"].has(id):
 			return "%s ya la usó este turno." % actor["nombre"]
 		var faltan := int(actor["recargas"].get(id, 0))
+		if faltan > 50:
+			return "Solo se puede usar una vez por batalla."
 		if faltan > 0:
 			return "Recargando: lista en %d turno%s." % [faltan, "" if faltan == 1 else "s"]
 	return _motivo_comun(c, actor, i_objetivo)
@@ -255,6 +263,8 @@ func motivo_uso(id: String, i_actor: int, i_objetivo: int) -> String:
 
 ## Chequeos que valen para cualquier carta (propia, de la mano o de botín).
 func _motivo_comun(c: Dictionary, actor: Dictionary, i_objetivo: int) -> String:
+	if c.get("refuerzo", false) and (refuerzo.is_empty() or refuerzo_usado):
+		return "Ya no quedan refuerzos."
 	if coste_de(c, actor) > energia:
 		return "No hay energía suficiente."
 	var hay_objetivo := i_objetivo >= 0 and i_objetivo < enemigos.size() and vivo(enemigos[i_objetivo])
@@ -272,6 +282,45 @@ func _motivo_comun(c: Dictionary, actor: Dictionary, i_objetivo: int) -> String:
 	if c.get("requiere_objetivo", false) and not hay_objetivo:
 		return "Elige un enemigo en pie."
 	return ""
+
+
+## Cobertura del terreno en `celda` para este ataque (la artillería la ignora).
+func _cobertura_para(c: Dictionary, celda: Vector2i) -> int:
+	return 0 if c.get("ignora_cobertura", false) else mapa.cobertura(celda)
+
+
+## Repara vida (sin pasar del máximo) y lo avisa con un texto verde.
+func _reparar(u: Dictionary, cuanto: int) -> void:
+	if not vivo(u):
+		return
+	var antes: int = u["casco"]
+	u["casco"] = mini(u["casco"] + cuanto, u["casco_max"])
+	if u["casco"] > antes:
+		_avisar(u, "+%d vida" % (u["casco"] - antes), "vida")
+
+
+## "¡Refuerzos!": llega el tanque de refuerzo del batallón por una casilla libre del
+## borde propio (las posiciones de inicio sobrantes; si no, cualquier libre en x <= 1).
+func _llamar_refuerzo() -> void:
+	if refuerzo.is_empty() or refuerzo_usado:
+		return
+	var libre := Vector2i(-1, -1)
+	var candidatas: Array = _spawns_aliados.duplicate()
+	for y in mapa.alto:
+		for x in 2:
+			candidatas.append(Vector2i(x, y))
+	for celda in candidatas:
+		if mapa.transitable(celda) and unidad_en(celda).is_empty():
+			libre = celda
+			break
+	if libre == Vector2i(-1, -1):
+		return
+	refuerzo_usado = true
+	var u := _crear_unidad(refuerzo, "aliado", libre, Vector2i.RIGHT)
+	u["clave"] = "a%d" % aliados.size()
+	aliados.append(u)
+	_anotar("¡Refuerzos! Llega %s en su %s." % [u["nombre"], u.get("inspirado_en", "tanque")])
+	_avisar(u, "¡Refuerzos!", "moral")
 
 
 ## Al derribar un enemigo con cartas propias, queda pendiente elegir una de ellas como botín.
@@ -374,14 +423,14 @@ func _aplicar(id: String, i_actor: int, i_objetivo: int) -> void:
 		if penal > 0:
 			_anotar("  (dispara sin encarar: -%d de daño)" % penal)
 		var dano := maxi(dano_de_carta(c, lado) + bonus_de_ataque(actor, c, objetivo) - penal, 1)
-		golpear(objetivo, dano, int(c.get("penetracion", 0)), lado, mapa.cobertura(objetivo["pos"]))
+		golpear(objetivo, dano, int(c.get("penetracion", 0)), lado, _cobertura_para(c, objetivo["pos"]))
 		var salpicadura := int(c.get("salpicadura", 0))
 		if salpicadura > 0:
 			for d in Mapa.DIRECCIONES:
 				var vecino := unidad_en(objetivo["pos"] + d)
 				if vecino.get("bando") == "enemigo":
 					var e: Dictionary = enemigos[vecino["indice"]]
-					golpear(e, salpicadura, 0, lado_de_impacto(e, actor["pos"]), mapa.cobertura(e["pos"]))
+					golpear(e, salpicadura, 0, lado_de_impacto(e, actor["pos"]), _cobertura_para(c, e["pos"]))
 
 	var radio := int(c.get("radio", 0))
 	var receptores := aliados.filter(func(a): return vivo(a) and Mapa.distancia(a["pos"], actor["pos"]) <= radio)
@@ -397,6 +446,11 @@ func _aplicar(id: String, i_actor: int, i_objetivo: int) -> void:
 	if c.get("encarar", false):
 		actor["orientacion"] = direccion_hacia(actor["pos"], enemigos[i_objetivo]["pos"])
 		accion.emit({"tipo": "girar", "clave": actor["clave"], "orientacion": actor["orientacion"]})
+	if c.has("repara"):
+		for u in receptores:
+			_reparar(u, int(c["repara"]))
+	if c.get("refuerzo", false):
+		_llamar_refuerzo()
 	if c.has("movimiento"):
 		for u in receptores:
 			u["mov_restante"] += int(c["movimiento"])
@@ -486,7 +540,7 @@ func golpear(u: Dictionary, dano: int, penetracion: int, lado: String, cobertura
 ## `voz`: sonido de gato que acompaña al texto ("" = ninguno).
 func _avisar(u: Dictionary, texto: String, color: String, voz: String = "") -> void:
 	accion.emit({"tipo": "texto", "clave": u.get("clave", ""), "texto": texto, "color": color,
-		"escudo": u["escudo"], "moral": u["moral"], "voz": voz})
+		"escudo": u["escudo"], "moral": u["moral"], "casco": u["casco"], "voz": voz})
 
 
 ## Daño base de una carta según el lado por el que pega.
@@ -547,7 +601,7 @@ func prever_uso(id: String, i_actor: int, i_objetivo: int) -> Array:
 	var actor: Dictionary = aliados[i_actor]
 	var objetivo: Dictionary = enemigos[i_objetivo]
 	var pen := int(c.get("penetracion", 0))
-	var cob := mapa.cobertura(objetivo["pos"])
+	var cob := _cobertura_para(c, objetivo["pos"])
 	var lado := lado_de_impacto(objetivo, actor["pos"])
 	var bonus := bonus_de_ataque(actor, c, objetivo)
 	var penal := penalizacion_punteria(actor, objetivo)
@@ -568,7 +622,7 @@ func prever_uso(id: String, i_actor: int, i_objetivo: int) -> Array:
 			var vecino := unidad_en(objetivo["pos"] + d)
 			if vecino.get("bando") == "enemigo":
 				var e: Dictionary = enemigos[vecino["indice"]]
-				var i := calcular_impacto(e, salpicadura, 0, lado_de_impacto(e, actor["pos"]), mapa.cobertura(e["pos"]))
+				var i := calcular_impacto(e, salpicadura, 0, lado_de_impacto(e, actor["pos"]), _cobertura_para(c, e["pos"]))
 				i["indice"] = vecino["indice"]
 				i["principal"] = false
 				res.append(i)
@@ -720,11 +774,28 @@ func _cerrar_turno_de(lista: Array) -> void:
 			u["moral"] += 1
 			_anotar("%s se queda quieto tomando té: +1 moral." % u["nombre"])
 			_avisar(u, "té: +1 moral", "moral")
+		if vivo(u) and u.get("mania") == "gloton" and int(u.get("ataques_turno", 0)) == 0 and u["moral"] < u["moral_max"]:
+			u["moral"] += 1
+			_anotar("%s no atacó y se come algo: +1 moral." % u["nombre"])
+			_avisar(u, "ñam: +1 moral", "moral")
+		if vivo(u) and u.get("mania") == "mecanico":
+			# Repara al compañero pegado más dañado.
+			var mejor := {}
+			for d in Mapa.DIRECCIONES:
+				var v := unidad_en(u["pos"] + d)
+				if v.get("bando") == u["bando"]:
+					var otro: Dictionary = (aliados if u["bando"] == "aliado" else enemigos)[v["indice"]]
+					if otro["casco"] < otro["casco_max"] and (mejor.is_empty() or otro["casco"] < mejor["casco"]):
+						mejor = otro
+			if not mejor.is_empty():
+				_anotar("%s repara a %s." % [u["nombre"], mejor["nombre"]])
+				_reparar(mejor, 2)
 
 
 func _turno_enemigo() -> void:
 	for e in enemigos:
 		e["se_movio"] = false
+		e["ataques_turno"] = 0
 	_sanos_en_fase.clear()
 	if dificultad.get("salvavidas", false):
 		for u in aliados:
@@ -807,6 +878,7 @@ func _atacar_como_enemigo(e: Dictionary, a: Dictionary) -> void:
 	e["orientacion"] = direccion_hacia(e["pos"], objetivo["pos"])
 	_anotar("%s usa %s." % [e["nombre"], a["nombre"]])
 	evento.emit("disparo")
+	e["ataques_turno"] = int(e.get("ataques_turno", 0)) + 1
 	accion.emit({"tipo": "disparo", "clave": e["clave"], "objetivo": objetivo["clave"],
 		"orientacion": e["orientacion"]})
 	golpear(objetivo, int(a["dano"]) + bonus_de_ataque(e, a, objetivo), int(a.get("penetracion", 0)),

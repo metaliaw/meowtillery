@@ -132,7 +132,7 @@
     "nombre": "Batallón Soviético",
     "raza": "Azul ruso",
     "lema": "Somos muchos y no nos da frío.",
-    "descripcion": "Gatos serios y numerosos, pintados para la nieve. Atacan en grupo, se cubren con humo y avanzan todos juntos.",
+    "descripcion": "Gatos serios, pintados para la nieve. Atacan en grupo, se cubren con humo y, cuando hace falta, llaman refuerzos.",
     "color": "ff9eb5",
     "unidades": [
       {
@@ -145,7 +145,7 @@
           30,
           5
         ],
-        "casco": 24,
+        "casco": 30,
         "blindaje": {
           "frente": 5,
           "flanco": 2,
@@ -174,7 +174,7 @@
         "habilidades": [
           "canonazo_122",
           "cortina_termica",
-          "ura"
+          "refuerzos"
         ]
       },
       {
@@ -187,7 +187,7 @@
           33,
           5
         ],
-        "casco": 15,
+        "casco": 21,
         "blindaje": {
           "frente": 3,
           "flanco": 2,
@@ -215,53 +215,7 @@
         "habilidades": [
           "disparo_85",
           "andanada",
-          "cortina_termica"
-        ]
-      },
-      {
-        "id": "mishka",
-        "nombre": "Mishka",
-        "inspirado_en": "T-34-85",
-        "sprite": "res://assets/t34_85.png",
-        "gato": "res://assets/gatos/mishka.png",
-        "escotilla": [
-          33,
-          5
-        ],
-        "casco": 15,
-        "blindaje": {
-          "frente": 3,
-          "flanco": 2,
-          "trasera": 1
-        },
-        "movimiento": 4,
-        "moral": 5,
-        "mania": "camarada",
-        "mania_texto": "Camarada: +1 de daño si tiene otro tanque de su bando pegado.",
-        "acciones": [
-          {
-            "nombre": "Disparo de 85",
-            "dano": 6,
-            "penetracion": 2,
-            "alcance": [
-              1,
-              4
-            ]
-          },
-          {
-            "nombre": "Embestida",
-            "dano": 5,
-            "penetracion": 1,
-            "alcance": [
-              1,
-              1
-            ]
-          }
-        ],
-        "habilidades": [
-          "disparo_85",
-          "andanada",
-          "aceleron"
+          "ura"
         ]
       },
       {
@@ -274,7 +228,7 @@
           33,
           5
         ],
-        "casco": 15,
+        "casco": 21,
         "blindaje": {
           "frente": 3,
           "flanco": 2,
@@ -303,6 +257,185 @@
           "disparo_85",
           "emboscada",
           "cortina_termica"
+        ]
+      }
+    ],
+    "refuerzo": {
+      "id": "mishka",
+      "nombre": "Mishka",
+      "inspirado_en": "T-34-85",
+      "sprite": "res://assets/t34_85.png",
+      "gato": "res://assets/gatos/mishka.png",
+      "escotilla": [
+        33,
+        5
+      ],
+      "casco": 21,
+      "blindaje": {
+        "frente": 3,
+        "flanco": 2,
+        "trasera": 1
+      },
+      "movimiento": 4,
+      "moral": 5,
+      "mania": "camarada",
+      "mania_texto": "Camarada: +1 de daño si tiene otro tanque de su bando pegado.",
+      "acciones": [
+        {
+          "nombre": "Disparo de 85",
+          "dano": 6,
+          "penetracion": 2,
+          "alcance": [
+            1,
+            4
+          ]
+        },
+        {
+          "nombre": "Embestida",
+          "dano": 5,
+          "penetracion": 1,
+          "alcance": [
+            1,
+            1
+          ]
+        }
+      ],
+      "habilidades": [
+        "disparo_85",
+        "andanada",
+        "aceleron"
+      ]
+    }
+  },
+  "estadounidense": {
+    "nombre": "Batallón Estadounidense",
+    "raza": "Maine Coon",
+    "lema": "Siempre hay repuestos.",
+    "descripcion": "Gatos grandes, ruidosos y con la mochila llena de comida. Reparan sus tanques en plena batalla, piden artillería y tienen el cazatanques más rápido de la guerra.",
+    "color": "9fd3ff",
+    "unidades": [
+      {
+        "id": "pancake",
+        "nombre": "Pancake",
+        "inspirado_en": "M4 Sherman",
+        "sprite": "res://assets/sherman.png",
+        "gato": "res://assets/gatos/pancake.png",
+        "escotilla": [
+          34,
+          6
+        ],
+        "casco": 24,
+        "blindaje": {
+          "frente": 3,
+          "flanco": 2,
+          "trasera": 1
+        },
+        "movimiento": 4,
+        "moral": 5,
+        "mania": "mecanico",
+        "mania_texto": "Mecánico: al final de su turno repara 2 de vida a un tanque propio pegado.",
+        "habilidades": [
+          "disparo_75",
+          "taller",
+          "humo"
+        ],
+        "acciones": [
+          {
+            "nombre": "Cañón de 75",
+            "dano": 6,
+            "penetracion": 2,
+            "alcance": [
+              1,
+              3
+            ]
+          },
+          {
+            "nombre": "Taller",
+            "escudo": 3
+          }
+        ]
+      },
+      {
+        "id": "waffles",
+        "nombre": "Waffles",
+        "inspirado_en": "M18 Hellcat",
+        "sprite": "res://assets/hellcat.png",
+        "gato": "res://assets/gatos/waffles.png",
+        "escotilla": [
+          40,
+          12
+        ],
+        "casco": 18,
+        "blindaje": {
+          "frente": 2,
+          "flanco": 1,
+          "trasera": 0
+        },
+        "movimiento": 6,
+        "moral": 5,
+        "mania": "velocista",
+        "mania_texto": "Velocista: el tanque más rápido de la guerra (6 de movimiento), pero de blindaje muy delgado.",
+        "habilidades": [
+          "disparo_76",
+          "disparar_y_huir",
+          "aceleron"
+        ],
+        "acciones": [
+          {
+            "nombre": "Cañón de 76",
+            "dano": 6,
+            "penetracion": 3,
+            "alcance": [
+              1,
+              4
+            ]
+          }
+        ]
+      },
+      {
+        "id": "donut",
+        "nombre": "Donut",
+        "inspirado_en": "M26 Pershing",
+        "sprite": "res://assets/pershing.png",
+        "gato": "res://assets/gatos/donut.png",
+        "escotilla": [
+          31,
+          6
+        ],
+        "casco": 26,
+        "blindaje": {
+          "frente": 4,
+          "flanco": 2,
+          "trasera": 1
+        },
+        "movimiento": 3,
+        "moral": 5,
+        "mania": "gloton",
+        "mania_texto": "Glotón: si en su turno no ataca, se come algo y recupera 1 de moral.",
+        "habilidades": [
+          "disparo_90",
+          "artilleria",
+          "casco_oculto"
+        ],
+        "acciones": [
+          {
+            "nombre": "Cañón de 90",
+            "dano": 8,
+            "penetracion": 3,
+            "alcance": [
+              1,
+              5
+            ]
+          },
+          {
+            "nombre": "Artillería",
+            "dano": 4,
+            "penetracion": 0,
+            "alcance": [
+              3,
+              7
+            ]
+          }
         ]
       }
     ]

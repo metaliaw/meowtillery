@@ -222,5 +222,81 @@
     "movimiento": 2,
     "recarga": 2,
     "texto": "+2 de movimiento\neste turno."
+  },
+  {
+    "id": "refuerzos",
+    "nombre": "¡Refuerzos!",
+    "coste": 2,
+    "tipo": "apoyo",
+    "refuerzo": true,
+    "recarga": 99,
+    "texto": "Llega un T-34 más por\nel borde. Una vez por batalla."
+  },
+  {
+    "id": "disparo_76",
+    "nombre": "Cañón de 76",
+    "coste": 1,
+    "tipo": "ataque",
+    "dano": 6,
+    "penetracion": 3,
+    "alcance": [
+      1,
+      4
+    ],
+    "texto": "6 daño, perfora 3.\nAlcance 1-4."
+  },
+  {
+    "id": "disparo_90",
+    "nombre": "Cañón de 90",
+    "coste": 1,
+    "tipo": "ataque",
+    "dano": 7,
+    "penetracion": 3,
+    "alcance": [
+      1,
+      5
+    ],
+    "texto": "7 daño, perfora 3.\nAlcance 1-5."
+  },
+  {
+    "id": "taller",
+    "nombre": "Taller de campaña",
+    "coste": 1,
+    "tipo": "apoyo",
+    "repara": 4,
+    "radio": 1,
+    "recarga": 2,
+    "texto": "+4 de vida a este\ntanque y a los pegados."
+  },
+  {
+    "id": "disparar_y_huir",
+    "nombre": "Disparar y huir",
+    "coste": 1,
+    "tipo": "ataque",
+    "dano": 5,
+    "penetracion": 2,
+    "alcance": [
+      1,
+      3
+    ],
+    "movimiento": 2,
+    "recarga": 1,
+    "texto": "5 daño, perfora 2, y\n+2 de movimiento. Alc. 1-3."
+  },
+  {
+    "id": "artilleria",
+    "nombre": "Llamar artillería",
+    "coste": 2,
+    "tipo": "ataque",
+    "dano": 5,
+    "penetracion": 1,
+    "salpicadura": 2,
+    "ignora_cobertura": true,
+    "alcance": [
+      3,
+      7
+    ],
+    "recarga": 2,
+    "texto": "5 daño y 2 a los pegados.\nIgnora cobertura. Alc. 3-7."
   }
 ]

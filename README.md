@@ -22,12 +22,18 @@ godot --headless --path . -s tests/test_combate.gd
 
 ## Cómo se juega
 
-- **Batallones y gatos.** Antes del combate se elige batallón: **británico** (3 tanques,
-  precisión y té) o **soviético** (4 tanques, ataques en grupo y humo); el otro es el rival.
+- **Batallones y gatos.** Antes del combate se elige batallón y rival (o rival al azar).
+  Todas las peleas son **3 contra 3**: **británico** (precisión y té), **soviético**
+  (ataques en grupo, humo y la carta *¡Refuerzos!* de Boris, que trae a Mishka en un
+  cuarto T-34 una vez por batalla) y **estadounidense** (Maine Coons: reparan con el
+  *Taller de campaña*, piden *artillería* que ignora la cobertura y tienen el Hellcat,
+  el cazatanques más rápido de la guerra).
   Cada tanque lo comanda un gato con una **manía** que cambia las reglas para él:
   *ritual del té* (quieto recupera moral), *asustadizo* (por detrás pierde 2 de moral),
   *escaladora* (bosque y ruinas le cuestan 1, como al Churchill real), *recarga lenta* (un ataque por turno), *camarada* (+1 de
-  daño con un compañero pegado) y *valiente* (los golpes no lo dejan en pánico).
+  daño con un compañero pegado), *valiente* (los golpes no lo dejan en pánico),
+  *mecánico* (repara 2 a un compañero pegado al final del turno), *velocista* (6 de
+  movimiento, blindaje delgado) y *glotón* (si no ataca, recupera 1 de moral).
   **Cada gato tiene sus propias cartas** (no hay mazo compartido): el cañón de su
   tanque, dos cartas propias y *Encarar*, que todos tienen. Se elige un tanque y abajo
   aparecen las suyas. Todos comparten 3 de energía por turno; cada carta se usa una
@@ -76,9 +82,9 @@ godot --headless --path . -s tests/test_combate.gd
 - **Intenciones a la vista.** Sobre cada enemigo hay un cartelito con lo que hará:
   mira roja + daño (ataque), escudo azul, grito morado (baja moral), "?" (pánico) o "zZ" (reserva).
 - **Fase enemiga.** Se anima enemigo por enemigo (se mueve, dispara, el número de daño
-  salta). Actúan como máximo 3 enemigos por turno (los más cercanos a tus
-  tanques); si hay más, el resto queda **en reserva** (se ven oscurecidos y con "zZ").
-  Así los 4 soviéticos tienen más cuerpos, pero no más acciones. Cada enemigo anuncia su acción. Si es un disparo, se acerca al
+  salta). Según la dificultad actúan 2 o 3 enemigos por turno (los más cercanos a
+  tus tanques); el resto queda **en reserva** (se ven oscurecidos y con "zZ").
+  Cada enemigo anuncia su acción. Si es un disparo, se acerca al
   aliado más cercano buscando pegarle por el flanco o la trasera.
 
 ## Estructura
@@ -139,7 +145,7 @@ del juego, y `docs/licencias/` lleva la licencia de la fuente y los créditos de
 
 ## Pendiente
 
-- Más batallones (estadounidense, francés, italiano, de Alemania Oriental…).
+- Más batallones (francés, italiano, de Alemania Oriental…).
 - Ojo con las fuentes de arte: los mapas de Dice Grimorium no publican licencia de uso
   comercial; usar arte propio o CC0 (p. ej. Kenney.nl).
 - Línea de visión (hoy se dispara a través de todo).
@@ -152,8 +158,8 @@ del juego, y `docs/licencias/` lleva la licencia de la fuente y los créditos de
 ## Tanques reales de referencia y derechos
 
 Los tanques están **inspirados** en el Centurion Mk1, el Sherman Firefly, el Churchill
-Mk VII, el IS-2 y el T-34-85 (y, sin usar por ahora, el M4 Sherman temprano y el P40).
-Los Firefly, Churchill, IS-2 y T-34-85 se dibujaron con medidas públicas generales, sin
+Mk VII, el IS-2, el T-34-85, el M4 Sherman, el M18 Hellcat y el M26 Pershing (y, sin usar
+por ahora, el P40). Los Firefly, Churchill, IS-2, T-34-85, Hellcat y Pershing se dibujaron con medidas públicas generales, sin
 calcar ningún plano ni foto. No llevan insignias nacionales ni políticas. La forma de un vehículo real no es el problema:
 lo protegido son los *dibujos y fotos concretos* de otros. Regla: usar las fuentes
 como **referencia** y dibujar los sprites propios; no calcar ni recortar imágenes.

@@ -404,6 +404,76 @@ def is2(l):
     l.desgaste()
 
 
+# ---------------------------------------------------------------------------
+# M18 Hellcat: cazatanques estadounidense, 5,4 m, muy bajo y el más rápido de la guerra.
+# Casco x 19-61. 5 ruedas por lado con 4 rodillos de retorno, tracción adelante.
+# Torreta abierta arriba y cañón de 76 mm largo con freno de boca.
+# ---------------------------------------------------------------------------
+def hellcat(l):
+    l.oruga([(17, 22), (20, 19), (57, 19), (61, 20), (63, 22), (60, 27), (21, 27), (17, 25)],
+            [(21, 22), (58, 21), (60, 23), (22, 25)])
+    for x in (26, 32, 38, 44, 50):
+        l.rueda(x, 24.4, 2.4)
+    for x in (29, 35, 41, 47):
+        l.circulo(x, 20.4, 0.9, "tlt")
+    l.circulo(21, 22.5, 2.2, "t")
+    l.circulo(21, 22.5, 0.8, "dk")
+    l.piñon(58.5, 21.5, 2.8)
+    # Casco bajo con glacis muy inclinado y costados en pendiente.
+    l.poligono([(17, 19), (19, 15), (49, 15), (61, 18), (61, 20), (17, 20)], "b")
+    l.linea_h(19, 49, 15, "hl")
+    for i in range(12):
+        l.poner(49 + i, 15 + (i * 3) // 12, "lt")
+    l.linea_h(17, 61, 19, "dk")
+    l.linea_h(21, 29, 17, "dk", 2)  # rejillas del motor (atrás)
+    l.estrella(39, 17)
+    # Torreta abierta: borde alto, sin techo (se ve el hueco oscuro).
+    l.poligono([(30, 15), (31, 11), (34, 10), (45, 10), (47, 12), (48, 15)], "b")
+    l.linea_h(34, 45, 10, "hl")
+    l.rect(34, 11, 44, 11, "sombra")  # torreta abierta
+    l.linea_h(31, 47, 14, "dk")
+    l.rect(47, 11, 49, 14, "lt")
+    l.linea_v(49, 11, 14, "dk")
+    l.linea_h(50, 73, 12, "lt")
+    l.linea_h(50, 73, 13, "dk")
+    l.rect(73, 11, 75, 14, "b")  # freno de boca
+    l.linea_v(75, 11, 14, "dk")
+
+
+# ---------------------------------------------------------------------------
+# M26 Pershing: tanque pesado estadounidense de 1945, 6,3 m. Casco x 15-64.
+# 6 ruedas con 5 rodillos de retorno, tracción atrás. Torreta grande y cañón de 90 mm
+# con freno de boca.
+# ---------------------------------------------------------------------------
+def pershing(l):
+    l.oruga([(13, 22), (16, 19), (61, 19), (65, 21), (64, 24), (60, 27), (17, 27), (13, 24)],
+            [(17, 22), (61, 21), (61, 24), (18, 25)])
+    for x in (21, 28, 35, 42, 49, 56):
+        l.rueda(x, 24.4, 2.5)
+    for x in (24, 31, 38, 45, 52):
+        l.circulo(x, 20.4, 0.9, "tlt")
+    l.piñon(16.5, 22, 2.8)
+    l.circulo(61.5, 22, 2.4, "t")
+    l.circulo(61.5, 22, 0.9, "dk")
+    l.poligono([(13, 19), (15, 14), (52, 14), (64, 18), (64, 20), (13, 20)], "b")
+    l.linea_h(15, 52, 14, "hl")
+    for i in range(12):
+        l.poner(52 + i, 14 + (i * 4) // 12, "lt")
+    l.linea_h(13, 64, 19, "dk")
+    l.linea_h(17, 27, 16, "dk", 2)
+    l.estrella(40, 16)
+    l.poligono([(24, 14), (25, 10), (29, 7), (46, 7), (50, 9), (52, 14)], "b")
+    l.linea_h(29, 46, 7, "hl")
+    l.linea_h(25, 51, 13, "dk")
+    l.rect(29, 5, 33, 6, "lt")  # cúpula
+    l.rect(51, 8, 54, 12, "lt")
+    l.linea_v(54, 8, 12, "dk")
+    l.linea_h(55, 76, 10, "lt")
+    l.linea_h(55, 76, 11, "dk")
+    l.rect(76, 8, 79, 12, "b")  # freno de boca
+    l.linea_v(79, 8, 12, "dk")
+
+
 # nombre: (función, paleta, con estrella, genera variante gris _enemigo)
 TANQUES = {
     "sherman": (sherman, "verde_oliva", True, True),
@@ -413,6 +483,8 @@ TANQUES = {
     "churchill": (churchill, "verde_britanico", False, False),
     "t34_85": (t34_85, "invierno", False, False),
     "is2": (is2, "invierno", False, False),
+    "hellcat": (hellcat, "verde_oliva", True, False),
+    "pershing": (pershing, "verde_oliva", True, False),
 }
 
 

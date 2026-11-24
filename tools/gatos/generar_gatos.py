@@ -45,6 +45,16 @@ GORROS = {
                             7: [(8, 13), (14, 17), (18, 23)]},
                   "vidrio": {6: [(9, 12), (19, 22)]}},
     },
+    # Casco M1 estadounidense: casco de acero redondo verde oliva, con ala y barboquejo.
+    "casco_m1": {
+        "colores": {"G": (92, 102, 60), "H": (124, 134, 84), "X": (60, 66, 38)},
+        "forma": {2: (11, 20), 3: (9, 22), 4: (8, 23), 5: (7, 24), 6: (7, 24), 7: (6, 25), 8: (5, 26)},
+        "luz": {3: (11, 14), 4: (9, 11)},
+        "insignia": [(8, c) for c in range(5, 27)],  # ala del casco, más oscura
+        "visera": {},
+        # Barboquejo: tiras finas que bajan por las mejillas.
+        "gafas": {"marco": {r: [(6, 6), (25, 25)] for r in range(10, 16)}, "vidrio": {}},
+    },
     # Gorra de plato de oficial instructora: copa caqui, cinta oscura, visera negra e insignia dorada.
     "gorra": {
         "colores": {"G": (128, 112, 74), "H": (164, 146, 100), "X": (236, 196, 80)},
@@ -65,10 +75,14 @@ PELAJES = {
     "gris": {"O": (150, 150, 152), "L": (186, 186, 188), "D": (112, 112, 116)},
     "atigrado": {"O": (154, 122, 88), "L": (186, 156, 116), "D": (98, 72, 50)},
     "blanco": {"O": (244, 240, 232), "L": (255, 255, 255), "D": (222, 214, 204), "S": (222, 216, 206)},
+    # Maine Coon: grandes y peludos.
+    "coon_cafe": {"O": (150, 104, 62), "L": (186, 140, 92), "D": (96, 62, 36)},
+    "coon_dorado": {"O": (222, 172, 98), "L": (244, 204, 138), "D": (180, 124, 58)},
+    "coon_negro": {"O": (58, 58, 68), "L": (90, 90, 104), "D": (44, 44, 52)},
     # Gris y blanco de pelo largo, como la gata Michi (sin rayas atigradas).
     "gris_blanco": {"O": (122, 128, 140), "L": (154, 160, 172), "D": (110, 116, 128)},
 }
-OJOS = {"cobre": (112, 58, 30), "verde": (36, 96, 64), "oscuro": (58, 26, 54),
+OJOS = {"cobre": (112, 58, 30), "verde": (36, 96, 64), "oscuro": (58, 26, 54), "ambar": (150, 104, 20),
         "verde_claro": (70, 150, 110)}
 
 # Michi: franja blanca que baja por la frente hasta la nariz, mejillas blancas y
@@ -78,6 +92,11 @@ MARCAS_MICHI = [
     (13, 13, 18, "W"),
     (14, 4, 4, "W"), (15, 4, 4, "W"), (14, 27, 27, "W"), (15, 27, 27, "W"),
 ]
+
+# Maine Coon: mechones a los costados de la cara (melena). Donut: esmoquin, con pechera
+# y hocico blancos.
+MARCAS_MELENA = [(13, 4, 4, "L"), (14, 4, 4, "L"), (15, 4, 4, "L"), (13, 27, 27, "L"), (14, 27, 27, "L"), (15, 27, 27, "L")]
+MARCAS_ESMOQUIN = MARCAS_MELENA + [(12, 13, 18, "W"), (13, 12, 19, "W")]
 
 # id: (pelaje, ojos, gorro, marcas, carácter). Carácter "mañosa": en reposo frunce el ceño.
 GATOS = {
@@ -89,6 +108,9 @@ GATOS = {
     "mishka": ("atigrado", "verde", "shlemofon", [], "normal"),
     "pelmeni": ("blanco", "verde", "shlemofon", [], "normal"),
     "michi": ("gris_blanco", "verde_claro", "gorra", MARCAS_MICHI, "mañosa"),
+    "pancake": ("coon_cafe", "ambar", "casco_m1", MARCAS_MELENA, "normal"),
+    "waffles": ("coon_dorado", "verde", "casco_m1", MARCAS_MELENA, "normal"),
+    "donut": ("coon_negro", "ambar", "casco_m1", MARCAS_ESMOQUIN, "normal"),
 }
 
 

@@ -11,7 +11,15 @@ const Bot := preload("res://tools/qa/bot.gd")
 
 const BATALLAS := 100
 const TURNOS_MAX := 30
-const BANDOS := [["britanico", "sovietico"], ["sovietico", "britanico"]]
+## Todos los enfrentamientos posibles (jugador, rival) entre los batallones de los datos.
+static func enfrentamientos() -> Array:
+	var ids: Array = PartidaScript.batallones().keys()
+	var res: Array = []
+	for j in ids:
+		for r in ids:
+			if j != r:
+				res.append([j, r])
+	return res
 
 
 func _initialize() -> void:
@@ -20,10 +28,13 @@ func _initialize() -> void:
 	print("bot          dificultad  bando        gana  pierde  turnos  bajas propias/rivales")
 	for tipo in tipos_bot:
 		for dif in PartidaScript.DIFICULTADES:
-			for b in BANDOS:
+			for b in enfrentamientos():
 				# --solo=britanico simula solo cuando ese bando es el jugador.
 				var solo: Array = Array(args).filter(func(x): return x.begins_with("--solo="))
 				if not solo.is_empty() and solo[0].substr(7) != b[0]:
+					continue
+				var dif_sola: Array = Array(args).filter(func(x): return x.begins_with("--dif="))
+				if not dif_sola.is_empty() and dif_sola[0].substr(6) != dif:
 					continue
 				_simular(b[0], b[1], dif, tipo == "azar", "--detalle" in args)
 	quit()
@@ -53,8 +64,8 @@ func _simular(jugador: String, rival: String, dif: String, azar: bool, detalle: 
 		for e in c.enemigos:
 			if not c.vivo(e):
 				bajas_rivales += 1
-	print("%-12s %-11s %-12s %3d%%  %4d%%  %6.1f  %.1f / %.1f" % [
-		"al azar" if azar else "razonable", dif, jugador,
+	print("%-12s %-9s %-14s vs %-14s %3d%%  %4d%%  %6.1f  %.1f / %.1f" % [
+		"al azar" if azar else "razonable", dif, jugador, rival,
 		resultados["victoria"] * 100 / BATALLAS, resultados["derrota"] * 100 / BATALLAS,
 		float(turnos_total) / BATALLAS, float(bajas_propias) / BATALLAS, float(bajas_rivales) / BATALLAS])
 	if detalle:

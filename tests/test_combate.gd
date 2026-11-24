@@ -51,6 +51,7 @@ func _init() -> void:
 	_probar_salvavidas()
 	_probar_pendientes()
 	_probar_botin()
+	_probar_tercer_equipo()
 	print("\nTODO OK" if _fallos == 0 else "\n%d FALLOS" % _fallos)
 	quit(1 if _fallos > 0 else 0)
 
@@ -288,31 +289,33 @@ func _indice(lista: Array, id: String) -> int:
 
 func _probar_batallones() -> void:
 	var c := _batalla()
-	_comprobar(c.aliados.size() == 3 and c.enemigos.size() == 4, "3 británicos contra 4 soviéticos")
-	_comprobar(c.enemigos[3]["pos"] == Vector2i(9, 6), "el cuarto soviético tiene su lugar en el mapa")
+	_comprobar(c.aliados.size() == 3 and c.enemigos.size() == 3, "3 británicos contra 3 soviéticos")
 	_comprobar(c.mazo.is_empty() and c.mano.is_empty(), "no hay mazo compartido: cada gato trae sus cartas")
 	_comprobar(c.cartas_de(_indice(c.aliados, "earl_grey")) == ["disparo_17lb", "tiro_precision", "te", "girar"],
 		"Earl Grey: su cañón, sus 2 cartas y Girar")
 	var s := _batalla("sovietico", "britanico")
-	_comprobar(s.aliados.size() == 4 and s.cartas_de(0)[0] == "canonazo_122", "también se puede jugar soviético")
-	for u in c.aliados + s.aliados:
+	_comprobar(s.aliados.size() == 3 and s.cartas_de(0)[0] == "canonazo_122", "también se puede jugar soviético")
+	var e := _batalla("estadounidense", "sovietico")
+	_comprobar(e.aliados.map(func(u): return u["nombre"]) == ["Pancake", "Waffles", "Donut"], "y estadounidense")
+	for u in c.aliados + s.aliados + e.aliados + [s.refuerzo]:
 		for id in u["habilidades"]:
 			_comprobar(c.cartas.has(id), "%s: existe su carta %s" % [u["nombre"], id])
 	for id in ["te", "tiro_precision", "casco_oculto", "cortina_termica", "ura", "andanada"]:
 		_comprobar(c.cartas.has(id), "existe la carta " + id)
 
-	# Con 4 soviéticos de rival, solo actúan 3: queda en reserva el más lejano.
-	var en_reserva := c.enemigos.filter(func(e): return e["intencion"].get("reserva", false))
-	_comprobar(en_reserva.size() == 1, "de 4 soviéticos, 1 queda en reserva")
-	var cerca := func(e) -> int:
-		return c.aliados.map(func(u): return Mapa.distancia(u["pos"], e["pos"])).min()
-	_comprobar(c.enemigos.all(func(e): return cerca.call(e) <= cerca.call(en_reserva[0])), "el de reserva es el más lejano")
+	# En Recluta actúan 2 de los 3 rivales: queda en reserva el más lejano.
+	c = _con_dificultad("recluta")
+	var en_reserva := c.enemigos.filter(func(x): return x["intencion"].get("reserva", false))
+	_comprobar(en_reserva.size() == 1, "Recluta: de 3 soviéticos, 1 queda en reserva")
+	var cerca := func(x) -> int:
+		return c.aliados.map(func(u): return Mapa.distancia(u["pos"], x["pos"])).min()
+	_comprobar(c.enemigos.all(func(x): return cerca.call(x) <= cerca.call(en_reserva[0])), "el de reserva es el más lejano")
 	var pos_reserva: Vector2i = en_reserva[0]["pos"]
 	c.terminar_turno()
 	_comprobar(en_reserva[0]["pos"] == pos_reserva, "el de reserva no se mueve ni actúa")
 	en_reserva[0]["casco"] = 0
 	c._elegir_intenciones()
-	_comprobar(c.enemigos.all(func(e): return not e["intencion"].get("reserva", false)), "con 3 en pie actúan todos")
+	_comprobar(c.enemigos.all(func(x): return not x["intencion"].get("reserva", false)), "con 2 en pie actúan todos")
 	_comprobar(s.enemigos.all(func(e): return not e["intencion"].get("reserva", false)), "3 británicos de rival: nadie en reserva")
 
 
@@ -471,7 +474,7 @@ func _con_dificultad(dif: String) -> Combate:
 func _probar_dificultad() -> void:
 	var recluta := _con_dificultad("recluta")
 	var en_reserva := recluta.enemigos.filter(func(e): return e["intencion"].get("reserva", false))
-	_comprobar(en_reserva.size() == 2, "Recluta: de 4 soviéticos solo actúan 2")
+	_comprobar(en_reserva.size() == 1, "Recluta: de 3 soviéticos solo actúan 2")
 	var as_ := _con_dificultad("as")
 	_comprobar(as_.enemigos.all(func(e): return not e["intencion"].get("reserva", false)), "As: actúan todos")
 
@@ -561,12 +564,13 @@ func _probar_pendientes() -> void:
 func _probar_botin() -> void:
 	var c := _batalla()
 	var earl: Dictionary = c.aliados[0]
-	var boris: Dictionary = c.enemigos[0]
-	boris["pos"] = earl["pos"] + Vector2i(3, 0)
-	boris["casco"] = 1
-	c.usar("disparo_17lb", 0, 0)
-	_comprobar(not c.vivo(boris) and c.capturas.size() == 1, "derribar a Boris deja una captura pendiente")
-	_comprobar(c.capturas[0]["opciones"] == ["cortina_termica", "ura"], "se ofrecen sus dos cartas propias (sin el cañón)")
+	var i_kasha := _indice(c.enemigos, "kasha")
+	var kasha: Dictionary = c.enemigos[i_kasha]
+	kasha["pos"] = earl["pos"] + Vector2i(3, 0)
+	kasha["casco"] = 1
+	c.usar("disparo_17lb", 0, i_kasha)
+	_comprobar(not c.vivo(kasha) and c.capturas.size() == 1, "derribar a Kasha deja una captura pendiente")
+	_comprobar(c.capturas[0]["opciones"] == ["andanada", "ura"], "se ofrecen sus dos cartas propias (sin el cañón)")
 	_comprobar(not c.elegir_botin("disparo_85"), "no se puede elegir una carta que no se ofrece")
 	_comprobar(c.elegir_botin("ura") and c.botin == ["ura"], "elegida: ¡Urá! pasa al botín")
 	var i_crumpet := _indice(c.aliados, "crumpet")
@@ -599,6 +603,49 @@ func _probar_botin() -> void:
 	p.free()
 
 
+## 3 vs 3: refuerzos soviéticos y lo nuevo de los estadounidenses.
+func _probar_tercer_equipo() -> void:
+	var s := _batalla("sovietico", "britanico")
+	var i_boris := _indice(s.aliados, "boris")
+	s.energia = 3
+	_comprobar(s.usar("refuerzos", i_boris, 0), "Boris llama refuerzos")
+	_comprobar(s.aliados.size() == 4 and s.aliados[3]["nombre"] == "Mishka", "llega Mishka como cuarto tanque")
+	_comprobar(s.aliados[3]["clave"] == "a3" and s.unidad_en(s.aliados[3]["pos"]).get("indice") == 3, "en una casilla libre de su borde")
+	s.energia = 3
+	_enemigos_quietos(s)
+	s.terminar_turno()
+	s.terminar_turno()
+	_comprobar(s.motivo_uso("refuerzos", i_boris, 0).contains("una vez por batalla"), "solo una vez por batalla")
+
+	var e := _batalla("estadounidense", "sovietico")
+	var pancake: Dictionary = e.aliados[0]
+	var waffles: Dictionary = e.aliados[1]
+	waffles["pos"] = pancake["pos"] + Vector2i(0, 1)
+	waffles["casco"] = 10
+	pancake["casco"] = 20
+	e.energia = 3
+	_comprobar(e.usar("taller", 0, 0), "Pancake usa el taller")
+	_comprobar(pancake["casco"] == 24 and waffles["casco"] == 14, "repara 4 a él y al pegado (sin pasar del máximo)")
+	_enemigos_quietos(e)
+	e.terminar_turno()
+	_comprobar(waffles["casco"] == 16, "mecánico: al final del turno repara 2 al pegado")
+	var donut: Dictionary = e.aliados[2]
+	donut["moral"] = 3
+	_enemigos_quietos(e)
+	e.terminar_turno()
+	_comprobar(donut["moral"] == 4, "glotón: sin atacar, recupera 1 de moral")
+	_comprobar(waffles["movimiento"] == 6, "velocista: 6 de movimiento")
+
+	# La artillería ignora la cobertura del terreno.
+	var r := _batalla("estadounidense", "sovietico")
+	var blanco: Dictionary = r.enemigos[0]  # Boris empieza en ruinas (+2)
+	_comprobar(r.mapa.cobertura(blanco["pos"]) == 2, "Boris está en ruinas")
+	r.aliados[2]["pos"] = blanco["pos"] + Vector2i(-5, 0)
+	r.aliados[2]["orientacion"] = Vector2i.RIGHT
+	var imp: Array = r.prever_uso("artilleria", 2, 0)
+	_comprobar(not imp.is_empty() and imp[0]["cobertura"] == 0, "Llamar artillería: no cuenta la cobertura")
+
+
 func _probar_cartas_de_batallon() -> void:
 	var b := _batalla()
 	b.energia = 3
@@ -615,7 +662,7 @@ func _probar_cartas_de_batallon() -> void:
 	var s := _batalla("sovietico", "britanico")
 	s.energia = 3
 	var antes: Array = s.aliados.map(func(u): return u["mov_restante"])
-	s.usar("ura", 0, 0)
+	s.usar("ura", _indice(s.aliados, "kasha"), 0)
 	var despues: Array = s.aliados.map(func(u): return u["mov_restante"])
 	_comprobar(range(antes.size()).all(func(i): return despues[i] == antes[i] + 1), "¡Urá!: +1 movimiento a todos")
 	var blanco: Dictionary = s.enemigos[0]
