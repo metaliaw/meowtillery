@@ -13,6 +13,7 @@ const Mapa := preload("res://scripts/mapa.gd")
 const Estilo := preload("res://scripts/estilo.gd")
 const Gato := preload("res://scripts/gato_animado.gd")
 const Globo := preload("res://scripts/globo.gd")
+const Ficha := preload("res://scripts/ficha.gd")
 
 const ESCENA_MENU := "res://scenes/menu.tscn"
 const LINEAS_DE_REGISTRO := 8
@@ -24,8 +25,8 @@ var objetivo_sel := 0
 
 var _info: Label
 var _tablero: Tablero
-var _ficha_actor: Label
-var _ficha_objetivo: Label
+var _ficha_actor: Ficha
+var _ficha_objetivo: Ficha
 var _registro: Label
 var _vista_previa: Label
 var _michi: Gato
@@ -132,8 +133,10 @@ func _construir_interfaz() -> void:
 	# La vista previa va primero: es lo que se mira al pasar el mouse por una carta y
 	# así nunca queda escondida bajo el scroll.
 	_vista_previa = _etiqueta(lateral, Color.WHITE)
-	_ficha_actor = _etiqueta(lateral, Color("ffe08a"))
-	_ficha_objetivo = _etiqueta(lateral, Color("ff9eb5"))
+	_ficha_actor = Ficha.new(Color("ffe08a"))
+	lateral.add_child(_ficha_actor)
+	_ficha_objetivo = Ficha.new(Color("ff9eb5"))
+	lateral.add_child(_ficha_objetivo)
 	_registro = _etiqueta(lateral, Color(1, 1, 1, 0.7))
 
 	var abajo := HBoxContainer.new()
@@ -305,13 +308,16 @@ func _refrescar() -> void:
 	_tablero.queue_redraw()
 	_refrescar_orden(ordenado)
 
-	_ficha_actor.text = _ficha(actor) + "\nMovimiento %d/%d" % [actor["mov_restante"], actor["movimiento"]]
-	var ficha_obj := _ficha(objetivo) + "\nPlanea: " + combate.texto_intencion(objetivo)
+	_ficha_actor.mostrar(actor, combate)
+	# Ficha del blanco: qué planea y, desde el tanque elegido, por qué lado le pegarías
+	# (ese lado queda marcado con un anillo amarillo en el dibujo del blindaje).
+	var extra := "Planea: " + combate.texto_intencion(objetivo)
+	var lado := ""
 	if combate.vivo(actor) and combate.vivo(objetivo):
-		ficha_obj += "\nDesde %s: distancia %d, le das en el %s" % [
-			actor["nombre"], Mapa.distancia(actor["pos"], objetivo["pos"]),
-			combate.lado_de_impacto(objetivo, actor["pos"])]
-	_ficha_objetivo.text = ficha_obj
+		lado = combate.lado_de_impacto(objetivo, actor["pos"])
+		extra += "\nDesde %s (a %d casillas) le das por %s." % [
+			actor["nombre"], Mapa.distancia(actor["pos"], objetivo["pos"]), _lado_con_articulo(lado)]
+	_ficha_objetivo.mostrar(objetivo, combate, extra, lado)
 	# Lo más nuevo arriba: si no cabe todo, lo que se recorta es lo más viejo.
 	var ultimas: Array = combate.registro.slice(-LINEAS_DE_REGISTRO)
 	ultimas.reverse()
@@ -349,34 +355,6 @@ func _refrescar_orden(ordenado: Dictionary) -> void:
 		if not ordenado.is_empty():
 			Sonido.tocar("michi_aprueba" if combate.orden_cumplida else "michi_grunido")
 	_orden_anterior = estado_orden
-
-
-func _ficha(u: Dictionary) -> String:
-	var b: Dictionary = u["blindaje"]
-	var terreno: Dictionary = combate.mapa.terreno(u["pos"])
-	var texto := "%s%s\nCasco %d/%d   Escudo %d   Moral %d/%d%s\nBlindaje F%d / L%d / T%d   Mira al %s\nTerreno: %s (+%d cobertura)" % [
-		u["nombre"],
-		"  (%s)" % u["inspirado_en"] if u.has("inspirado_en") else "",
-		u["casco"], u["casco_max"], u["escudo"], u["moral"], u["moral_max"],
-		"   PÁNICO" if combate.en_panico(u) else "",
-		int(b.get("frente", 0)), int(b.get("flanco", 0)), int(b.get("trasera", 0)),
-		_nombre_direccion(u["orientacion"]),
-		terreno["nombre"], int(terreno.get("cobertura", 0))]
-	if u.has("mania_texto"):
-		texto += "\n" + u["mania_texto"]
-	if not combate.vivo(u):
-		texto += "\nFUERA DE COMBATE"
-	return texto
-
-
-func _nombre_direccion(o: Vector2i) -> String:
-	if o == Vector2i.RIGHT:
-		return "este"
-	if o == Vector2i.LEFT:
-		return "oeste"
-	if o == Vector2i.UP:
-		return "norte"
-	return "sur"
 
 
 ## Celdas que el tanque elegido alcanza con alguna carta de ataque de la mano.

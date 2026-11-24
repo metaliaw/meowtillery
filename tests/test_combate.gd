@@ -18,7 +18,10 @@ var _fallos := 0
 
 func _init() -> void:
 	# Si algún script no compila, las pruebas no pueden dar "TODO OK".
-	for s in [Combate, Mapa, PartidaScript]:
+	# Las escenas que usan los autoloads (Partida, Sonido) no compilan fuera del juego;
+	# esas se revisan abriéndolas. Aquí van las que no dependen de ellos.
+	var de_interfaz := ["tablero", "ficha", "globo", "gato_animado", "sonido"]
+	for s in [Combate, Mapa, PartidaScript] + de_interfaz.map(func(n): return load("res://scripts/%s.gd" % n)):
 		if not s.can_instantiate():
 			printerr("FALLO el script %s no compila" % s.resource_path)
 			quit(1)

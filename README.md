@@ -77,7 +77,8 @@ godot --headless --path . -s tests/test_combate.gd
 | `scripts/combate.gd` | Toda la lógica del combate y la IA, sin nodos (se prueba sola). |
 | `scripts/tablero.gd` | Dibuja el mapa, unidades, resaltados e íconos de intención enemiga, y anima en orden cada acción que avisa el combate (señal `accion`): desplazamiento, disparo, golpe con número, explosión y textos. |
 | `tools/qa/` | `bot.gd` (jugador automático) y `simular.gd`: juega cientos de batallas para medir balance (`godot --headless --path . -s tools/qa/simular.gd`, o `-- --azar` para un bot al azar). |
-| `scripts/escena_combate.gd` | Interfaz: fichas, mano de cartas, registro. |
+| `scripts/escena_combate.gd` | Interfaz: fichas, mano de cartas, registro, menú de pausa. |
+| `scripts/ficha.gd` | Ficha visual de un tanque: retrato del gato, tanque visto desde arriba con el blindaje de cada lado (rojo = delgado, verde = grueso; anillo amarillo en el lado donde le pegas), barras de casco y moral, movimiento, escudo, terreno y manía. |
 | `scripts/menu.gd`, `scripts/tutorial.gd` | Pantalla de inicio y tutorial de 10 páginas guiado por Muffy (instructora) y la teniente Michi (explica las cartas). |
 | `scripts/gato_animado.gd` | Anima a un gato desde su hoja de sprites. Por defecto, Muffy (`assets/muchi/`, el archivo conserva el nombre original del personaje; arte propio de la autora, todos los derechos reservados). |
 | `scripts/estilo.gd` | Estética común tipo Balatro: tapete, botones-carta, títulos. |
@@ -126,8 +127,8 @@ del juego, y `docs/licencias/` lleva la licencia de la fuente y los créditos de
 - Muerte permanente de la tripulación entre batallas, campaña con varios mapas,
   recompensas de cartas y guardado.
 - Música.
-- Del QA: Girar/Acelerar/¡Urá! casi no sirven. Falta ficha visual del blindaje y
-  pantalla de fichas técnicas.
+- Del QA: Girar/Acelerar/¡Urá! casi no sirven. Falta la pantalla de fichas técnicas
+  (datos reales de cada tanque).
 
 ## Tanques reales de referencia y derechos
 
