@@ -1,0 +1,20 @@
+Sonidos del juego. Todos son CC0 (dominio público): se pueden usar y vender sin dar crédito,
+pero lo dejamos anotado igual.
+
+hover, clic, carta, mover, error, victoria, derrota, turno
+  Kenney (www.kenney.nl): packs "Interface Sounds" y "UI Audio", CC0.
+  Ver LICENSE-kenney-*.txt. Descargados del espejo de Calinou en GitHub
+  (github.com/Calinou/kenney-interface-sounds y kenney-ui-audio).
+  Originales: rollover2 -> hover, click_002 -> clic, drop_002 -> carta,
+  toggle_002 -> mover, error_004 -> error, confirmation_004 -> victoria,
+  back_003 -> derrota, switch_004 -> turno.
+
+disparo.ogg
+  "Cannon fire" de Thimras, OpenGameArt, CC0.
+  https://opengameart.org/content/cannon-fire
+  Recortado a 1,8 s con fundido de salida.
+
+explosion.ogg
+  "Synthesized explosion" de qubodup, OpenGameArt, CC0 (el autor pide crédito, aunque CC0 no lo exige).
+  https://opengameart.org/content/synthesized-explosion
+  Convertido de FLAC a OGG.

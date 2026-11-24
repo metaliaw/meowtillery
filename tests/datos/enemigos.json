@@ -1,0 +1,44 @@
+[
+  {
+    "id": "grunon",
+    "nombre": "Gruñón",
+    "inspirado_en": "P26/40",
+    "sprite": "res://assets/p40_enemigo.png",
+    "casco": 18,
+    "blindaje": { "frente": 3, "flanco": 1, "trasera": 0 },
+    "movimiento": 3,
+    "moral": 8,
+    "acciones": [
+      { "nombre": "Disparo AP", "dano": 7, "penetracion": 2, "alcance": [1, 4] },
+      { "nombre": "Disparo HE", "dano": 5, "penetracion": 0, "alcance": [1, 3] }
+    ]
+  },
+  {
+    "id": "cascarrabias",
+    "nombre": "Cascarrabias",
+    "inspirado_en": "M4 Sherman",
+    "sprite": "res://assets/sherman_enemigo.png",
+    "casco": 16,
+    "blindaje": { "frente": 2, "flanco": 0, "trasera": 0 },
+    "movimiento": 4,
+    "moral": 8,
+    "acciones": [
+      { "nombre": "Embestida", "dano": 6, "penetracion": 1, "alcance": [1, 1] },
+      { "nombre": "Bocinazo", "moral": 2, "radio": 4 }
+    ]
+  },
+  {
+    "id": "jefe_ceno",
+    "nombre": "Jefe Ceño",
+    "inspirado_en": "Centurion",
+    "sprite": "res://assets/centurion_enemigo.png",
+    "casco": 32,
+    "blindaje": { "frente": 5, "flanco": 2, "trasera": 1 },
+    "movimiento": 2,
+    "moral": 12,
+    "acciones": [
+      { "nombre": "Cañonazo", "dano": 10, "penetracion": 3, "alcance": [2, 5] },
+      { "nombre": "Atrincherarse", "escudo": 6 }
+    ]
+  }
+]

@@ -1,0 +1,32 @@
+[
+  {
+    "id": "rosita",
+    "nombre": "Rosita",
+    "inspirado_en": "M4 Sherman temprano",
+    "sprite": "res://assets/sherman.png",
+    "casco": 28,
+    "blindaje": { "frente": 3, "flanco": 1, "trasera": 0 },
+    "movimiento": 4,
+    "moral": 10
+  },
+  {
+    "id": "menta",
+    "nombre": "Menta",
+    "inspirado_en": "Centurion Mk1",
+    "sprite": "res://assets/centurion.png",
+    "casco": 32,
+    "blindaje": { "frente": 4, "flanco": 2, "trasera": 1 },
+    "movimiento": 3,
+    "moral": 10
+  },
+  {
+    "id": "bombon",
+    "nombre": "Bombón",
+    "inspirado_en": "Carro Armato P26/40",
+    "sprite": "res://assets/p40.png",
+    "casco": 22,
+    "blindaje": { "frente": 3, "flanco": 1, "trasera": 0 },
+    "movimiento": 4,
+    "moral": 10
+  }
+]

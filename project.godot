@@ -1,0 +1,30 @@
+; Proyecto Godot 4. Ábrelo desde el Project Manager de Godot (Importar).
+
+config_version=5
+
+[application]
+
+config/name="Tanques Kawaii"
+config/description="Prototipo de combate por turnos con pelotón de tanques y mazo de cartas."
+run/main_scene="res://scenes/menu.tscn"
+config/features=PackedStringArray("4.3")
+
+[autoload]
+
+Sonido="*res://scripts/sonido.gd"
+Partida="*res://scripts/partida.gd"
+
+[display]
+
+window/size/viewport_width=1280
+window/size/viewport_height=720
+window/stretch/mode="canvas_items"
+
+[rendering]
+
+; "Compatibility" (OpenGL/WebGL 2): necesario para exportar a web (GitHub Pages).
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
+
+; Filtro "Nearest" para que el pixel art no se vea borroso al escalar.
+textures/canvas_textures/default_texture_filter=0

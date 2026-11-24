@@ -1,0 +1,142 @@
+[
+  {
+    "id": "disparo_ap",
+    "nombre": "Disparo AP",
+    "coste": 1,
+    "tipo": "ataque",
+    "dano": 6,
+    "penetracion": 3,
+    "alcance": [1, 4],
+    "texto": "6 daño, perfora 3.\nAlcance 1-4."
+  },
+  {
+    "id": "disparo_he",
+    "nombre": "Disparo HE",
+    "coste": 1,
+    "tipo": "ataque",
+    "dano": 4,
+    "penetracion": 0,
+    "salpicadura": 2,
+    "alcance": [1, 3],
+    "texto": "4 daño y 2 a los\npegados. Alc. 1-3."
+  },
+  {
+    "id": "emboscada",
+    "nombre": "Emboscada",
+    "coste": 2,
+    "tipo": "ataque",
+    "dano": 5,
+    "penetracion": 1,
+    "bonus_flanco": 4,
+    "alcance": [1, 2],
+    "texto": "5 daño, +4 si das en\nflanco o trasera. Alc. 1-2."
+  },
+  {
+    "id": "humo",
+    "nombre": "Humo",
+    "coste": 1,
+    "tipo": "defensa",
+    "escudo": 4,
+    "radio": 1,
+    "texto": "+4 escudo a este\ntanque y a los pegados."
+  },
+  {
+    "id": "girar",
+    "nombre": "Girar casco",
+    "coste": 0,
+    "tipo": "maniobra",
+    "encarar": true,
+    "requiere_objetivo": true,
+    "texto": "Gira para mirar\nal enemigo elegido."
+  },
+  {
+    "id": "acelerar",
+    "nombre": "Acelerar",
+    "coste": 1,
+    "tipo": "maniobra",
+    "movimiento": 2,
+    "texto": "+2 de movimiento\neste turno."
+  },
+  {
+    "id": "arenga",
+    "nombre": "Arenga",
+    "coste": 1,
+    "tipo": "apoyo",
+    "moral": 3,
+    "texto": "+3 moral a\neste tanque."
+  },
+  {
+    "id": "recarga",
+    "nombre": "Recarga rápida",
+    "coste": 0,
+    "tipo": "apoyo",
+    "energia": 2,
+    "moral": -1,
+    "texto": "+2 energía,\n-1 moral."
+  },
+
+  {
+    "id": "te",
+    "batallon": "britanico",
+    "nombre": "Hora del té",
+    "coste": 0,
+    "tipo": "apoyo",
+    "moral": 2,
+    "radio": 99,
+    "quieto": true,
+    "texto": "+2 moral a todo el\npelotón. Este no se mueve."
+  },
+  {
+    "id": "tiro_precision",
+    "batallon": "britanico",
+    "nombre": "Tiro de precisión",
+    "coste": 2,
+    "tipo": "ataque",
+    "dano": 7,
+    "penetracion": 4,
+    "alcance": [3, 6],
+    "texto": "7 daño, perfora 4.\nAlcance 3-6."
+  },
+  {
+    "id": "casco_oculto",
+    "batallon": "britanico",
+    "nombre": "Casco oculto",
+    "coste": 1,
+    "tipo": "defensa",
+    "escudo": 5,
+    "quieto": true,
+    "texto": "+5 escudo a este\ntanque. No se mueve más."
+  },
+  {
+    "id": "cortina_termica",
+    "batallon": "sovietico",
+    "nombre": "Cortina térmica",
+    "coste": 0,
+    "tipo": "defensa",
+    "escudo": 2,
+    "radio": 1,
+    "texto": "+2 escudo a este\ntanque y a los pegados."
+  },
+  {
+    "id": "ura",
+    "batallon": "sovietico",
+    "nombre": "¡Urá!",
+    "coste": 1,
+    "tipo": "maniobra",
+    "movimiento": 1,
+    "radio": 99,
+    "texto": "+1 movimiento a todo\nel pelotón."
+  },
+  {
+    "id": "andanada",
+    "batallon": "sovietico",
+    "nombre": "Andanada",
+    "coste": 1,
+    "tipo": "ataque",
+    "dano": 3,
+    "penetracion": 1,
+    "bonus_por_aliado": 2,
+    "alcance": [1, 4],
+    "texto": "3 daño, +2 por cada otro\ntanque tuyo a 4 del blanco."
+  }
+]
