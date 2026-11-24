@@ -53,12 +53,12 @@
   },
   {
     "id": "girar",
-    "nombre": "Girar casco",
+    "nombre": "Encarar",
     "coste": 0,
     "tipo": "maniobra",
     "encarar": true,
     "requiere_objetivo": true,
-    "texto": "Gira hacia el enemigo elegido:\nsin -2 al dispararle y le das la cara."
+    "texto": "Mira al enemigo elegido:\nle disparas sin -2 y\nle das tu frente."
   },
   {
     "id": "acelerar",
@@ -115,7 +115,7 @@
   {
     "id": "casco_oculto",
     "batallon": "britanico",
-    "nombre": "Casco oculto",
+    "nombre": "Atrincherarse",
     "coste": 1,
     "tipo": "defensa",
     "escudo": 5,

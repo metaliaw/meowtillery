@@ -21,25 +21,90 @@ const BATALLAS_SIN_MICHI_MAX := 3
 ## Niveles de dificultad (ver Combate.dificultad). Calibrados con tools/qa/simular.gd.
 const DIFICULTADES := {
 	"recluta": {"nombre": "Recluta", "texto": "Para aprender. Actúan 2 enemigos por turno y pegan 2 menos.",
-		"acciones_max": 2, "bonus_dano": -2, "ia_lista": false},
-	"veterano": {"nombre": "Veterano", "texto": "El enemigo piensa: remata, flanquea, se cubre y pega 1 más.",
-		"acciones_max": 3, "bonus_dano": 1, "ia_lista": true},
-	"as": {"nombre": "As", "texto": "Sin piedad: actúan todos los enemigos y pegan 2 más.",
+		"acciones_max": 2, "bonus_dano": -2, "ia_lista": false, "salvavidas": true},
+	"veterano": {"nombre": "Veterano", "texto": "El enemigo piensa: remata, flanquea, se cubre y pega 2 más. Un tanque sano no cae en un solo turno.",
+		"acciones_max": 3, "bonus_dano": 2, "ia_lista": true, "salvavidas": true},
+	"as": {"nombre": "As", "texto": "Sin piedad: actúan todos, pegan 2 más y no hay red de seguridad.",
 		"acciones_max": 4, "bonus_dano": 2, "ia_lista": true},
 }
+
+## Arsenal: cartas de botín guardadas entre batallas (las que capturaste y no usaste).
+## Antes de una batalla se eligen hasta LLEVAR_MAX para llevar; usarlas las gasta.
+const ARCHIVO_ARSENAL := "user://arsenal.json"
+const ARSENAL_MAX := 12
+const LLEVAR_MAX := 2
 
 var jugador := "britanico"
 var rival := "sovietico"
 var dificultad := "recluta"
 var batallas_sin_michi := 0
+var arsenal: Array = []
+var llevar: Array = []  # posiciones del arsenal elegidas para la próxima batalla
+var archivo_arsenal := ARCHIVO_ARSENAL  # las pruebas usan otro archivo
+
+
+func _ready() -> void:
+	cargar_arsenal()
 
 
 ## Arma la batalla elegida y decide si esta vez viene Michi. Devuelve si vino.
+## Las cartas elegidas del Arsenal salen de él y entran como botín inicial.
 func nueva_batalla(combate) -> bool:
 	var viene := batallas_sin_michi >= BATALLAS_SIN_MICHI_MAX or randf() < PROBABILIDAD_MICHI
 	batallas_sin_michi = 0 if viene else batallas_sin_michi + 1
 	iniciar_combate(combate, jugador, rival, -1, viene, dificultad)
+	var posiciones := llevar.filter(func(i): return i >= 0 and i < arsenal.size())
+	posiciones.sort()
+	for i in posiciones:
+		combate.botin.append(arsenal[i])
+	posiciones.reverse()
+	for i in posiciones:
+		arsenal.remove_at(i)
+	llevar.clear()
+	combate.set_meta("arsenal_cerrado", false)
+	guardar_arsenal()
 	return viene
+
+
+## Al terminar o abandonar una batalla: el botín sin usar vuelve al Arsenal (y las capturas
+## que quedaron sin elegir, con su primera opción). Se puede llamar más de una vez.
+func cerrar_batalla(combate) -> void:
+	if combate == null or combate.get_meta("arsenal_cerrado", true):
+		return
+	combate.set_meta("arsenal_cerrado", true)
+	for captura in combate.capturas:
+		combate.botin.append(captura["opciones"][0])
+	combate.capturas.clear()
+	arsenal.append_array(combate.botin)
+	while arsenal.size() > ARSENAL_MAX:
+		arsenal.pop_front()  # se descartan las más antiguas
+	guardar_arsenal()
+
+
+## Marca o desmarca la carta en la posición `i` del Arsenal. Devuelve si quedó elegida.
+func alternar_llevar(i: int) -> bool:
+	if llevar.has(i):
+		llevar.erase(i)
+		return false
+	if llevar.size() >= LLEVAR_MAX or i < 0 or i >= arsenal.size():
+		return false
+	llevar.append(i)
+	return true
+
+
+func cargar_arsenal() -> void:
+	arsenal = []
+	if FileAccess.file_exists(archivo_arsenal):
+		var datos = JSON.parse_string(FileAccess.get_file_as_string(archivo_arsenal))
+		if datos is Array:
+			arsenal = datos.filter(func(x): return x is String)
+	llevar = llevar.filter(func(i): return i < arsenal.size())
+
+
+func guardar_arsenal() -> void:
+	var f := FileAccess.open(archivo_arsenal, FileAccess.WRITE)
+	if f:
+		f.store_string(JSON.stringify(arsenal))
 
 
 static func batallones() -> Dictionary:

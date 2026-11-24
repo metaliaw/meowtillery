@@ -14,6 +14,7 @@ const Estilo := preload("res://scripts/estilo.gd")
 const Gato := preload("res://scripts/gato_animado.gd")
 const Globo := preload("res://scripts/globo.gd")
 const Ficha := preload("res://scripts/ficha.gd")
+const ControlSonido := preload("res://scripts/control_sonido.gd")
 
 const ESCENA_MENU := "res://scenes/menu.tscn"
 const LINEAS_DE_REGISTRO := 8
@@ -40,6 +41,11 @@ var _atlas_cara := AtlasTexture.new()
 var _boton_turno: Button
 var _capa_final: Control
 var _capa_pausa: Control
+var _capa_confirmar: Control
+var _capa_captura: Control
+var _texto_captura: Label
+var _opciones_captura: HBoxContainer
+var _texto_confirmar: Label
 var _texto_final: Label
 
 
@@ -49,6 +55,8 @@ func _ready() -> void:
 
 
 func _nueva_partida() -> void:
+	if combate != null:
+		Partida.cerrar_batalla(combate)  # el botín sin usar vuelve al Arsenal
 	combate = Combate.new()
 	# Diferido: así no se reconstruye la UI dentro del clic que la disparó.
 	combate.cambio.connect(_refrescar, CONNECT_DEFERRED)
@@ -164,7 +172,7 @@ func _construir_interfaz() -> void:
 	_boton_turno = Button.new()
 	_boton_turno.text = "Terminar turno"
 	_boton_turno.custom_minimum_size = Vector2(160, 100)
-	_boton_turno.pressed.connect(func(): combate.terminar_turno())
+	_boton_turno.pressed.connect(_al_terminar_turno)
 	abajo.add_child(_boton_turno)
 
 	var final := _capa_oscura()
@@ -184,6 +192,8 @@ func _construir_interfaz() -> void:
 	caja_final.add_child(volver)
 
 	_construir_pausa()
+	_construir_confirmacion()
+	_construir_captura()
 
 
 ## Capa a pantalla completa que oscurece el juego (y bloquea sus clics) con un
@@ -234,9 +244,125 @@ func _construir_pausa() -> void:
 		b.custom_minimum_size = Vector2(0, 46)
 		b.pressed.connect(opcion[1])
 		caja.add_child(b)
+	var sonido := ControlSonido.new(Estilo.TINTA)
+	sonido.alignment = BoxContainer.ALIGNMENT_CENTER
+	caja.add_child(sonido)
 	var aviso := Estilo.texto_en_papel("Reiniciar o salir pierde la batalla en curso.", 13)
 	aviso.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	caja.add_child(aviso)
+
+
+## Ventana de botín: al derribar un enemigo, elegir con cuál de sus cartas quedarse.
+func _construir_captura() -> void:
+	var capa := _capa_oscura()
+	_capa_captura = capa[0]
+	var panel := PanelContainer.new()
+	panel.add_theme_stylebox_override("panel", Estilo.caja(Color("fff6d6"), Color("c8961e"), 4))
+	panel.custom_minimum_size = Vector2(520, 0)
+	capa[1].add_child(panel)
+	var caja := VBoxContainer.new()
+	caja.add_theme_constant_override("separation", 12)
+	panel.add_child(caja)
+	var titulo := Estilo.texto_en_papel("¡Botín!", 30)
+	titulo.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	caja.add_child(titulo)
+	_texto_captura = Estilo.texto_en_papel("", 16)
+	_texto_captura.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	caja.add_child(_texto_captura)
+	_opciones_captura = HBoxContainer.new()
+	_opciones_captura.add_theme_constant_override("separation", 12)
+	caja.add_child(_opciones_captura)
+
+
+func _refrescar_captura() -> void:
+	if combate.capturas.is_empty():
+		_capa_captura.visible = false
+		return
+	var captura: Dictionary = combate.capturas[0]
+	_texto_captura.text = "Derribaste a %s. Quédate con una de sus cartas:
+se usa una vez y cualquier tanque tuyo la puede jugar.
+Si no la usas, se guarda en tu Arsenal." % captura["de"]
+	_vaciar(_opciones_captura)
+	for id in captura["opciones"]:
+		var c: Dictionary = combate.cartas[id]
+		var b := Button.new()
+		b.text = "%s  [%d]
+%s" % [c["nombre"], int(c["coste"]), c["texto"]]
+		b.custom_minimum_size = Vector2(240, 110)
+		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		b.add_theme_font_size_override("font_size", 15)
+		b.set_meta("sonido", "carta")
+		b.pressed.connect(func(): combate.elegir_botin(id))
+		_opciones_captura.add_child(b)
+	_capa_captura.visible = true
+
+
+## Carta de botín: dorada, de un solo uso; la juega el tanque elegido.
+func _boton_botin(i_botin: int) -> Button:
+	var id: String = combate.botin[i_botin]
+	var c: Dictionary = combate.cartas[id]
+	var b := Button.new()
+	b.text = "BOTÍN · %s  [%d]
+%s" % [c["nombre"], int(c["coste"]), c["texto"]]
+	b.custom_minimum_size = Vector2(120, 100)
+	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	b.clip_text = true
+	b.add_theme_font_size_override("font_size", 14)
+	b.add_theme_stylebox_override("normal", Estilo.caja(Color("fff1c2"), Color("c8961e"), 3))
+	b.add_theme_stylebox_override("hover", Estilo.caja(Color("fff8dc"), Color("e0a82a"), 3))
+	var motivo := combate.motivo_botin(i_botin, actor_sel, objetivo_sel)
+	b.disabled = motivo != ""
+	b.set_meta("sonido", "carta")
+	b.tooltip_text = motivo if motivo != "" else "Botín de un solo uso. " + c["texto"]
+	b.pressed.connect(combate.usar_botin.bind(i_botin, actor_sel, objetivo_sel))
+	b.mouse_entered.connect(_mostrar_prevision.bind(id, i_botin))
+	b.mouse_exited.connect(_ocultar_prevision)
+	return b
+
+
+## Pregunta antes de terminar el turno si todavía hay tanques con cartas por jugar.
+func _construir_confirmacion() -> void:
+	var capa := _capa_oscura()
+	_capa_confirmar = capa[0]
+	var panel := PanelContainer.new()
+	panel.custom_minimum_size = Vector2(440, 0)
+	capa[1].add_child(panel)
+	var caja := VBoxContainer.new()
+	caja.add_theme_constant_override("separation", 12)
+	panel.add_child(caja)
+	var titulo := Estilo.texto_en_papel("¿Terminar el turno?", 26)
+	titulo.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	caja.add_child(titulo)
+	_texto_confirmar = Estilo.texto_en_papel("", 16)
+	_texto_confirmar.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	caja.add_child(_texto_confirmar)
+	var seguir := Button.new()
+	seguir.text = "Seguir jugando"
+	seguir.custom_minimum_size = Vector2(0, 46)
+	seguir.pressed.connect(func(): _capa_confirmar.visible = false)
+	caja.add_child(seguir)
+	var terminar := Button.new()
+	terminar.text = "Terminar de todos modos"
+	terminar.custom_minimum_size = Vector2(0, 46)
+	terminar.pressed.connect(func():
+		_capa_confirmar.visible = false
+		combate.terminar_turno())
+	caja.add_child(terminar)
+
+
+func _al_terminar_turno() -> void:
+	var pendientes := combate.tanques_con_acciones()
+	if pendientes.is_empty():
+		combate.terminar_turno()
+		return
+	var cuantos := pendientes.size()
+	_texto_confirmar.text = "Todavía %s %d tanque%s con cartas por usar: %s.
+Te queda %d de energía." % [
+		"te queda" if cuantos == 1 else "te quedan", cuantos, "" if cuantos == 1 else "s",
+		", ".join(pendientes), combate.energia]
+	_capa_confirmar.visible = true
 
 
 func _abrir_pausa() -> void:
@@ -255,12 +381,22 @@ func _reiniciar_desde_pausa() -> void:
 
 func _unhandled_input(evento: InputEvent) -> void:
 	if evento.is_action_pressed("ui_cancel") and not _capa_final.visible:
-		_capa_pausa.visible = not _capa_pausa.visible
+		if _capa_captura.visible:
+			return  # el botín hay que elegirlo
+		if _capa_confirmar.visible:
+			_capa_confirmar.visible = false  # Esc = seguir jugando
+		else:
+			_capa_pausa.visible = not _capa_pausa.visible
 		get_viewport().set_input_as_handled()
 
 
 func _ir_al_menu() -> void:
 	get_tree().change_scene_to_file(ESCENA_MENU)
+
+
+## Al salir de la escena (menú, cerrar el juego...), el botín sin usar vuelve al Arsenal.
+func _exit_tree() -> void:
+	Partida.cerrar_batalla(combate)
 
 
 func _etiqueta(padre: Control, color: Color) -> Label:
@@ -315,10 +451,25 @@ func _refrescar() -> void:
 	_tablero.alcance = _celdas_a_tiro(actor) if jugando and combate.vivo(actor) else {}
 	var ordenado: Dictionary = combate.aliados[combate.orden] if combate.orden >= 0 else {}
 	_tablero.orden_pos = ordenado["pos"] if jugando and not ordenado.is_empty() and combate.vivo(ordenado) else Vector2i(-1, -1)
+	# Peligro: tanques propios que los enemigos podrían destruir en su próxima fase.
+	var peligro := {}
+	if jugando:
+		for u in combate.aliados:
+			if combate.vivo(u) and combate.dano_en_peligro(u) >= u["casco"]:
+				peligro[u["pos"]] = true
+	_tablero.peligro = peligro
 	_tablero.queue_redraw()
 	_refrescar_orden(ordenado)
 
-	_ficha_actor.mostrar(actor, combate)
+	var aviso := ""
+	var en_riesgo := combate.dano_en_peligro(actor) if jugando else 0
+	if en_riesgo >= actor["casco"]:
+		aviso = "¡PELIGRO! Si se queda aquí, los enemigos le pueden quitar hasta %d de vida." % en_riesgo
+		if combate.dificultad.get("salvavidas", false) and actor["casco"] == actor["casco_max"]:
+			aviso += " Está sano: si cae, se salva por los bigotes."
+	elif en_riesgo > 0:
+		aviso = "Si se queda aquí, le pueden quitar hasta %d de vida." % en_riesgo
+	_ficha_actor.mostrar(actor, combate, aviso)
 	# Ficha del blanco: qué planea y, desde el tanque elegido, por qué lado le pegarías
 	# (ese lado queda marcado con un anillo amarillo en el dibujo del blindaje).
 	var extra := "Planea: " + combate.texto_intencion(objetivo)
@@ -342,9 +493,20 @@ func _refrescar() -> void:
 		_cara_actor.visible = actor.has("gato")
 		for id in combate.cartas_de(actor_sel):
 			_mano.add_child(_boton_carta(id))
+		for i in combate.botin.size():
+			_mano.add_child(_boton_botin(i))
+		# Con muchas cartas (botín incluido) la letra se achica para que la fila no crezca.
+		if _mano.get_child_count() > 5:
+			for carta in _mano.get_children():
+				(carta as Button).add_theme_font_size_override("font_size", 12)
 	_ocultar_prevision()
+	_refrescar_captura()
 
 	_boton_turno.disabled = not jugando
+	# El botón cuenta cuántos tanques todavía pueden jugar alguna carta.
+	var pendientes := combate.tanques_con_acciones() if jugando else []
+	_boton_turno.text = "Terminar turno" if pendientes.is_empty() else "Terminar turno
+(%d con cartas)" % pendientes.size()
 	_capa_final.visible = not jugando
 	_texto_final.text = "¡Victoria!" if combate.estado == "victoria" else "Derrota"
 	if not jugando and not _fin_sonado:
@@ -376,9 +538,11 @@ func _refrescar_orden(ordenado: Dictionary) -> void:
 ## Celdas que el tanque elegido alcanza con alguna de sus cartas de ataque disponibles.
 func _celdas_a_tiro(actor: Dictionary) -> Dictionary:
 	var res := {}
-	for id in combate.cartas_de(actor_sel):
+	var disponibles: Array = combate.cartas_de(actor_sel).filter(
+		func(id): return not actor.get("usadas", {}).has(id) and not actor.get("recargas", {}).has(id))
+	for id in disponibles + combate.botin:
 		var c: Dictionary = combate.cartas[id]
-		if c.get("tipo") != "ataque" or actor.get("usadas", {}).has(id) or actor.get("recargas", {}).has(id):
+		if c.get("tipo") != "ataque":
 			continue
 		for y in combate.mapa.alto:
 			for x in combate.mapa.ancho:
@@ -416,7 +580,7 @@ func _boton_carta(id: String) -> Button:
 
 
 ## Al pasar el mouse sobre una carta: qué haría con el tanque y el blanco elegidos.
-func _mostrar_prevision(id: String) -> void:
+func _mostrar_prevision(id: String, i_botin: int = -1) -> void:
 	if not combate.cartas.has(id) or not _puede_previsualizar():
 		return
 	var c: Dictionary = combate.cartas[id]
@@ -437,10 +601,10 @@ func _mostrar_prevision(id: String) -> void:
 			lineas.append("  %d daño - (blindaje %d + cobertura %d - penetración %d) = %d" % [
 				imp["dano"], imp["blindaje"], imp["cobertura"], imp["penetracion"], imp["al_casco"] + imp["absorbido"]])
 			if imp.get("penal", 0) > 0:
-				lineas.append("  Ya incluye -%d por disparar sin encararlo: usa Girar primero." % imp["penal"])
+				lineas.append("  Ya incluye -%d por disparar sin encararlo: usa Encarar primero." % imp["penal"])
 			if imp["absorbido"] > 0:
 				lineas.append("  El escudo absorbe %d." % imp["absorbido"])
-			var final := "  Casco %d, queda en %d" % [e["casco"], imp["casco_final"]]
+			var final := "  Vida %d, queda en %d" % [e["casco"], imp["casco_final"]]
 			if imp["derriba"]:
 				final += "   ¡Lo deja fuera de combate!"
 			elif imp["baja_moral"]:
@@ -450,7 +614,7 @@ func _mostrar_prevision(id: String) -> void:
 			lineas.append("  Por el frente %d · flanco %d · trasera %d" % [pl["frente"], pl["flanco"], pl["trasera"]])
 		else:
 			lineas.append("  Salpica a %s: %s" % [e["nombre"], marca])
-	var motivo := combate.motivo_uso(id, actor_sel, objetivo_sel)
+	var motivo := combate.motivo_botin(i_botin, actor_sel, objetivo_sel) if i_botin >= 0 		else combate.motivo_uso(id, actor_sel, objetivo_sel)
 	if motivo != "":
 		lineas.append("No se puede jugar: " + motivo)
 	_vista_previa.text = "\n".join(lineas)

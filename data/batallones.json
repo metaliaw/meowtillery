@@ -102,8 +102,8 @@
         },
         "movimiento": 2,
         "moral": 5,
-        "mania": "terca",
-        "mania_texto": "Terca: blindaje enorme, pero girar le cuesta 1 de energía más.",
+        "mania": "escaladora",
+        "mania_texto": "Escaladora: lenta, pero el bosque y las ruinas le cuestan 1 de movimiento, como el llano (el Churchill real trepaba cerros que parecían imposibles).",
         "acciones": [
           {
             "nombre": "Disparo de 75",

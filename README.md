@@ -26,20 +26,28 @@ godot --headless --path . -s tests/test_combate.gd
   precisión y té) o **soviético** (4 tanques, ataques en grupo y humo); el otro es el rival.
   Cada tanque lo comanda un gato con una **manía** que cambia las reglas para él:
   *ritual del té* (quieto recupera moral), *asustadizo* (por detrás pierde 2 de moral),
-  *terca* (girar cuesta 1 más), *recarga lenta* (un ataque por turno), *camarada* (+1 de
+  *escaladora* (bosque y ruinas le cuestan 1, como al Churchill real), *recarga lenta* (un ataque por turno), *camarada* (+1 de
   daño con un compañero pegado) y *valiente* (los golpes no lo dejan en pánico).
   **Cada gato tiene sus propias cartas** (no hay mazo compartido): el cañón de su
-  tanque, dos cartas propias y *Girar*, que todos tienen. Se elige un tanque y abajo
+  tanque, dos cartas propias y *Encarar*, que todos tienen. Se elige un tanque y abajo
   aparecen las suyas. Todos comparten 3 de energía por turno; cada carta se usa una
   vez por turno y algunas tienen **recarga** (turnos que hay que esperar).
+- **Botín y Arsenal.** Al derribar un enemigo se elige una de sus dos cartas propias como
+  **botín**: es de un solo uso y la puede jugar cualquier tanque (sale en dorado junto a
+  las cartas del gato elegido). Al terminar o abandonar la batalla, el botín sin usar va
+  al **Arsenal** (`user://arsenal.json`, hasta 12 cartas). En la pantalla de batallón se
+  eligen hasta 2 cartas del Arsenal para llevar; usarlas las gasta.
 - **Apuntar.** Disparar a un blanco que no está en tu frente (las diagonales exactas
-  cuentan como frente) resta 2 de daño. *Girar* hacia el blanco lo evita y, de paso,
+  cuentan como frente) resta 2 de daño. *Encarar* hacia el blanco lo evita y, de paso,
   le da tu frente blindado. La moral máxima es 5.
 - **Dificultad.** Se elige junto al batallón. *Recluta*: actúan 2 enemigos por turno y
   pegan 1 menos. *Veterano*: la IA elige blanco y casilla por daño esperado (remata,
   flanquea, se cubre) y pega 1 más. *As*: además actúan todos los enemigos y pegan 2 más.
-  En Recluta pegan 2 menos. Con el bot de QA (100 batallas por caso), jugando bien:
-  Recluta ~100%, Veterano ~72% (británicos) / ~93% (soviéticos), As ~41-49%. Jugando
+  En Recluta pegan 2 menos. En Recluta y Veterano hay **red de seguridad**: un tanque
+  que empieza sano la fase enemiga no cae en ella (queda con 1, "¡salvado por los
+  bigotes!"). Una **calavera roja** sobre un tanque propio avisa que los enemigos que
+  lo alcanzan podrían destruirlo si se queda ahí. Con el bot de QA (100 batallas por caso), jugando bien:
+  Recluta ~100%, Veterano ~90% (británicos) / ~97% (soviéticos), As ~59-64% (con botín). Jugando
   al azar en Recluta: ~83% / ~65%. Una batalla dura ~6-10 turnos.
   `tools/qa/cartas.gd` mide cuánto aporta cada carta (quitándola y comparando).
 - **Inspección sorpresa de la teniente Michi.** En cada batalla hay 1 probabilidad en 3
@@ -63,6 +71,8 @@ godot --headless --path . -s tests/test_combate.gd
 - **Moral.** Cada impacto de 5 o más baja 1 de moral. Con 0 la tripulación entra en
   pánico y ese tanque no puede atacar (*Arenga* la recupera). Un enemigo en pánico
   pierde su turno y se recupera.
+- **Terminar turno.** El botón cuenta cuántos tanques todavía pueden jugar alguna carta
+  (Encarar no cuenta); si quedan, pregunta antes de terminar ("Terminar de todos modos").
 - **Intenciones a la vista.** Sobre cada enemigo hay un cartelito con lo que hará:
   mira roja + daño (ataque), escudo azul, grito morado (baja moral), "?" (pánico) o "zZ" (reserva).
 - **Fase enemiga.** Se anima enemigo por enemigo (se mueve, dispara, el número de daño
@@ -92,6 +102,7 @@ godot --headless --path . -s tests/test_combate.gd
 | `scripts/estilo.gd` | Estética común tipo Balatro: tapete, botones-carta, títulos. |
 | `assets/fuentes/` | [Pixelify Sans](https://github.com/eifetx/Pixelify-Sans), SIL Open Font License 1.1 (`OFL.txt`): se puede incluir y vender con el juego, siempre que la licencia vaya junto a la fuente. Se usa sin suavizado (`Estilo.fuente()`). |
 | `assets/sonidos/` | Efectos CC0 (Kenney y OpenGameArt), incluidos maullidos y ronroneo. La voz de Michi (`michi_*.ogg`) es la de la gata de verdad, grabada por la autora (todos los derechos reservados). Origen de cada uno en `CREDITOS.txt`. Las grabaciones originales (`grabaciones/`) no se suben. |
+| `scripts/control_sonido.gd` | Barra de volumen y botón de silencio (menú y pausa). El ajuste se guarda en `user://ajustes.cfg`. |
 | `scripts/globo.gd` | Globo de diálogo de cómic con colita que apunta a quien habla (menú, tutorial, órdenes de Michi). |
 | `scripts/sonido.gd` | Autoload `Sonido`: todos los botones suenan solos (hover, clic, error si está deshabilitado); el combate avisa disparos, derribos y movimientos con la señal `evento` y suenan en cola. |
 | `tools/generar_terreno.py` | Dibuja las losetas-carta del terreno (`assets/terreno/`). |
@@ -135,7 +146,6 @@ del juego, y `docs/licencias/` lleva la licencia de la fuente y los créditos de
 - Muerte permanente de la tripulación entre batallas, campaña con varios mapas,
   recompensas de cartas y guardado.
 - Música.
-- Entrega 2: botín de cartas al derribar tanques y Arsenal entre batallas.
 - Entrega 3: puntería (roces) en Veterano y As.
 - Pantalla de fichas técnicas (datos reales de cada tanque).
 

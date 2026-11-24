@@ -47,7 +47,7 @@ const PAGINAS := [
 	},
 	{
 		"habla": "michi",
-		"texto": "El enemigo avisa lo que va a hacer. No es amabilidad, es pura torpeza. Elígelo y verás en rojo hasta dónde pega. Y apunta bien: si le disparas a uno que no tienes enfrente, pierdes 2 de daño. Usa Girar primero, que además le da tu frente blindado. Y no me hagas pasar vergüenza.",
+		"texto": "El enemigo avisa lo que va a hacer. No es amabilidad, es pura torpeza. Elígelo y verás en rojo hasta dónde pega. Y apunta bien: si le disparas a uno que no tienes enfrente, pierdes 2 de daño. Usa Encarar primero, que además le da tu frente blindado. Y no me hagas pasar vergüenza.",
 		"anim": "angry",
 	},
 	{
@@ -56,7 +56,7 @@ const PAGINAS := [
 		"anim": "angry",
 	},
 	{
-		"texto": "Cuando no te quede nada por hacer, pulsa Terminar turno. ¡Derrota a todos los enemigos para ganar! Y tranquilo: si un tanque cae, su gato siempre salta y escapa a salvo. ¿Lista la tripulación?",
+		"texto": "Cuando no te quede nada por hacer, pulsa Terminar turno. ¡Derrota a todos los enemigos para ganar! Cada tanque que derribes te deja elegir una de sus cartas de botín, y lo que no uses se guarda en tu Arsenal. Y tranquilo: si un tanque cae, su gato siempre salta y escapa a salvo. ¿Lista la tripulación?",
 		"anim": "happy",
 	},
 ]

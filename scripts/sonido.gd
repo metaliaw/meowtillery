@@ -25,6 +25,14 @@ const REPRODUCTORES := 8
 ## Separación entre sonidos encolados (segundos).
 const PAUSA_COLA := 0.35
 
+## Ajustes del jugador (se guardan en user://ajustes.cfg y se aplican al bus Master).
+const ARCHIVO_AJUSTES := "user://ajustes.cfg"
+signal ajustes_cambiados
+
+## Volumen general, de 0.0 (nada) a 1.0 (máximo).
+var volumen := 0.8
+var silencio := false
+
 var _flujos: Dictionary = {}
 var _reproductores: Array[AudioStreamPlayer] = []
 var _siguiente := 0
@@ -39,6 +47,43 @@ func _ready() -> void:
 		add_child(r)
 		_reproductores.append(r)
 	get_tree().node_added.connect(_al_agregar_nodo)
+	_cargar_ajustes()
+	_aplicar()
+
+
+## Cambia el volumen general (0.0 a 1.0), lo aplica y lo guarda.
+func poner_volumen(v: float) -> void:
+	volumen = clampf(v, 0.0, 1.0)
+	_aplicar()
+	_guardar_ajustes()
+
+
+func poner_silencio(s: bool) -> void:
+	silencio = s
+	_aplicar()
+	_guardar_ajustes()
+
+
+func _aplicar() -> void:
+	var bus := AudioServer.get_bus_index("Master")
+	AudioServer.set_bus_volume_db(bus, linear_to_db(maxf(volumen, 0.0001)))
+	AudioServer.set_bus_mute(bus, silencio or volumen <= 0.001)
+	ajustes_cambiados.emit()
+
+
+func _cargar_ajustes() -> void:
+	var cfg := ConfigFile.new()
+	if cfg.load(ARCHIVO_AJUSTES) == OK:
+		volumen = clampf(float(cfg.get_value("sonido", "volumen", volumen)), 0.0, 1.0)
+		silencio = bool(cfg.get_value("sonido", "silencio", silencio))
+
+
+func _guardar_ajustes() -> void:
+	var cfg := ConfigFile.new()
+	cfg.load(ARCHIVO_AJUSTES)  # conserva otras secciones si existieran
+	cfg.set_value("sonido", "volumen", volumen)
+	cfg.set_value("sonido", "silencio", silencio)
+	cfg.save(ARCHIVO_AJUSTES)
 
 
 func tocar(nombre: String) -> void:

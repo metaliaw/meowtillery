@@ -48,6 +48,9 @@ func _init() -> void:
 	_probar_acciones()
 	_probar_dificultad()
 	_probar_punteria()
+	_probar_salvavidas()
+	_probar_pendientes()
+	_probar_botin()
 	print("\nTODO OK" if _fallos == 0 else "\n%d FALLOS" % _fallos)
 	quit(1 if _fallos > 0 else 0)
 
@@ -333,8 +336,17 @@ func _probar_manias() -> void:
 
 	var b := _batalla()
 	var marmalade: Dictionary = b.aliados[_indice(b.aliados, "marmalade")]
-	_comprobar(b.coste_de(b.cartas["girar"], marmalade) == 1, "terca: girar le cuesta 1")
-	_comprobar(b.coste_de(b.cartas["girar"], b.aliados[0]) == 0, "a los demás girar no les cuesta")
+	# Escaladora: el bosque (1,1) le cuesta 1 a Lady Marmalade; a Earl Grey, 2.
+	marmalade["pos"] = Vector2i(0, 1)
+	var opciones: Dictionary = b.casillas_de_movimiento(marmalade, 1)
+	_comprobar(opciones.has(Vector2i(1, 1)), "escaladora: entra al bosque con 1 de movimiento")
+	var earl_m: Dictionary = b.aliados[_indice(b.aliados, "earl_grey")]
+	var pos_earl: Vector2i = earl_m["pos"]
+	marmalade["pos"] = Vector2i(5, 5)
+	earl_m["pos"] = Vector2i(0, 1)  # el mismo lugar desde donde Lady Marmalade sí entró
+	_comprobar(not b.casillas_de_movimiento(earl_m, 1).has(Vector2i(1, 1)), "a los demás el bosque les cuesta 2")
+	earl_m["pos"] = pos_earl
+	_comprobar(b.coste_de(b.cartas["girar"], marmalade) == 0, "Encarar no le cuesta energía a nadie")
 
 	var earl: Dictionary = b.aliados[_indice(b.aliados, "earl_grey")]
 	earl["moral"] = 3
@@ -510,6 +522,81 @@ func _probar_punteria() -> void:
 	var antes_d: int = d.enemigos[0]["casco"]
 	d.usar("disparo_17lb", 0, 0)
 	_comprobar(antes_d - d.enemigos[0]["casco"] == sin_penal - 2, "sin girar, el mismo disparo hace 2 menos")
+
+
+## Recluta y Veterano: un tanque sano no cae en una sola fase enemiga. As: sí puede.
+func _probar_salvavidas() -> void:
+	for dif in ["veterano", "as"]:
+		var c := _con_dificultad(dif)
+		var crumpet: Dictionary = c.aliados[_indice(c.aliados, "crumpet")]
+		# Todos los enemigos pegados a Crumpet y con un disparo enorme.
+		var vecinas := [Vector2i(1, 0), Vector2i(0, 1), Vector2i(-1, 0), Vector2i(0, -1)]
+		crumpet["pos"] = Vector2i(5, 3)
+		for i in c.enemigos.size():
+			c.enemigos[i]["pos"] = crumpet["pos"] + vecinas[i] * 2
+			c.enemigos[i]["intencion"] = {"nombre": "Prueba", "dano": 30, "penetracion": 9, "alcance": [1, 4]}
+		_comprobar(c.dano_en_peligro(crumpet) >= crumpet["casco"], "%s: Crumpet está en peligro (calavera)" % dif)
+		c.terminar_turno()
+		if dif == "veterano":
+			_comprobar(c.vivo(crumpet) and crumpet["casco"] == 1, "Veterano: Crumpet sano se salva por los bigotes con 1")
+		else:
+			_comprobar(not c.vivo(crumpet), "As: sin red de seguridad, Crumpet cae")
+	var r := _con_dificultad("veterano")
+	var lejos: Dictionary = r.aliados[0]
+	_comprobar(r.dano_en_peligro(lejos) == 0, "al inicio, lejos de todos, no hay peligro")
+
+
+## Antes de terminar el turno se avisa qué tanques todavía pueden jugar alguna carta.
+func _probar_pendientes() -> void:
+	var c := _batalla()
+	_comprobar(c.tanques_con_acciones().has("Earl Grey"), "al empezar, Earl Grey tiene cartas por usar")
+	for u in c.aliados:
+		for id in u["habilidades"]:
+			u["usadas"][id] = true
+	_comprobar(c.tanques_con_acciones().is_empty(), "si ya usaron todo (Girar no cuenta), no hay pendientes")
+
+
+## Botín: al derribar un enemigo se elige una de sus cartas; se usa una vez y la puede
+## jugar cualquier tanque. Lo que no se usa vuelve al Arsenal entre batallas.
+func _probar_botin() -> void:
+	var c := _batalla()
+	var earl: Dictionary = c.aliados[0]
+	var boris: Dictionary = c.enemigos[0]
+	boris["pos"] = earl["pos"] + Vector2i(3, 0)
+	boris["casco"] = 1
+	c.usar("disparo_17lb", 0, 0)
+	_comprobar(not c.vivo(boris) and c.capturas.size() == 1, "derribar a Boris deja una captura pendiente")
+	_comprobar(c.capturas[0]["opciones"] == ["cortina_termica", "ura"], "se ofrecen sus dos cartas propias (sin el cañón)")
+	_comprobar(not c.elegir_botin("disparo_85"), "no se puede elegir una carta que no se ofrece")
+	_comprobar(c.elegir_botin("ura") and c.botin == ["ura"], "elegida: ¡Urá! pasa al botín")
+	var i_crumpet := _indice(c.aliados, "crumpet")
+	_comprobar(c.motivo_uso("ura", i_crumpet, 0) != "" and c.motivo_botin(0, i_crumpet, 0) == "",
+		"Crumpet no tiene ¡Urá!, pero sí la puede jugar del botín")
+	c.energia = 3
+	var mov_antes: int = c.aliados[i_crumpet]["mov_restante"]
+	_comprobar(c.usar_botin(0, i_crumpet, 0) and c.botin.is_empty(), "usar el botín lo gasta")
+	_comprobar(c.aliados[i_crumpet]["mov_restante"] == mov_antes + 1, "y hace su efecto")
+
+	# Arsenal: lo que no se usó vuelve; al llevarlo a la batalla, sale del arsenal.
+	var p := PartidaScript.new()
+	p.archivo_arsenal = "user://arsenal_prueba.json"
+	p.arsenal = []
+	var d := _batalla()
+	d.set_meta("arsenal_cerrado", false)
+	d.botin = ["humo"]
+	d.capturas = [{"de": "Kasha", "opciones": ["andanada", "cortina_termica"]}]
+	p.cerrar_batalla(d)
+	_comprobar(p.arsenal == ["humo", "andanada"], "al cerrar: botín sin usar y capturas sin elegir van al Arsenal")
+	p.cerrar_batalla(d)
+	_comprobar(p.arsenal.size() == 2, "cerrar dos veces no duplica")
+	p.cargar_arsenal()
+	_comprobar(p.arsenal == ["humo", "andanada"], "el Arsenal se guarda y se vuelve a cargar")
+	_comprobar(p.alternar_llevar(1) and p.alternar_llevar(0) and not p.alternar_llevar(5), "se eligen hasta 2 para llevar")
+	var e := Combate.new()
+	p.nueva_batalla(e)
+	_comprobar(e.botin == ["humo", "andanada"] and p.arsenal.is_empty(), "las llevadas salen del Arsenal y entran como botín")
+	DirAccess.remove_absolute(p.archivo_arsenal)
+	p.free()
 
 
 func _probar_cartas_de_batallon() -> void:

@@ -54,6 +54,8 @@ var actor_pos := Vector2i(-1, -1)
 var objetivo_pos := Vector2i(-1, -1)
 ## Tanque al que la teniente Michi le ordenó atacar este turno (se marca con "!").
 var orden_pos := Vector2i(-1, -1)
+## Tanques propios que podrían caer en la próxima fase enemiga: {celda: true}.
+var peligro: Dictionary = {}
 ## Vista previa de la carta bajo el mouse: {celda: {"texto": "-6", "derriba": bool}}.
 var prevision: Dictionary = {}
 var animando := false
@@ -99,7 +101,7 @@ func encolar(datos: Dictionary) -> void:
 
 func _process(delta: float) -> void:
 	var hay_efectos := not (_flotantes.is_empty() and _trazos.is_empty() and _explosiones.is_empty() \
-		and _temblor.is_empty() and _escapes.is_empty()) or _hay_restos()
+		and _temblor.is_empty() and _escapes.is_empty()) or _hay_restos() or not peligro.is_empty()
 	_envejecer(delta)
 	if not _cola.is_empty():
 		_avanzar(delta)
@@ -303,6 +305,9 @@ func _draw() -> void:
 			if not con_textura:
 				draw_rect(r, Color(0, 0, 0, 0.18), false, 1.0)
 
+	# Marcos de selección debajo de los tanques: así no tapan el sprite, el gato ni sus íconos.
+	_marco(actor_pos, COLOR_ACTOR)
+	_marco(objetivo_pos, COLOR_OBJETIVO)
 	# Primero los restos en llamas (quedan debajo), después los tanques en pie.
 	for u in combate.aliados + combate.enemigos:
 		var e := _estado(u)
@@ -313,10 +318,11 @@ func _draw() -> void:
 		if e["vivo"]:
 			_dibujar_unidad(u, e)
 
-	_marco(actor_pos, COLOR_ACTOR)
-	_marco(objetivo_pos, COLOR_OBJETIVO)
 	if m.dentro(orden_pos) and not animando:
 		_insignia_orden(orden_pos)
+	if not animando:
+		for celda in peligro:
+			_calavera(celda)
 	for celda in prevision:
 		_etiqueta_dano(celda, prevision[celda])
 	_dibujar_efectos(fuente)
@@ -465,6 +471,20 @@ func _dibujar_efectos(fuente: Font) -> void:
 		draw_string(fuente, en, f["texto"], HORIZONTAL_ALIGNMENT_LEFT, -1, tam_letra, Color(f["color"], alfa))
 
 
+## Calavera roja arriba a la izquierda: si el tanque se queda ahí, lo pueden destruir.
+func _calavera(celda: Vector2i) -> void:
+	var c := Vector2(celda * TAM) + Vector2(11, 9)
+	var latido := 1.0 + 0.12 * sin(Time.get_ticks_msec() / 160.0)
+	draw_circle(c, 10.0 * latido, COLOR_TINTA)
+	draw_circle(c, 8.0 * latido, Color("e84a5f"))
+	draw_circle(c + Vector2(0, -1), 5.0, Color.WHITE)            # cráneo
+	draw_rect(Rect2(c + Vector2(-3, 2), Vector2(6, 4)), Color.WHITE)  # mandíbula
+	draw_circle(c + Vector2(-2, -1), 1.4, COLOR_TINTA)            # ojos
+	draw_circle(c + Vector2(2, -1), 1.4, COLOR_TINTA)
+	draw_line(c + Vector2(-1, 4), c + Vector2(-1, 6), COLOR_TINTA, 1.0)  # dientes
+	draw_line(c + Vector2(1, 4), c + Vector2(1, 6), COLOR_TINTA, 1.0)
+
+
 ## Círculo amarillo con "!" en la esquina inferior izquierda: la orden de Michi.
 func _insignia_orden(celda: Vector2i) -> void:
 	var centro := Vector2(celda * TAM) + Vector2(11, TAM - 20)
@@ -597,9 +617,12 @@ func _dibujar_gato(u: Dictionary, origen_sprite: Vector2) -> void:
 	draw_texture_rect_region(hoja, destino, fuente)
 
 
+## Marco de selección: tinte suave y borde. Se dibuja bajo las unidades.
 func _marco(celda: Vector2i, color: Color) -> void:
 	if combate.mapa.dentro(celda):
-		draw_rect(Rect2(Vector2(celda * TAM), Vector2(TAM, TAM)).grow(-1), color, false, 3.0)
+		var r := Rect2(Vector2(celda * TAM), Vector2(TAM, TAM)).grow(-1)
+		draw_rect(r, Color(color, 0.28))
+		draw_rect(r, color, false, 3.0)
 
 
 func _textura(ruta: String) -> Texture2D:

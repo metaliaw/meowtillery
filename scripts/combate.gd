@@ -61,7 +61,16 @@ var energia_extra := 0
 ##   acciones_max: cuántos enemigos actúan por turno
 ##   bonus_dano:   se suma al daño de cada ataque enemigo (mínimo 1)
 ##   ia_lista:     la IA elige blanco y casilla por daño esperado, remata y busca cobertura
+##   salvavidas:   un tanque propio sano no cae en una sola fase enemiga (queda con 1)
 var dificultad: Dictionary = {}
+## Botín: cartas de un solo uso, compartidas por todo el pelotón. Se capturan al derribar
+## enemigos (una de sus dos cartas propias) o se traen del Arsenal (Partida).
+var botin: Array = []
+## Capturas por elegir: [{"de": nombre del derribado, "opciones": [id, id]}]. La interfaz
+## pregunta cuál quedarse; el bot elige solo.
+var capturas: Array = []
+## Claves de los tanques propios que empezaron sanos la fase enemiga en curso (salvavidas).
+var _sanos_en_fase: Dictionary = {}
 
 
 ## semilla >= 0 hace la partida reproducible (útil en pruebas).
@@ -96,6 +105,8 @@ func iniciar(def_mapa: Dictionary, def_aliados: Array, def_enemigos: Array, def_
 	orden = -1
 	orden_cumplida = false
 	energia_extra = 0
+	botin.clear()
+	capturas.clear()
 	_iniciar_turno()
 
 
@@ -126,7 +137,7 @@ func casillas_de_movimiento(u: Dictionary, presupuesto: int) -> Dictionary:
 	for r in rivales:
 		if vivo(r):
 			bloqueadas[r["pos"]] = true
-	var opciones := mapa.alcanzables(u["pos"], presupuesto, bloqueadas)
+	var opciones := mapa.alcanzables(u["pos"], presupuesto, bloqueadas, _tope_coste(u))
 	for otro in aliados + enemigos:
 		if vivo(otro) and otro["pos"] != u["pos"]:
 			opciones.erase(otro["pos"])
@@ -189,6 +200,31 @@ func cartas_de(i_actor: int) -> Array:
 	return res
 
 
+## Nombres de los tanques propios que todavía pueden jugar alguna carta este turno
+## (sin contar Girar). Sirve para avisar antes de terminar el turno.
+func tanques_con_acciones() -> Array:
+	var res: Array = []
+	if estado != "jugando":
+		return res
+	for i in aliados.size():
+		var u: Dictionary = aliados[i]
+		if not vivo(u):
+			continue
+		var puede := false
+		for id in cartas_de(i):
+			if id == "girar":
+				continue
+			for o in maxi(enemigos.size(), 1):
+				if motivo_uso(id, i, o) == "":
+					puede = true
+					break
+			if puede:
+				break
+		if puede:
+			res.append(u["nombre"])
+	return res
+
+
 ## Devuelve "" si la carta de la mano se puede jugar, o el motivo por el que no.
 func motivo_no_jugable(i_mano: int, i_actor: int, i_objetivo: int) -> String:
 	if i_mano < 0 or i_mano >= mano.size():
@@ -214,6 +250,11 @@ func motivo_uso(id: String, i_actor: int, i_objetivo: int) -> String:
 		var faltan := int(actor["recargas"].get(id, 0))
 		if faltan > 0:
 			return "Recargando: lista en %d turno%s." % [faltan, "" if faltan == 1 else "s"]
+	return _motivo_comun(c, actor, i_objetivo)
+
+
+## Chequeos que valen para cualquier carta (propia, de la mano o de botín).
+func _motivo_comun(c: Dictionary, actor: Dictionary, i_objetivo: int) -> String:
 	if coste_de(c, actor) > energia:
 		return "No hay energía suficiente."
 	var hay_objetivo := i_objetivo >= 0 and i_objetivo < enemigos.size() and vivo(enemigos[i_objetivo])
@@ -231,6 +272,48 @@ func motivo_uso(id: String, i_actor: int, i_objetivo: int) -> String:
 	if c.get("requiere_objetivo", false) and not hay_objetivo:
 		return "Elige un enemigo en pie."
 	return ""
+
+
+## Al derribar un enemigo con cartas propias, queda pendiente elegir una de ellas como botín.
+func _capturar_de(u: Dictionary) -> void:
+	if u["bando"] != "enemigo" or not u.has("habilidades"):
+		return
+	var opciones: Array = u["habilidades"].slice(1)  # sus cartas propias, sin el cañón básico
+	if opciones.is_empty():
+		return
+	capturas.append({"de": u["nombre"], "opciones": opciones})
+	_anotar("  ¡Botín! Puedes quedarte con una carta de %s." % u["nombre"])
+
+
+## Elige la carta `id` de la primera captura pendiente y la pasa al botín.
+func elegir_botin(id: String) -> bool:
+	if capturas.is_empty() or not capturas[0]["opciones"].has(id):
+		return false
+	capturas.pop_front()
+	botin.append(id)
+	_anotar("Botín: %s. Cualquier tanque puede usarla una vez." % cartas[id]["nombre"])
+	cambio.emit()
+	return true
+
+
+func motivo_botin(i_botin: int, i_actor: int, i_objetivo: int) -> String:
+	if estado != "jugando":
+		return "El combate terminó."
+	if i_botin < 0 or i_botin >= botin.size():
+		return "Carta inválida."
+	if i_actor < 0 or i_actor >= aliados.size() or not vivo(aliados[i_actor]):
+		return "Elige un tanque propio en pie."
+	return _motivo_comun(cartas[botin[i_botin]], aliados[i_actor], i_objetivo)
+
+
+## Usa una carta del botín con el tanque elegido; se gasta.
+func usar_botin(i_botin: int, i_actor: int, i_objetivo: int) -> bool:
+	if motivo_botin(i_botin, i_actor, i_objetivo) != "":
+		return false
+	var id: String = botin[i_botin]
+	botin.remove_at(i_botin)
+	_aplicar(id, i_actor, i_objetivo)
+	return true
 
 
 ## Juega una carta de la mano compartida (modo con mazo, el de las pruebas).
@@ -373,6 +456,12 @@ func golpear(u: Dictionary, dano: int, penetracion: int, lado: String, cobertura
 	var moral_antes: int = u["moral"]
 	u["escudo"] -= i["absorbido"]
 	u["casco"] = i["casco_final"]
+	# Red de seguridad (Recluta y Veterano): un tanque propio que empezó la fase enemiga
+	# sano no cae en esa misma fase; queda con 1 de casco.
+	var salvado := false
+	if u["casco"] == 0 and _sanos_en_fase.has(u.get("clave", "")):
+		u["casco"] = 1
+		salvado = true
 	u["moral"] = maxi(u["moral"] - i["moral_perdida"], 0)
 	var entra_en_panico: bool = moral_antes > 0 and u["moral"] == 0 and vivo(u)
 	var texto := "  %s recibe %d en %s" % [u["nombre"], i["al_casco"], _nombre_lado(lado)]
@@ -381,10 +470,15 @@ func golpear(u: Dictionary, dano: int, penetracion: int, lado: String, cobertura
 	if not vivo(u):
 		texto += ". ¡Fuera de combate! El gato escapa a salvo."
 		evento.emit("explosion")
+		_capturar_de(u)
 	_anotar(texto)
+	if salvado:
+		_anotar("  ¡%s se salva por los bigotes! Queda con 1 de vida." % u["nombre"])
 	accion.emit({"tipo": "golpe", "clave": u.get("clave", ""), "al_casco": i["al_casco"],
 		"absorbido": i["absorbido"], "casco": u["casco"], "escudo": u["escudo"], "moral": u["moral"],
-		"derriba": not vivo(u), "voz": "susto" if entra_en_panico else "", "lado": lado})
+		"derriba": not vivo(u), "voz": "susto" if entra_en_panico or salvado else "", "lado": lado})
+	if salvado:
+		_avisar(u, "¡Salvado por los bigotes!", "moral")
 	return i["al_casco"]
 
 
@@ -422,11 +516,10 @@ func bonus_de_ataque(atacante: Dictionary, c: Dictionary, objetivo: Dictionary) 
 	return bonus
 
 
-## Energía que cuesta la carta para este tanque (la manía "terca" encarece girar).
+## Energía que cuesta la carta para este tanque (hoy no hay manías que la cambien, pero
+## queda el gancho para cartas o manías futuras).
 func coste_de(c: Dictionary, actor: Dictionary) -> int:
 	var coste := int(c["coste"])
-	if actor.get("mania") == "terca" and c.get("encarar", false):
-		coste += 1
 	return coste
 
 
@@ -632,8 +725,32 @@ func _cerrar_turno_de(lista: Array) -> void:
 func _turno_enemigo() -> void:
 	for e in enemigos:
 		e["se_movio"] = false
+	_sanos_en_fase.clear()
+	if dificultad.get("salvavidas", false):
+		for u in aliados:
+			if vivo(u) and u["casco"] == u["casco_max"]:
+				_sanos_en_fase[u["clave"]] = true
 	_turno_enemigo_acciones()
+	_sanos_en_fase.clear()
 	_cerrar_turno_de(enemigos)
+
+
+## Daño que podría recibir `u` en la próxima fase enemiga si todos los que lo alcanzan le
+## disparan (estimado por el flanco). Sirve para avisar "peligro" antes de terminar el turno.
+func dano_en_peligro(u: Dictionary) -> int:
+	if not vivo(u):
+		return 0
+	var total := 0
+	for e in enemigos:
+		var a: Dictionary = e.get("intencion", {})
+		if not vivo(e) or not a.has("dano") or a.get("reserva", false) or a.get("paralizado", false):
+			continue
+		if not celdas_amenaza(e).has(u["pos"]):
+			continue
+		var i := calcular_impacto(u, int(a["dano"]) + bonus_de_ataque(e, a, u), int(a.get("penetracion", 0)),
+			"flanco", mapa.cobertura(u["pos"]))
+		total += i["al_casco"] + i["absorbido"]
+	return maxi(total - int(u["escudo"]), 0)
 
 
 func _turno_enemigo_acciones() -> void:
@@ -789,7 +906,13 @@ func _red_de_caminos(u: Dictionary) -> Dictionary:
 	for r in rivales:
 		if vivo(r):
 			bloqueadas[r["pos"]] = true
-	return mapa.alcanzables(u["pos"], 999, bloqueadas)
+	return mapa.alcanzables(u["pos"], 999, bloqueadas, _tope_coste(u))
+
+
+## Manía "escaladora" (el Churchill trepaba cualquier terreno): toda casilla transitable
+## le cuesta 1 de movimiento, como el llano.
+func _tope_coste(u: Dictionary) -> int:
+	return 1 if u.get("mania") == "escaladora" else 0
 
 
 func _primer_vivo(lista: Array) -> int:

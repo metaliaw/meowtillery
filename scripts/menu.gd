@@ -4,6 +4,7 @@ extends Control
 const Estilo := preload("res://scripts/estilo.gd")
 const Gato := preload("res://scripts/gato_animado.gd")
 const Globo := preload("res://scripts/globo.gd")
+const ControlSonido := preload("res://scripts/control_sonido.gd")
 
 const ESCENA_COMBATE := "res://scenes/eleccion.tscn"  # primero se elige batallón
 const ESCENA_TUTORIAL := "res://scenes/tutorial.tscn"
@@ -68,6 +69,7 @@ func _ready() -> void:
 	_boton(botones, "Cómo se juega", func(): get_tree().change_scene_to_file(ESCENA_TUTORIAL))
 	if not OS.has_feature("web"):  # en el navegador no hay ventana que cerrar
 		_boton(botones, "Salir", func(): get_tree().quit())
+	botones.add_child(ControlSonido.new())
 
 
 func _boton(padre: Control, texto: String, accion: Callable) -> void:

@@ -11,6 +11,7 @@ const ANCHO_CARTA := 590
 
 
 var _nombres_cartas := {}  # id -> nombre, para mostrar las cartas de cada gato
+var _arsenal: HBoxContainer
 
 
 func _ready() -> void:
@@ -38,12 +39,48 @@ func _ready() -> void:
 	for id in batallones:
 		cartas.add_child(_carta(id, batallones[id]))
 
+	# Abajo: Volver y el Arsenal (cartas de botín guardadas para llevar a la batalla).
+	var pie := HBoxContainer.new()
+	pie.add_theme_constant_override("separation", 16)
+	columna.add_child(pie)
 	var volver := Button.new()
 	volver.text = "Volver"
 	volver.custom_minimum_size = Vector2(140, 44)
-	volver.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	volver.pressed.connect(func(): get_tree().change_scene_to_file(ESCENA_MENU))
-	columna.add_child(volver)
+	pie.add_child(volver)
+	_arsenal = HBoxContainer.new()
+	_arsenal.add_theme_constant_override("separation", 8)
+	_arsenal.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	pie.add_child(_arsenal)
+	_refrescar_arsenal()
+
+
+## Fila del Arsenal: cada carta guardada es un botón que se marca para llevarla (hasta 2).
+func _refrescar_arsenal() -> void:
+	for hijo in _arsenal.get_children():
+		_arsenal.remove_child(hijo)
+		hijo.queue_free()
+	var titulo := Label.new()
+	titulo.add_theme_color_override("font_color", Estilo.ACENTO)
+	_arsenal.add_child(titulo)
+	if Partida.arsenal.is_empty():
+		titulo.text = "Arsenal vacío: derriba tanques enemigos y quédate con sus cartas."
+		return
+	titulo.text = "Arsenal (llevas %d/%d):" % [Partida.llevar.size(), Partida.LLEVAR_MAX]
+	for i in Partida.arsenal.size():
+		var id: String = Partida.arsenal[i]
+		var b := Button.new()
+		b.text = _nombres_cartas.get(id, id)
+		b.toggle_mode = true
+		b.button_pressed = Partida.llevar.has(i)
+		b.custom_minimum_size = Vector2(0, 40)
+		b.add_theme_font_size_override("font_size", 13)
+		b.add_theme_stylebox_override("normal", Estilo.caja(Color("fff1c2"), Color("c8961e"), 3))
+		b.add_theme_stylebox_override("pressed", Estilo.caja(Color("ffd166"), Estilo.TINTA, 3))
+		b.toggled.connect(func(_activo: bool):
+			Partida.alternar_llevar(i)
+			_refrescar_arsenal.call_deferred())
+		_arsenal.add_child(b)
 
 
 ## Tres botones (Recluta / Veterano / As) y una línea que explica el elegido.

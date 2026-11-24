@@ -29,9 +29,17 @@ func jugar_turno(c) -> void:
 		if mejor.is_empty():
 			break
 		var id: String = mejor["id"]
-		if not c.usar(id, mejor["actor"], mejor["objetivo"]):
-			break
-		cartas_jugadas[id] = cartas_jugadas.get(id, 0) + 1
+		if mejor.has("botin"):
+			if not c.usar_botin(mejor["botin"], mejor["actor"], mejor["objetivo"]):
+				break
+			cartas_jugadas["botín:" + id] = cartas_jugadas.get("botín:" + id, 0) + 1
+		else:
+			if not c.usar(id, mejor["actor"], mejor["objetivo"]):
+				break
+			cartas_jugadas[id] = cartas_jugadas.get(id, 0) + 1
+		# Botín: se queda con la primera carta ofrecida.
+		while not c.capturas.is_empty():
+			c.elegir_botin(c.capturas[0]["opciones"][0])
 		if c.cartas[id].has("movimiento"):
 			# Con movimiento extra, vuelve a buscar mejor casilla.
 			for i in c.aliados.size():
@@ -147,6 +155,21 @@ func _mejor_jugada(c, amenaza: Dictionary) -> Dictionary:
 					mejor = {"id": id, "actor": a, "objetivo": o}
 				if not carta.get("requiere_objetivo", false) and carta.get("tipo") != "ataque":
 					break  # el blanco no importa
+	# Cartas de botín (un solo uso): se juegan si valen un poco más que lo normal.
+	for b in c.botin.size():
+		var id: String = c.botin[b]
+		var carta: Dictionary = c.cartas[id]
+		for a in c.aliados.size():
+			for o in c.enemigos.size():
+				if c.motivo_botin(b, a, o) != "":
+					continue
+				var valor := _valor(c, carta, id, a, o, amenaza) * 0.9
+				var coste: float = maxf(c.coste_de(carta, c.aliados[a]), 0.5)
+				if valor / coste > mejor_valor:
+					mejor_valor = valor / coste
+					mejor = {"id": id, "botin": b, "actor": a, "objetivo": o}
+				if not carta.get("requiere_objetivo", false) and carta.get("tipo") != "ataque":
+					break
 	return mejor
 
 

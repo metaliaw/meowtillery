@@ -45,8 +45,9 @@ static func distancia(a: Vector2i, b: Vector2i) -> int:
 
 ## Dijkstra desde `origen` con un presupuesto de movimiento `mov`.
 ## `bloqueadas` son celdas que no se pueden atravesar (unidades rivales).
+## `tope_coste` > 0 limita el coste de cada casilla (la manía "escaladora" usa 1).
 ## Devuelve {celda: [coste, celda_anterior]}, incluido el origen con coste 0.
-func alcanzables(origen: Vector2i, mov: int, bloqueadas: Dictionary) -> Dictionary:
+func alcanzables(origen: Vector2i, mov: int, bloqueadas: Dictionary, tope_coste: int = 0) -> Dictionary:
 	var mejor := {origen: [0, origen]}
 	var frontera: Array[Vector2i] = [origen]
 	while not frontera.is_empty():
@@ -60,7 +61,8 @@ func alcanzables(origen: Vector2i, mov: int, bloqueadas: Dictionary) -> Dictiona
 			var sig: Vector2i = actual + d
 			if not transitable(sig) or bloqueadas.has(sig):
 				continue
-			var c: int = mejor[actual][0] + coste(sig)
+			var paso := coste(sig) if tope_coste <= 0 else mini(coste(sig), tope_coste)
+			var c: int = mejor[actual][0] + paso
 			if c > mov:
 				continue
 			if not mejor.has(sig) or c < mejor[sig][0]:

@@ -188,7 +188,7 @@ class Barras extends Control:
 	func _draw() -> void:
 		var fuente := get_theme_default_font()
 		var ancho_barra := size.x - 112
-		_barra(fuente, 0, "Casco", float(casco) / casco_max, Color("7ee08a") if aliado else Color("ff7a7a"),
+		_barra(fuente, 0, "Vida", float(casco) / casco_max, Color("7ee08a") if aliado else Color("ff7a7a"),
 			"%d/%d" % [casco, casco_max], ancho_barra)
 		var texto_moral := "¡PÁNICO!" if panico else "%d/%d" % [moral, moral_max]
 		_barra(fuente, 21, "Moral", float(moral) / moral_max, Color("e84a5f") if panico else Color("ffd166"),
