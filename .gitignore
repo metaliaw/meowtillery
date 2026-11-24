@@ -3,4 +3,5 @@
 *.import
 
 # Juegos exportados (se regeneran con Godot: Project > Export)
-build/
+build/*
+!build/.gdignore
