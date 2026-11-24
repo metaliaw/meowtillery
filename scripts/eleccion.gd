@@ -2,6 +2,7 @@ extends Control
 ## Elegir batallón: una carta grande por batallón con su lema, sus gatos y sus manías.
 
 const Estilo := preload("res://scripts/estilo.gd")
+const Datos := preload("res://scripts/datos.gd")
 const Gato := preload("res://scripts/gato_animado.gd")
 
 const ESCENA_COMBATE := "res://scenes/combate.tscn"
@@ -9,7 +10,12 @@ const ESCENA_MENU := "res://scenes/menu.tscn"
 const ANCHO_CARTA := 590
 
 
+var _nombres_cartas := {}  # id -> nombre, para mostrar las cartas de cada gato
+
+
 func _ready() -> void:
+	for c in Datos.leer("res://data/cartas.json"):
+		_nombres_cartas[c["id"]] = c["nombre"]
 	theme = Estilo.tema()
 	var fondo := ColorRect.new()
 	fondo.color = Estilo.TAPETE
@@ -100,6 +106,11 @@ func _carta(id: String, b: Dictionary) -> Control:
 		datos.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		datos.add_child(Estilo.texto_en_papel("%s · %s" % [u["nombre"], u["inspirado_en"]], 15))
 		datos.add_child(Estilo.texto_en_papel(u["mania_texto"], 13))
+		var nombres_cartas: Array = u.get("habilidades", []).map(func(id): return _nombres_cartas.get(id, id))
+		if not nombres_cartas.is_empty():
+			var cartas_gato := Estilo.texto_en_papel("Cartas: " + ", ".join(nombres_cartas), 13)
+			cartas_gato.add_theme_color_override("font_color", Color("3b6fb0"))
+			datos.add_child(cartas_gato)
 		fila.add_child(datos)
 		fila.add_child(Estilo.imagen(u["sprite"], 1))
 		caja.add_child(fila)

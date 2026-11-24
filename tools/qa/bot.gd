@@ -28,10 +28,14 @@ func jugar_turno(c) -> void:
 		var mejor := _mejor_jugada(c, amenaza)
 		if mejor.is_empty():
 			break
-		var id: String = c.mano[mejor["mano"]]
-		if not c.jugar_carta(mejor["mano"], mejor["actor"], mejor["objetivo"]):
+		var id: String = mejor["id"]
+		if not c.usar(id, mejor["actor"], mejor["objetivo"]):
 			break
 		cartas_jugadas[id] = cartas_jugadas.get(id, 0) + 1
+		if c.cartas[id].has("movimiento"):
+			# Con movimiento extra, vuelve a buscar mejor casilla.
+			for i in c.aliados.size():
+				_mover(c, i, amenaza)
 	if c.estado == "jugando":
 		c.terminar_turno()
 
@@ -49,16 +53,16 @@ func _jugar_al_azar(c) -> void:
 			c.mover(i, celdas[rng.randi_range(0, celdas.size() - 1)])
 	while c.estado == "jugando":
 		var jugables: Array = []
-		for m in c.mano.size():
-			for a in c.aliados.size():
+		for a in c.aliados.size():
+			for id_carta in c.cartas_de(a):
 				for o in c.enemigos.size():
-					if c.motivo_no_jugable(m, a, o) == "":
-						jugables.append([m, a, o])
+					if c.motivo_uso(id_carta, a, o) == "":
+						jugables.append([id_carta, a, o])
 		if jugables.is_empty():
 			break
 		var j: Array = jugables[rng.randi_range(0, jugables.size() - 1)]
-		var id: String = c.mano[j[0]]
-		c.jugar_carta(j[0], j[1], j[2])
+		var id: String = j[0]
+		c.usar(j[0], j[1], j[2])
 		cartas_jugadas[id] = cartas_jugadas.get(id, 0) + 1
 	if c.estado == "jugando":
 		c.terminar_turno()
@@ -98,12 +102,13 @@ func _mover(c, i: int, amenaza: Dictionary) -> void:
 		c.mover(i, mejor_celda)
 
 
-## Mejor daño que haría `u` desde donde está con alguna carta de ataque de la mano.
+## Mejor daño que haría `u` desde donde está con alguna de sus cartas de ataque disponibles.
+## (No resta la puntería: el bot gira antes de disparar si hace falta.)
 func _dano_posible(c, u: Dictionary) -> float:
 	var mejor := 0.0
-	for id in c.mano:
+	for id in c.cartas_de(c.aliados.find(u)):
 		var carta: Dictionary = c.cartas[id]
-		if carta.get("tipo") != "ataque":
+		if carta.get("tipo") != "ataque" or u.get("usadas", {}).has(id) or u.get("recargas", {}).has(id):
 			continue
 		for e in c.enemigos:
 			if not c.vivo(e):
@@ -129,28 +134,28 @@ func _distancia_enemigo(c, celda: Vector2i) -> int:
 func _mejor_jugada(c, amenaza: Dictionary) -> Dictionary:
 	var mejor := {}
 	var mejor_valor := 0.0
-	for m in c.mano.size():
-		var carta: Dictionary = c.cartas[c.mano[m]]
-		for a in c.aliados.size():
+	for a in c.aliados.size():
+		for id in c.cartas_de(a):
+			var carta: Dictionary = c.cartas[id]
 			for o in c.enemigos.size():
-				if c.motivo_no_jugable(m, a, o) != "":
+				if c.motivo_uso(id, a, o) != "":
 					continue
-				var valor := _valor(c, carta, m, a, o, amenaza)
+				var valor := _valor(c, carta, id, a, o, amenaza)
 				var coste: float = maxf(c.coste_de(carta, c.aliados[a]), 0.5)
 				if valor / coste > mejor_valor:
 					mejor_valor = valor / coste
-					mejor = {"mano": m, "actor": a, "objetivo": o}
+					mejor = {"id": id, "actor": a, "objetivo": o}
 				if not carta.get("requiere_objetivo", false) and carta.get("tipo") != "ataque":
 					break  # el blanco no importa
 	return mejor
 
 
-func _valor(c, carta: Dictionary, m: int, a: int, o: int, amenaza: Dictionary) -> float:
+func _valor(c, carta: Dictionary, id: String, a: int, o: int, amenaza: Dictionary) -> float:
 	var u: Dictionary = c.aliados[a]
 	match carta.get("tipo"):
 		"ataque":
 			var v := 0.0
-			for imp in c.prever_carta(m, a, o):
+			for imp in c.prever_uso(id, a, o):
 				v += imp["al_casco"] + (10.0 if imp["derriba"] else 0.0)
 			if a == c.orden and not c.orden_cumplida:
 				v += 4.0
@@ -173,4 +178,50 @@ func _valor(c, carta: Dictionary, m: int, a: int, o: int, amenaza: Dictionary) -
 				if c.vivo(otro) and Mapa.distancia(otro["pos"], u["pos"]) <= radio:
 					falta += mini(int(otro["moral_max"]) - int(otro["moral"]), int(carta.get("moral", 0)))
 			return falta * 0.8
-	return 0.0  # maniobras: el bot ya se movió
+		"maniobra":
+			return _valor_maniobra(c, carta, a, o, amenaza)
+	return 0.0
+
+
+## Maniobras: cuánto daño extra permite el movimiento, o cuánto daño evita o suma girar.
+func _valor_maniobra(c, carta: Dictionary, a: int, o: int, amenaza: Dictionary) -> float:
+	var u: Dictionary = c.aliados[a]
+	if carta.has("movimiento"):
+		var bono := int(carta["movimiento"])
+		var radio := int(carta.get("radio", 0))
+		var ganancia := 0.0
+		for otro in c.aliados:
+			if not c.vivo(otro) or Mapa.distancia(otro["pos"], u["pos"]) > radio or c.en_panico(otro):
+				continue
+			var ahora := _mejor_dano_alcanzable(c, otro, otro["mov_restante"])
+			var con_bono := _mejor_dano_alcanzable(c, otro, otro["mov_restante"] + bono)
+			ganancia += maxf(con_bono - ahora, 0.0)
+		return ganancia * 0.9
+	if carta.get("encarar", false):
+		var e: Dictionary = c.enemigos[o]
+		var v := 0.0
+		# Ofensivo: si le puede disparar este turno pero no lo encara, girar evita el -2.
+		if c.penalizacion_punteria(u, e) > 0:
+			for otra in c.cartas_de(a):
+				if otra != "girar" and c.cartas[otra].get("tipo") == "ataque" and c.motivo_uso(otra, a, o) == "":
+					v = maxf(v, c.PENALIZACION_FUERA_DEL_FRENTE + 0.5)
+		# Defensivo: darle el frente (lo más blindado) al que lo va a atacar.
+		if e["intencion"].has("dano"):
+			var lado: String = c.lado_de_impacto(u, e["pos"])
+			if lado != "frente":
+				var b: Dictionary = u["blindaje"]
+				var ahorro := float(int(b.get("frente", 0)) - int(b.get(lado, 0)))
+				v += ahorro * (1.2 if amenaza.has(u["pos"]) else 0.3)
+		return v
+	return 0.0
+
+
+## Mejor daño que podría hacer `u` moviéndose con `presupuesto` (sin mover de verdad).
+func _mejor_dano_alcanzable(c, u: Dictionary, presupuesto: int) -> float:
+	var original: Vector2i = u["pos"]
+	var mejor := 0.0
+	for celda in c.casillas_de_movimiento(u, presupuesto):
+		u["pos"] = celda
+		mejor = maxf(mejor, _dano_posible(c, u))
+	u["pos"] = original
+	return mejor

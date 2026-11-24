@@ -20,7 +20,7 @@ const PAGINAS := [
 		"escala": 2,
 	},
 	{
-		"texto": "Cada gato tiene una manía. Earl Grey recupera moral si se queda quieto tomando té; Boris tiene un cañón enorme pero recarga lento. Mira la ficha de cada tanque para conocer la suya, y el mazo trae cartas propias de tu batallón.",
+		"texto": "Cada gato tiene una manía. Earl Grey recupera moral si se queda quieto tomando té; Boris tiene un cañón enorme pero recarga lento. Mira la ficha de cada tanque para conocer la suya. Y cada gato trae sus propias cartas.",
 		"gatos": ["res://assets/gatos/earl_grey.png", "res://assets/gatos/marmalade.png", "res://assets/gatos/boris.png", "res://assets/gatos/pelmeni.png"],
 		"anim": "happy",
 	},
@@ -43,16 +43,16 @@ const PAGINAS := [
 	},
 	{
 		"habla": "michi",
-		"texto": "Escucha bien, recluta, que no lo voy a repetir. Atacas con las cartas de tu mano: 3 de energía por turno, y cada carta dice cuánto cuesta y hasta dónde llega. Elige el blanco con clic en un enemigo y pasa el mouse sobre una carta para ver el daño. ¿Entendido? Bien.",
+		"texto": "Escucha bien, recluta, que no lo voy a repetir. Cada gato tiene sus propias cartas: elige un tanque y abajo verás las suyas, con la cara de su gato. Todos comparten 3 de energía por turno; cada carta se usa una vez por turno y algunas necesitan recargar. Elige el blanco con clic en un enemigo y pasa el mouse sobre una carta para ver el daño. ¿Entendido? Bien.",
 	},
 	{
 		"habla": "michi",
-		"texto": "El enemigo avisa lo que va a hacer. No es amabilidad, es pura torpeza. Elígelo y verás en rojo hasta dónde pega. Ponte Humo o usa Girar casco para darle tu frente. Y no me hagas pasar vergüenza.",
+		"texto": "El enemigo avisa lo que va a hacer. No es amabilidad, es pura torpeza. Elígelo y verás en rojo hasta dónde pega. Y apunta bien: si le disparas a uno que no tienes enfrente, pierdes 2 de daño. Usa Girar primero, que además le da tu frente blindado. Y no me hagas pasar vergüenza.",
 		"anim": "angry",
 	},
 	{
 		"habla": "michi",
-		"texto": "La moral. Si te pegan fuerte, la tripulación se asusta; con 0 entra en pánico y no dispara. Una Arenga o una Hora del té la levantan. Yo no necesito té: yo nací con la moral alta.",
+		"texto": "La moral. Cada tanque tiene 5. Si te pegan fuerte, la tripulación se asusta; con 0 entra en pánico y no dispara. La Hora del té de Earl Grey la levanta. Yo no necesito té: yo nací con la moral alta.",
 		"anim": "angry",
 	},
 	{

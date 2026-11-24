@@ -28,12 +28,20 @@ godot --headless --path . -s tests/test_combate.gd
   *ritual del té* (quieto recupera moral), *asustadizo* (por detrás pierde 2 de moral),
   *terca* (girar cuesta 1 más), *recarga lenta* (un ataque por turno), *camarada* (+1 de
   daño con un compañero pegado) y *valiente* (los golpes no lo dejan en pánico).
-  El mazo es el general más las cartas del batallón.
+  **Cada gato tiene sus propias cartas** (no hay mazo compartido): el cañón de su
+  tanque, dos cartas propias y *Girar*, que todos tienen. Se elige un tanque y abajo
+  aparecen las suyas. Todos comparten 3 de energía por turno; cada carta se usa una
+  vez por turno y algunas tienen **recarga** (turnos que hay que esperar).
+- **Apuntar.** Disparar a un blanco que no está en tu frente (las diagonales exactas
+  cuentan como frente) resta 2 de daño. *Girar* hacia el blanco lo evita y, de paso,
+  le da tu frente blindado. La moral máxima es 5.
 - **Dificultad.** Se elige junto al batallón. *Recluta*: actúan 2 enemigos por turno y
   pegan 1 menos. *Veterano*: la IA elige blanco y casilla por daño esperado (remata,
   flanquea, se cubre) y pega 1 más. *As*: además actúan todos los enemigos y pegan 2 más.
-  Con el bot de QA (100 batallas por caso): Recluta ~100% de victorias jugando bien y
-  ~70-90% jugando al azar; Veterano ~75-80%; As ~60%. Una batalla dura ~8-9 turnos.
+  En Recluta pegan 2 menos. Con el bot de QA (100 batallas por caso), jugando bien:
+  Recluta ~100%, Veterano ~72% (británicos) / ~93% (soviéticos), As ~41-49%. Jugando
+  al azar en Recluta: ~83% / ~65%. Una batalla dura ~6-10 turnos.
+  `tools/qa/cartas.gd` mide cuánto aporta cada carta (quitándola y comparando).
 - **Inspección sorpresa de la teniente Michi.** En cada batalla hay 1 probabilidad en 3
   de que Michi tome el mando (y viene segura si lleva 3 batallas sin aparecer). Su manía,
   *mandona*: cada turno ordena a un tanque que ataque (se marca con "!"). Si obedece,
@@ -127,8 +135,9 @@ del juego, y `docs/licencias/` lleva la licencia de la fuente y los créditos de
 - Muerte permanente de la tripulación entre batallas, campaña con varios mapas,
   recompensas de cartas y guardado.
 - Música.
-- Del QA: Girar/Acelerar/¡Urá! casi no sirven. Falta la pantalla de fichas técnicas
-  (datos reales de cada tanque).
+- Entrega 2: botín de cartas al derribar tanques y Arsenal entre batallas.
+- Entrega 3: puntería (roces) en Veterano y As.
+- Pantalla de fichas técnicas (datos reales de cada tanque).
 
 ## Tanques reales de referencia y derechos
 

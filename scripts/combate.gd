@@ -34,6 +34,8 @@ const MORAL_RECUPERADA_EN_PANICO := 3
 const ACCIONES_ENEMIGAS_MAX := 3
 ## Preferencia de la IA por cada lado del blanco.
 const PREFERENCIA_LADO := {"frente": 0, "flanco": 1, "trasera": 2}
+## Daño que se pierde al disparar a un blanco fuera del frente propio (ver penalizacion_punteria).
+const PENALIZACION_FUERA_DEL_FRENTE := 2
 
 var mapa := Mapa.new()
 var aliados: Array = []
@@ -173,16 +175,45 @@ static func direccion_hacia(desde: Vector2i, hacia: Vector2i) -> Vector2i:
 	return Vector2i(0, signi(d.y))
 
 
-## Devuelve "" si la carta se puede jugar, o el motivo por el que no.
+## Cartas que puede usar este tanque. Con habilidades propias (batallones): las suyas
+## más "girar", que todos tienen. Sin ellas (unidades de prueba): la mano compartida.
+func cartas_de(i_actor: int) -> Array:
+	if i_actor < 0 or i_actor >= aliados.size():
+		return []
+	var u: Dictionary = aliados[i_actor]
+	if not u.has("habilidades"):
+		return mano.duplicate()
+	var res: Array = u["habilidades"].duplicate()
+	if not res.has("girar"):
+		res.append("girar")
+	return res
+
+
+## Devuelve "" si la carta de la mano se puede jugar, o el motivo por el que no.
 func motivo_no_jugable(i_mano: int, i_actor: int, i_objetivo: int) -> String:
-	if estado != "jugando":
-		return "El combate terminó."
 	if i_mano < 0 or i_mano >= mano.size():
 		return "Carta inválida."
-	var c: Dictionary = cartas[mano[i_mano]]
+	return motivo_uso(mano[i_mano], i_actor, i_objetivo)
+
+
+## Devuelve "" si el tanque puede usar la carta `id` contra el blanco, o el motivo por el que no.
+func motivo_uso(id: String, i_actor: int, i_objetivo: int) -> String:
+	if estado != "jugando":
+		return "El combate terminó."
+	if not cartas.has(id):
+		return "Carta inválida."
+	var c: Dictionary = cartas[id]
 	if i_actor < 0 or i_actor >= aliados.size() or not vivo(aliados[i_actor]):
 		return "Elige un tanque propio en pie."
 	var actor: Dictionary = aliados[i_actor]
+	if actor.has("habilidades"):
+		if not cartas_de(i_actor).has(id):
+			return "%s no tiene esa carta." % actor["nombre"]
+		if actor["usadas"].has(id):
+			return "%s ya la usó este turno." % actor["nombre"]
+		var faltan := int(actor["recargas"].get(id, 0))
+		if faltan > 0:
+			return "Recargando: lista en %d turno%s." % [faltan, "" if faltan == 1 else "s"]
 	if coste_de(c, actor) > energia:
 		return "No hay energía suficiente."
 	var hay_objetivo := i_objetivo >= 0 and i_objetivo < enemigos.size() and vivo(enemigos[i_objetivo])
@@ -202,15 +233,49 @@ func motivo_no_jugable(i_mano: int, i_actor: int, i_objetivo: int) -> String:
 	return ""
 
 
+## Juega una carta de la mano compartida (modo con mazo, el de las pruebas).
 func jugar_carta(i_mano: int, i_actor: int, i_objetivo: int) -> bool:
 	if motivo_no_jugable(i_mano, i_actor, i_objetivo) != "":
 		return false
 	var id: String = mano[i_mano]
+	mano.remove_at(i_mano)
+	descarte.append(id)
+	_aplicar(id, i_actor, i_objetivo)
+	return true
+
+
+## Usa una carta del tanque (habilidades propias) o, sin habilidades, la busca en la mano.
+func usar(id: String, i_actor: int, i_objetivo: int) -> bool:
+	if i_actor >= 0 and i_actor < aliados.size() and not aliados[i_actor].has("habilidades"):
+		return jugar_carta(mano.find(id), i_actor, i_objetivo)
+	if motivo_uso(id, i_actor, i_objetivo) != "":
+		return false
+	var actor: Dictionary = aliados[i_actor]
+	actor["usadas"][id] = true
+	# "recarga": turnos que se salta después de usarla (+1 porque el inicio del próximo
+	# turno ya descuenta uno). Además, cada carta se usa como máximo una vez por turno.
+	var recarga := int(cartas[id].get("recarga", 0))
+	if recarga > 0:
+		actor["recargas"][id] = recarga + 1
+	_aplicar(id, i_actor, i_objetivo)
+	return true
+
+
+## Cuánto se le resta al daño por disparar a un blanco que no está en tu frente
+## (la torreta apunta a destiempo). Girar hacia el blanco lo evita.
+## El frente para disparar incluye las diagonales exactas (la torreta gira hasta ahí).
+func penalizacion_punteria(atacante: Dictionary, objetivo: Dictionary) -> int:
+	var d: Vector2i = objetivo["pos"] - atacante["pos"]
+	var o: Vector2i = atacante["orientacion"]
+	var adelante := d.x * o.x + d.y * o.y
+	var costado := absi(d.x * o.y - d.y * o.x)
+	return 0 if adelante > 0 and adelante >= costado else PENALIZACION_FUERA_DEL_FRENTE
+
+
+func _aplicar(id: String, i_actor: int, i_objetivo: int) -> void:
 	var c: Dictionary = cartas[id]
 	var actor: Dictionary = aliados[i_actor]
 	energia -= coste_de(c, actor)
-	mano.remove_at(i_mano)
-	descarte.append(id)
 	_anotar("%s usa %s." % [actor["nombre"], c["nombre"]])
 
 	if c.has("dano"):
@@ -222,7 +287,10 @@ func jugar_carta(i_mano: int, i_actor: int, i_objetivo: int) -> bool:
 		accion.emit({"tipo": "disparo", "clave": actor["clave"], "objetivo": objetivo["clave"],
 			"orientacion": actor["orientacion"]})
 		var lado := lado_de_impacto(objetivo, actor["pos"])
-		var dano := dano_de_carta(c, lado) + bonus_de_ataque(actor, c, objetivo)
+		var penal := penalizacion_punteria(actor, objetivo)
+		if penal > 0:
+			_anotar("  (dispara sin encarar: -%d de daño)" % penal)
+		var dano := maxi(dano_de_carta(c, lado) + bonus_de_ataque(actor, c, objetivo) - penal, 1)
 		golpear(objetivo, dano, int(c.get("penetracion", 0)), lado, mapa.cobertura(objetivo["pos"]))
 		var salpicadura := int(c.get("salpicadura", 0))
 		if salpicadura > 0:
@@ -256,7 +324,6 @@ func jugar_carta(i_mano: int, i_actor: int, i_objetivo: int) -> bool:
 
 	_comprobar_fin()
 	cambio.emit()
-	return true
 
 
 func terminar_turno() -> void:
@@ -369,11 +436,19 @@ func coste_de(c: Dictionary, actor: Dictionary) -> int:
 ## El principal trae además "por_lado": el daño que pegaría por frente, flanco y trasera
 ## (antes del escudo, que es igual para cualquier lado).
 func prever_carta(i_mano: int, i_actor: int, i_objetivo: int) -> Array:
-	if i_mano < 0 or i_mano >= mano.size() or i_actor < 0 or i_actor >= aliados.size():
+	if i_mano < 0 or i_mano >= mano.size():
+		return []
+	return prever_uso(mano[i_mano], i_actor, i_objetivo)
+
+
+## Igual que prever_carta, por id de carta. El principal trae también "penal": lo que
+## se resta por disparar sin encarar al blanco.
+func prever_uso(id: String, i_actor: int, i_objetivo: int) -> Array:
+	if not cartas.has(id) or i_actor < 0 or i_actor >= aliados.size():
 		return []
 	if i_objetivo < 0 or i_objetivo >= enemigos.size() or not vivo(enemigos[i_objetivo]):
 		return []
-	var c: Dictionary = cartas[mano[i_mano]]
+	var c: Dictionary = cartas[id]
 	if not c.has("dano"):
 		return []
 	var actor: Dictionary = aliados[i_actor]
@@ -382,13 +457,15 @@ func prever_carta(i_mano: int, i_actor: int, i_objetivo: int) -> Array:
 	var cob := mapa.cobertura(objetivo["pos"])
 	var lado := lado_de_impacto(objetivo, actor["pos"])
 	var bonus := bonus_de_ataque(actor, c, objetivo)
-	var principal := calcular_impacto(objetivo, dano_de_carta(c, lado) + bonus, pen, lado, cob)
+	var penal := penalizacion_punteria(actor, objetivo)
+	var principal := calcular_impacto(objetivo, maxi(dano_de_carta(c, lado) + bonus - penal, 1), pen, lado, cob)
 	principal["indice"] = i_objetivo
 	principal["principal"] = true
 	principal["bonus"] = bonus
+	principal["penal"] = penal
 	var por_lado := {}
 	for l in PREFERENCIA_LADO:
-		var i := calcular_impacto(objetivo, dano_de_carta(c, l) + bonus, pen, l, cob)
+		var i := calcular_impacto(objetivo, maxi(dano_de_carta(c, l) + bonus - penal, 1), pen, l, cob)
 		por_lado[l] = i["al_casco"] + i["absorbido"]  # antes del escudo: solo compara blindajes
 	principal["por_lado"] = por_lado
 	var res := [principal]
@@ -448,6 +525,12 @@ func _iniciar_turno() -> void:
 		u["mov_restante"] = u["movimiento"]
 		u["se_movio"] = false
 		u["ataques_turno"] = 0
+		# Habilidades: se pueden volver a usar y las recargas avanzan un turno.
+		u["usadas"] = {}
+		for id in u["recargas"].keys():
+			u["recargas"][id] -= 1
+			if u["recargas"][id] <= 0:
+				u["recargas"].erase(id)
 	_robar(CARTAS_POR_TURNO)
 	_elegir_intenciones()
 	_anotar("== Turno %d ==" % turno)
@@ -781,4 +864,6 @@ func _crear_unidad(def: Dictionary, bando: String, pos: Vector2i, orientacion: V
 	u["intencion"] = {}
 	u["se_movio"] = false
 	u["ataques_turno"] = 0
+	u["usadas"] = {}    # habilidades usadas este turno
+	u["recargas"] = {}  # id -> turnos que faltan para volver a usarla
 	return u

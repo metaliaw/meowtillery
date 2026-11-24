@@ -47,6 +47,7 @@ func _init() -> void:
 	_probar_michi()
 	_probar_acciones()
 	_probar_dificultad()
+	_probar_punteria()
 	print("\nTODO OK" if _fallos == 0 else "\n%d FALLOS" % _fallos)
 	quit(1 if _fallos > 0 else 0)
 
@@ -286,10 +287,14 @@ func _probar_batallones() -> void:
 	var c := _batalla()
 	_comprobar(c.aliados.size() == 3 and c.enemigos.size() == 4, "3 británicos contra 4 soviéticos")
 	_comprobar(c.enemigos[3]["pos"] == Vector2i(9, 6), "el cuarto soviético tiene su lugar en el mapa")
-	_comprobar(c.mazo.size() + c.mano.size() == 16, "mazo: 12 generales + 4 británicas")
-	_comprobar(c.mazo.has("te") or c.mano.has("te"), "el mazo británico trae Hora del té")
+	_comprobar(c.mazo.is_empty() and c.mano.is_empty(), "no hay mazo compartido: cada gato trae sus cartas")
+	_comprobar(c.cartas_de(_indice(c.aliados, "earl_grey")) == ["disparo_17lb", "tiro_precision", "te", "girar"],
+		"Earl Grey: su cañón, sus 2 cartas y Girar")
 	var s := _batalla("sovietico", "britanico")
-	_comprobar(s.aliados.size() == 4 and s.mazo.size() + s.mano.size() == 17, "también se puede jugar soviético")
+	_comprobar(s.aliados.size() == 4 and s.cartas_de(0)[0] == "canonazo_122", "también se puede jugar soviético")
+	for u in c.aliados + s.aliados:
+		for id in u["habilidades"]:
+			_comprobar(c.cartas.has(id), "%s: existe su carta %s" % [u["nombre"], id])
 	for id in ["te", "tiro_precision", "casco_oculto", "cortina_termica", "ura", "andanada"]:
 		_comprobar(c.cartas.has(id), "existe la carta " + id)
 
@@ -332,23 +337,28 @@ func _probar_manias() -> void:
 	_comprobar(b.coste_de(b.cartas["girar"], b.aliados[0]) == 0, "a los demás girar no les cuesta")
 
 	var earl: Dictionary = b.aliados[_indice(b.aliados, "earl_grey")]
-	earl["moral"] = 5
+	earl["moral"] = 3
 	_enemigos_quietos(b)
 	b.terminar_turno()
-	_comprobar(earl["moral"] == 6, "ritual del té: sin moverse recupera 1 de moral")
-	earl["moral"] = 5
+	_comprobar(earl["moral"] == 4, "ritual del té: sin moverse recupera 1 de moral")
+	earl["moral"] = 3
 	b.mover(_indice(b.aliados, "earl_grey"), earl["pos"] + Vector2i(1, 0))
 	_enemigos_quietos(b)
 	b.terminar_turno()
-	_comprobar(earl["moral"] == 5, "si se movió, no hay té")
+	_comprobar(earl["moral"] == 3, "si se movió, no hay té")
 
 	var s := _batalla("sovietico", "britanico")
 	var i_boris := _indice(s.aliados, "boris")
 	s.enemigos[0]["pos"] = s.aliados[i_boris]["pos"] + Vector2i(3, 0)
-	s.mano = ["disparo_ap", "disparo_ap"]
 	s.energia = 3
-	_comprobar(s.jugar_carta(0, i_boris, 0), "Boris dispara una vez")
-	_comprobar(s.motivo_no_jugable(0, i_boris, 0).contains("recarga"), "recarga lenta: no dispara dos veces")
+	_comprobar(s.usar("canonazo_122", i_boris, 0), "Boris dispara su cañonazo")
+	_comprobar(s.motivo_uso("canonazo_122", i_boris, 0).contains("ya la usó"), "cada carta, una vez por turno")
+	_enemigos_quietos(s)
+	s.terminar_turno()
+	_comprobar(s.motivo_uso("canonazo_122", i_boris, 0).contains("Recargando"), "recarga 1: el turno siguiente no está lista")
+	_enemigos_quietos(s)
+	s.terminar_turno()
+	_comprobar(s.motivo_uso("canonazo_122", i_boris, 0) == "", "y al otro turno vuelve a estar lista")
 
 	var kasha: Dictionary = s.aliados[_indice(s.aliados, "kasha")]
 	var mishka: Dictionary = s.aliados[_indice(s.aliados, "mishka")]
@@ -370,9 +380,8 @@ func _probar_michi() -> void:
 	c.orden = i_crumpet  # Crumpet no tiene manía de moral que enrede la cuenta
 	var crumpet: Dictionary = c.aliados[i_crumpet]
 	c.enemigos[0]["pos"] = crumpet["pos"] + Vector2i(3, 0)
-	c.mano = ["disparo_ap"]
 	_enemigos_quietos(c)
-	c.jugar_carta(0, i_crumpet, 0)
+	c.usar("disparo_17lb", i_crumpet, 0)
 	_comprobar(c.orden_cumplida, "si el tanque ordenado ataca, la orden se cumple")
 	c.terminar_turno()
 	_comprobar(c.energia == Combate.ENERGIA_POR_TURNO + 1, "orden cumplida: +1 energía el turno siguiente")
@@ -416,8 +425,7 @@ func _probar_acciones() -> void:
 	acciones.clear()
 	var blanco: Dictionary = c.enemigos[0]
 	blanco["pos"] = c.aliados[0]["pos"] + Vector2i(3, 0)
-	c.mano = ["disparo_ap"]
-	c.jugar_carta(0, 0, 0)
+	c.usar("disparo_17lb", 0, 0)
 	var tipos: Array = acciones.map(func(a): return a["tipo"])
 	_comprobar(tipos == ["disparo", "golpe"], "un ataque avisa disparo y después golpe")
 	_comprobar(acciones[0]["objetivo"] == blanco["clave"] and acciones[1]["casco"] == blanco["casco"],
@@ -461,7 +469,7 @@ func _probar_dificultad() -> void:
 		var e: Dictionary = c.enemigos[0]
 		e["acciones"] = [{"nombre": "Prueba", "dano": 6, "alcance": [1, 4]}]
 		c._elegir_intenciones()
-	_comprobar(recluta.enemigos[0]["intencion"]["dano"] == 5, "Recluta: el enemigo pega 1 menos (y lo anuncia)")
+	_comprobar(recluta.enemigos[0]["intencion"]["dano"] == 4, "Recluta: el enemigo pega 2 menos (y lo anuncia)")
 	_comprobar(as_.enemigos[0]["intencion"]["dano"] == 8, "As: el enemigo pega 2 más (y lo anuncia)")
 
 	# IA lista: entre dos blancos a tiro, remata al que puede derribar.
@@ -480,23 +488,47 @@ func _probar_dificultad() -> void:
 	_comprobar(v.aliados[0]["casco"] == v.aliados[0]["casco_max"], "y no gasta el disparo en el que está sano")
 
 
+## Disparar a un blanco fuera del frente resta 2; Girar lo arregla (y solo una vez por turno).
+func _probar_punteria() -> void:
+	var c := _batalla()
+	var earl: Dictionary = c.aliados[0]  # mira al este
+	var blanco: Dictionary = c.enemigos[0]
+	blanco["pos"] = earl["pos"] + Vector2i(0, 3)  # al sur: fuera de su frente
+	_comprobar(c.penalizacion_punteria(earl, blanco) == 2, "blanco al costado: -2 por no encararlo")
+	_comprobar(c.prever_uso("disparo_17lb", 0, 0)[0]["penal"] == 2, "la vista previa avisa el -2")
+	blanco["pos"] = earl["pos"] + Vector2i(2, 2)
+	_comprobar(c.penalizacion_punteria(earl, blanco) == 0, "en diagonal exacta todavía es su frente")
+	blanco["pos"] = earl["pos"] + Vector2i(0, 3)
+	_comprobar(c.usar("girar", 0, 0), "Girar hacia el blanco")
+	_comprobar(earl["orientacion"] == Vector2i.DOWN and c.penalizacion_punteria(earl, blanco) == 0, "ya lo encara: sin -2")
+	_comprobar(not c.usar("girar", 0, 0), "Girar, una vez por turno")
+	var antes: int = blanco["casco"]
+	c.usar("disparo_17lb", 0, 0)
+	var sin_penal: int = antes - blanco["casco"]
+	var d := _batalla()
+	d.enemigos[0]["pos"] = d.aliados[0]["pos"] + Vector2i(0, 3)
+	var antes_d: int = d.enemigos[0]["casco"]
+	d.usar("disparo_17lb", 0, 0)
+	_comprobar(antes_d - d.enemigos[0]["casco"] == sin_penal - 2, "sin girar, el mismo disparo hace 2 menos")
+
+
 func _probar_cartas_de_batallon() -> void:
 	var b := _batalla()
-	b.mano = ["te", "casco_oculto"]
 	b.energia = 3
 	for u in b.aliados:
-		u["moral"] = 5
-	b.jugar_carta(0, 0, 0)
-	_comprobar(b.aliados.all(func(u): return u["moral"] == 7), "Hora del té: +2 moral a todo el pelotón")
+		u["moral"] = 2
+	b.usar("te", _indice(b.aliados, "earl_grey"), 0)
+	_comprobar(b.aliados.all(func(u): return u["moral"] == 4), "Hora del té: +2 moral a todo el pelotón")
 	_comprobar(b.aliados[0]["mov_restante"] == 0, "y quien la toma ya no se mueve")
-	b.jugar_carta(0, 1, 0)
-	_comprobar(b.aliados[1]["escudo"] == 5 and b.aliados[1]["mov_restante"] == 0, "Casco oculto: +5 escudo y quieto")
+	var i_marm := _indice(b.aliados, "marmalade")
+	_comprobar(not b.usar("casco_oculto", 0, 0), "Earl Grey no puede usar una carta de Lady Marmalade")
+	b.usar("casco_oculto", i_marm, 0)
+	_comprobar(b.aliados[i_marm]["escudo"] == 5 and b.aliados[i_marm]["mov_restante"] == 0, "Casco oculto: +5 escudo y quieto")
 
 	var s := _batalla("sovietico", "britanico")
-	s.mano = ["ura", "andanada"]
 	s.energia = 3
 	var antes: Array = s.aliados.map(func(u): return u["mov_restante"])
-	s.jugar_carta(0, 0, 0)
+	s.usar("ura", 0, 0)
 	var despues: Array = s.aliados.map(func(u): return u["mov_restante"])
 	_comprobar(range(antes.size()).all(func(i): return despues[i] == antes[i] + 1), "¡Urá!: +1 movimiento a todos")
 	var blanco: Dictionary = s.enemigos[0]

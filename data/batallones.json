@@ -5,12 +5,6 @@
     "lema": "Primero el té, después la guerra.",
     "descripcion": "Gatos flemáticos y puntuales. Disparan lejos y con precisión, se esconden bien y recuperan la moral con té.",
     "color": "ffe08a",
-    "cartas": [
-      "te",
-      "tiro_precision",
-      "tiro_precision",
-      "casco_oculto"
-    ],
     "unidades": [
       {
         "id": "earl_grey",
@@ -22,14 +16,14 @@
           32,
           4
         ],
-        "casco": 22,
+        "casco": 25,
         "blindaje": {
           "frente": 4,
           "flanco": 2,
           "trasera": 1
         },
         "movimiento": 3,
-        "moral": 10,
+        "moral": 5,
         "mania": "ritual_te",
         "mania_texto": "Ritual del té: si no se mueve en su turno, recupera 1 de moral.",
         "acciones": [
@@ -46,6 +40,11 @@
             "nombre": "Hora del té",
             "escudo": 4
           }
+        ],
+        "habilidades": [
+          "disparo_17lb",
+          "tiro_precision",
+          "te"
         ]
       },
       {
@@ -58,14 +57,14 @@
           34,
           6
         ],
-        "casco": 18,
+        "casco": 21,
         "blindaje": {
           "frente": 3,
           "flanco": 1,
           "trasera": 0
         },
         "movimiento": 5,
-        "moral": 9,
+        "moral": 5,
         "mania": "asustadizo",
         "mania_texto": "Asustadizo: rápido, pero si le pegan por la trasera pierde 2 de moral.",
         "acciones": [
@@ -78,6 +77,11 @@
               5
             ]
           }
+        ],
+        "habilidades": [
+          "disparo_17lb",
+          "emboscada",
+          "aceleron"
         ]
       },
       {
@@ -90,14 +94,14 @@
           39,
           4
         ],
-        "casco": 27,
+        "casco": 30,
         "blindaje": {
           "frente": 5,
           "flanco": 3,
           "trasera": 1
         },
         "movimiento": 2,
-        "moral": 11,
+        "moral": 5,
         "mania": "terca",
         "mania_texto": "Terca: blindaje enorme, pero girar le cuesta 1 de energía más.",
         "acciones": [
@@ -112,9 +116,14 @@
           },
           {
             "nombre": "Bufido",
-            "moral": 2,
+            "moral": 1,
             "radio": 3
           }
+        ],
+        "habilidades": [
+          "disparo_75",
+          "humo",
+          "casco_oculto"
         ]
       }
     ]
@@ -125,13 +134,6 @@
     "lema": "Somos muchos y no nos da frío.",
     "descripcion": "Gatos serios y numerosos, pintados para la nieve. Atacan en grupo, se cubren con humo y avanzan todos juntos.",
     "color": "ff9eb5",
-    "cartas": [
-      "cortina_termica",
-      "cortina_termica",
-      "ura",
-      "andanada",
-      "andanada"
-    ],
     "unidades": [
       {
         "id": "boris",
@@ -150,9 +152,9 @@
           "trasera": 1
         },
         "movimiento": 3,
-        "moral": 10,
+        "moral": 5,
         "mania": "recarga_lenta",
-        "mania_texto": "Recarga lenta: su cañón de 122 mm solo dispara una carta de ataque por turno.",
+        "mania_texto": "Recarga lenta: su cañonazo de 122 mm pega fortísimo, pero necesita un turno para recargar.",
         "acciones": [
           {
             "nombre": "Cañonazo de 122",
@@ -165,9 +167,14 @@
           },
           {
             "nombre": "Bufido",
-            "moral": 2,
+            "moral": 1,
             "radio": 4
           }
+        ],
+        "habilidades": [
+          "canonazo_122",
+          "cortina_termica",
+          "ura"
         ]
       },
       {
@@ -187,7 +194,7 @@
           "trasera": 1
         },
         "movimiento": 4,
-        "moral": 8,
+        "moral": 5,
         "mania": "camarada",
         "mania_texto": "Camarada: +1 de daño si tiene otro tanque de su bando pegado.",
         "acciones": [
@@ -204,6 +211,11 @@
             "nombre": "Cortina térmica",
             "escudo": 3
           }
+        ],
+        "habilidades": [
+          "disparo_85",
+          "andanada",
+          "cortina_termica"
         ]
       },
       {
@@ -223,7 +235,7 @@
           "trasera": 1
         },
         "movimiento": 4,
-        "moral": 8,
+        "moral": 5,
         "mania": "camarada",
         "mania_texto": "Camarada: +1 de daño si tiene otro tanque de su bando pegado.",
         "acciones": [
@@ -245,6 +257,11 @@
               1
             ]
           }
+        ],
+        "habilidades": [
+          "disparo_85",
+          "andanada",
+          "aceleron"
         ]
       },
       {
@@ -264,7 +281,7 @@
           "trasera": 1
         },
         "movimiento": 4,
-        "moral": 8,
+        "moral": 5,
         "mania": "valiente",
         "mania_texto": "Valiente: los golpes nunca lo dejan en pánico (su moral no baja de 1 por impactos).",
         "acciones": [
@@ -281,6 +298,11 @@
             "nombre": "Cortina térmica",
             "escudo": 3
           }
+        ],
+        "habilidades": [
+          "disparo_85",
+          "emboscada",
+          "cortina_termica"
         ]
       }
     ]

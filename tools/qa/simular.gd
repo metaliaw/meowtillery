@@ -21,6 +21,10 @@ func _initialize() -> void:
 	for tipo in tipos_bot:
 		for dif in PartidaScript.DIFICULTADES:
 			for b in BANDOS:
+				# --solo=britanico simula solo cuando ese bando es el jugador.
+				var solo: Array = Array(args).filter(func(x): return x.begins_with("--solo="))
+				if not solo.is_empty() and solo[0].substr(7) != b[0]:
+					continue
 				_simular(b[0], b[1], dif, tipo == "azar", "--detalle" in args)
 	quit()
 

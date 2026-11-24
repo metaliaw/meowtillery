@@ -35,6 +35,8 @@ var _orden: Globo
 var _orden_anterior := -2  # para que Michi reaccione solo cuando cambia la orden
 var _fin_sonado := false
 var _mano: HBoxContainer
+var _cara_actor: TextureRect
+var _atlas_cara := AtlasTexture.new()
 var _boton_turno: Button
 var _capa_final: Control
 var _capa_pausa: Control
@@ -142,6 +144,14 @@ func _construir_interfaz() -> void:
 	var abajo := HBoxContainer.new()
 	abajo.add_theme_constant_override("separation", 8)
 	columna.add_child(abajo)
+	# Cara del gato del tanque elegido: las cartas de al lado son las suyas.
+	_cara_actor = TextureRect.new()
+	_cara_actor.texture = _atlas_cara
+	_cara_actor.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_cara_actor.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_cara_actor.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	_cara_actor.custom_minimum_size = Vector2(78, 100)
+	abajo.add_child(_cara_actor)
 	_mano = HBoxContainer.new()
 	_mano.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_mano.add_theme_constant_override("separation", 8)
@@ -295,8 +305,8 @@ func _refrescar() -> void:
 	var energia := "Energía %d" % combate.energia
 	if combate.energia > Combate.ENERGIA_POR_TURNO:
 		energia += " (+%d extra)" % (combate.energia - Combate.ENERGIA_POR_TURNO)  # Michi o Recarga
-	_info.text = "%s   ·   Turno %d   ·   %s   ·   Mazo %d   ·   Descarte %d" % [
-		combate.dificultad.get("nombre", ""), combate.turno, energia, combate.mazo.size(), combate.descarte.size()]
+	_info.text = "%s   ·   Turno %d   ·   %s   ·   Elige un tanque para ver sus cartas" % [
+		combate.dificultad.get("nombre", ""), combate.turno, energia]
 
 	_tablero.actor_pos = actor["pos"] if combate.vivo(actor) else Vector2i(-1, -1)
 	_tablero.objetivo_pos = objetivo["pos"] if combate.vivo(objetivo) else Vector2i(-1, -1)
@@ -323,9 +333,15 @@ func _refrescar() -> void:
 	ultimas.reverse()
 	_registro.text = "\n".join(ultimas)
 
+	# Abajo: las cartas del tanque elegido, con la cara de su gato al principio.
 	_vaciar(_mano)
-	for i in combate.mano.size():
-		_mano.add_child(_boton_carta(i))
+	if combate.vivo(actor):
+		if actor.has("gato"):
+			_atlas_cara.atlas = load(actor["gato"])
+			_atlas_cara.region = Rect2(3, (3 if combate.en_panico(actor) else 0) * 32, 26, 20)
+		_cara_actor.visible = actor.has("gato")
+		for id in combate.cartas_de(actor_sel):
+			_mano.add_child(_boton_carta(id))
 	_ocultar_prevision()
 
 	_boton_turno.disabled = not jugando
@@ -357,12 +373,12 @@ func _refrescar_orden(ordenado: Dictionary) -> void:
 	_orden_anterior = estado_orden
 
 
-## Celdas que el tanque elegido alcanza con alguna carta de ataque de la mano.
+## Celdas que el tanque elegido alcanza con alguna de sus cartas de ataque disponibles.
 func _celdas_a_tiro(actor: Dictionary) -> Dictionary:
 	var res := {}
-	for id in combate.mano:
+	for id in combate.cartas_de(actor_sel):
 		var c: Dictionary = combate.cartas[id]
-		if c.get("tipo") != "ataque":
+		if c.get("tipo") != "ataque" or actor.get("usadas", {}).has(id) or actor.get("recargas", {}).has(id):
 			continue
 		for y in combate.mapa.alto:
 			for x in combate.mapa.ancho:
@@ -373,11 +389,14 @@ func _celdas_a_tiro(actor: Dictionary) -> Dictionary:
 	return res
 
 
-func _boton_carta(i_mano: int) -> Button:
-	var c: Dictionary = combate.cartas[combate.mano[i_mano]]
+func _boton_carta(id: String) -> Button:
+	var c: Dictionary = combate.cartas[id]
 	var b := Button.new()
 	# El coste puede depender del tanque elegido (manías).
 	b.text = "%s  [%d]\n%s" % [c["nombre"], combate.coste_de(c, combate.aliados[actor_sel]), c["texto"]]
+	var recarga := int(c.get("recarga", 0))
+	if recarga > 0:
+		b.text += "\nRecarga: %d turno%s" % [recarga, "" if recarga == 1 else "s"]
 	# Ancho repartido, texto en varias líneas y alto fijo: el texto no puede agrandar la carta
 	# (clip_text), así la fila de abajo nunca se corre.
 	b.custom_minimum_size = Vector2(120, 100)
@@ -385,25 +404,25 @@ func _boton_carta(i_mano: int) -> Button:
 	b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	b.clip_text = true
 	b.add_theme_font_size_override("font_size", 14)
-	var motivo := combate.motivo_no_jugable(i_mano, actor_sel, objetivo_sel)
+	var motivo := combate.motivo_uso(id, actor_sel, objetivo_sel)
 	b.disabled = motivo != ""
 	b.set_meta("sonido", "carta")
 	b.tooltip_text = motivo if motivo != "" else c["texto"]
-	b.pressed.connect(combate.jugar_carta.bind(i_mano, actor_sel, objetivo_sel))
+	b.pressed.connect(combate.usar.bind(id, actor_sel, objetivo_sel))
 	# Los botones deshabilitados también avisan el hover: así se ve por qué no se puede.
-	b.mouse_entered.connect(_mostrar_prevision.bind(i_mano))
+	b.mouse_entered.connect(_mostrar_prevision.bind(id))
 	b.mouse_exited.connect(_ocultar_prevision)
 	return b
 
 
 ## Al pasar el mouse sobre una carta: qué haría con el tanque y el blanco elegidos.
-func _mostrar_prevision(i_mano: int) -> void:
-	if i_mano >= combate.mano.size() or not _puede_previsualizar():
+func _mostrar_prevision(id: String) -> void:
+	if not combate.cartas.has(id) or not _puede_previsualizar():
 		return
-	var c: Dictionary = combate.cartas[combate.mano[i_mano]]
+	var c: Dictionary = combate.cartas[id]
 	var actor: Dictionary = combate.aliados[actor_sel]
 	var lineas := PackedStringArray()
-	var impactos := combate.prever_carta(i_mano, actor_sel, objetivo_sel)
+	var impactos := combate.prever_uso(id, actor_sel, objetivo_sel)
 	var marcas := {}
 	if impactos.is_empty():
 		lineas.append("%s: %s" % [c["nombre"], c["texto"].replace("\n", " ")])
@@ -417,6 +436,8 @@ func _mostrar_prevision(i_mano: int) -> void:
 			lineas.append("%s de %s a %s, por %s:" % [c["nombre"], actor["nombre"], e["nombre"], _lado_con_articulo(imp["lado"])])
 			lineas.append("  %d daño - (blindaje %d + cobertura %d - penetración %d) = %d" % [
 				imp["dano"], imp["blindaje"], imp["cobertura"], imp["penetracion"], imp["al_casco"] + imp["absorbido"]])
+			if imp.get("penal", 0) > 0:
+				lineas.append("  Ya incluye -%d por disparar sin encararlo: usa Girar primero." % imp["penal"])
 			if imp["absorbido"] > 0:
 				lineas.append("  El escudo absorbe %d." % imp["absorbido"])
 			var final := "  Casco %d, queda en %d" % [e["casco"], imp["casco_final"]]
@@ -429,7 +450,7 @@ func _mostrar_prevision(i_mano: int) -> void:
 			lineas.append("  Por el frente %d · flanco %d · trasera %d" % [pl["frente"], pl["flanco"], pl["trasera"]])
 		else:
 			lineas.append("  Salpica a %s: %s" % [e["nombre"], marca])
-	var motivo := combate.motivo_no_jugable(i_mano, actor_sel, objetivo_sel)
+	var motivo := combate.motivo_uso(id, actor_sel, objetivo_sel)
 	if motivo != "":
 		lineas.append("No se puede jugar: " + motivo)
 	_vista_previa.text = "\n".join(lineas)
