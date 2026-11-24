@@ -35,7 +35,8 @@ var _orden_anterior := -2  # para que Michi reaccione solo cuando cambia la orde
 var _fin_sonado := false
 var _mano: HBoxContainer
 var _boton_turno: Button
-var _capa_final: CenterContainer
+var _capa_final: Control
+var _capa_pausa: Control
 var _texto_final: Label
 
 
@@ -130,9 +131,9 @@ func _construir_interfaz() -> void:
 	_mano.add_theme_constant_override("separation", 8)
 	abajo.add_child(_mano)
 	var menu := Button.new()
-	menu.text = "Menú"
+	menu.text = "Menú\n(Esc)"
 	menu.custom_minimum_size = Vector2(90, 100)
-	menu.pressed.connect(_ir_al_menu)
+	menu.pressed.connect(_abrir_pausa)
 	abajo.add_child(menu)
 	_boton_turno = Button.new()
 	_boton_turno.text = "Terminar turno"
@@ -140,13 +141,11 @@ func _construir_interfaz() -> void:
 	_boton_turno.pressed.connect(func(): combate.terminar_turno())
 	abajo.add_child(_boton_turno)
 
-	_capa_final = CenterContainer.new()
-	_capa_final.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_capa_final.visible = false
-	add_child(_capa_final)
+	var final := _capa_oscura()
+	_capa_final = final[0]
 	var caja_final := VBoxContainer.new()
 	caja_final.add_theme_constant_override("separation", 14)
-	_capa_final.add_child(caja_final)
+	final[1].add_child(caja_final)
 	_texto_final = Estilo.titulo("", 64)
 	caja_final.add_child(_texto_final)
 	var otra := Button.new()
@@ -157,6 +156,81 @@ func _construir_interfaz() -> void:
 	volver.text = "Volver al menú"
 	volver.pressed.connect(_ir_al_menu)
 	caja_final.add_child(volver)
+
+	_construir_pausa()
+
+
+## Capa a pantalla completa que oscurece el juego (y bloquea sus clics) con un
+## contenedor centrado encima. Devuelve [capa, centro]. Empieza oculta.
+func _capa_oscura() -> Array:
+	var capa := Control.new()
+	capa.set_anchors_preset(Control.PRESET_FULL_RECT)
+	capa.visible = false
+	add_child(capa)
+	var sombra := ColorRect.new()
+	sombra.color = Color(0, 0, 0, 0.6)
+	sombra.set_anchors_preset(Control.PRESET_FULL_RECT)
+	sombra.mouse_filter = Control.MOUSE_FILTER_STOP
+	capa.add_child(sombra)
+	var centro := CenterContainer.new()
+	centro.set_anchors_preset(Control.PRESET_FULL_RECT)
+	capa.add_child(centro)
+	return [capa, centro]
+
+
+## Menú de pausa: seguir, reiniciar la batalla o volver al menú. Se abre con el botón
+## "Menú" o con Esc, y Esc también lo cierra.
+func _construir_pausa() -> void:
+	var pausa := _capa_oscura()
+	_capa_pausa = pausa[0]
+	var panel := PanelContainer.new()
+	panel.custom_minimum_size = Vector2(380, 0)
+	pausa[1].add_child(panel)
+	var caja := VBoxContainer.new()
+	caja.add_theme_constant_override("separation", 12)
+	panel.add_child(caja)
+	var titulo := Estilo.texto_en_papel("Pausa", 30)
+	titulo.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	caja.add_child(titulo)
+	var fila := HBoxContainer.new()
+	fila.add_theme_constant_override("separation", 22)
+	fila.alignment = BoxContainer.ALIGNMENT_CENTER
+	caja.add_child(fila)
+	fila.add_child(Gato.new(3))
+	var globo := Globo.new("¿Te vas tan pronto?\nLa batalla te espera.", 15, "izquierda")
+	globo.cola_pos = 0.6
+	globo.custom_minimum_size = Vector2(220, 0)  # sin ancho mínimo el texto se apila en columna
+	fila.add_child(globo)
+	for opcion in [["Seguir jugando", _cerrar_pausa], ["Reiniciar batalla", _reiniciar_desde_pausa],
+			["Volver al menú", _ir_al_menu]]:
+		var b := Button.new()
+		b.text = opcion[0]
+		b.custom_minimum_size = Vector2(0, 46)
+		b.pressed.connect(opcion[1])
+		caja.add_child(b)
+	var aviso := Estilo.texto_en_papel("Reiniciar o salir pierde la batalla en curso.", 13)
+	aviso.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	caja.add_child(aviso)
+
+
+func _abrir_pausa() -> void:
+	if not _capa_final.visible:
+		_capa_pausa.visible = true
+
+
+func _cerrar_pausa() -> void:
+	_capa_pausa.visible = false
+
+
+func _reiniciar_desde_pausa() -> void:
+	_capa_pausa.visible = false
+	_nueva_partida()
+
+
+func _unhandled_input(evento: InputEvent) -> void:
+	if evento.is_action_pressed("ui_cancel") and not _capa_final.visible:
+		_capa_pausa.visible = not _capa_pausa.visible
+		get_viewport().set_input_as_handled()
 
 
 func _ir_al_menu() -> void:
