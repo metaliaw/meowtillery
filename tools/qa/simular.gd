@@ -3,6 +3,7 @@ extends SceneTree
 ##   godot --headless --path . -s tools/qa/simular.gd                  (bot razonable, cada dificultad)
 ##   godot --headless --path . -s tools/qa/simular.gd -- --azar        (además, bot al azar)
 ##   godot --headless --path . -s tools/qa/simular.gd -- --detalle     (bajas y cartas usadas)
+##   godot --headless --path . -s tools/qa/simular.gd -- --con=italiano (solo donde juega ese bando)
 ##   godot --headless --path . -s tools/qa/simular.gd -- --mapa=bosque (un mapa de campaña)
 ##   godot --headless --path . -s tools/qa/simular.gd -- --campana     (cada batalla de cada campaña,
 ##        con una medalla por batalla ganada antes para todos los gatos: el caso optimista)
@@ -46,6 +47,10 @@ func _initialize() -> void:
 					continue
 				var dif_sola: Array = Array(args).filter(func(x): return x.begins_with("--dif="))
 				if not dif_sola.is_empty() and dif_sola[0].substr(6) != dif:
+					continue
+				# --con=italiano: solo los enfrentamientos donde está ese bando (de cualquier lado).
+				var con: Array = Array(args).filter(func(x): return x.begins_with("--con="))
+				if not con.is_empty() and not con[0].substr(6) in b:
 					continue
 				_simular(b[0], b[1], dif, tipo == "azar", "--detalle" in args)
 	quit()

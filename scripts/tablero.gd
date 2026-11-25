@@ -530,10 +530,18 @@ func _dibujar_unidad(u: Dictionary, e: Dictionary) -> void:
 	var tinte := Color(u.get("tinte", "ffffff"))
 	if intencion.get("reserva", false) and not animando:
 		tinte = tinte.darkened(0.3)  # en reserva: no actúa este turno
+	var camuflado: bool = u.get("camuflado", false) and not animando
+	if camuflado:
+		tinte.a = 0.6  # camuflado: medio transparente y con ramas encima
 	draw_texture_rect(tex, Rect2(origen, tam_sprite), false, tinte)
 	if u.has("gato"):
 		_dibujar_gato(u, origen)
 	draw_set_transform(Vector2.ZERO)
+	if camuflado:
+		for p in [Vector2(-18, -6), Vector2(-6, -10), Vector2(8, -7), Vector2(18, -3)]:
+			var h: Vector2 = centro + p
+			draw_colored_polygon(PackedVector2Array([h + Vector2(-5, 0), h + Vector2(0, -4),
+				h + Vector2(5, 0), h + Vector2(0, 4)]), Color("5f8a3a"))
 
 	# Flecha de orientación: indica dónde está su frente (el lado más blindado).
 	var dir := Vector2(o)

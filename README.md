@@ -28,20 +28,26 @@ godot --headless --path . -s tests/test_combate.gd
   gato que sigue en pie al ganar recibe una **medalla** (★, +2 de vida para el resto de la
   campaña), y tras cada victoria se elige una de 3 cartas para el Arsenal. Si pierdes,
   reintentas esa batalla. Se guarda sola en `user://campana.json`.
-- **Fichas técnicas.** Desde el menú: los 8 tanques con su sprite, datos reales
+- **Fichas técnicas.** Desde el menú: los 11 tanques con su sprite, datos reales
   (país, peso, cañón, blindaje, velocidad, cuántos se fabricaron) y un "¿Sabías que…?".
 - **Batallones y gatos.** Antes del combate se elige batallón y rival (o rival al azar).
   Todas las peleas son **3 contra 3**: **británico** (precisión y té), **soviético**
   (ataques en grupo, humo y la carta *¡Refuerzos!* de Boris, que trae a Mishka en un
-  cuarto T-34 una vez por batalla) y **estadounidense** (Maine Coons: reparan con el
+  cuarto T-34 una vez por batalla), **estadounidense** (Maine Coons: reparan con el
   *Taller de campaña*, piden *artillería* que ignora la cobertura y tienen el Hellcat,
-  el cazatanques más rápido de la guerra).
+  el cazatanques más rápido de la guerra) e **italiano** (gatos atigrados con casco de
+  cuero: blindaje delgado, pero emboscan. El *Semovente da 75/18* no tiene torreta: solo
+  dispara a lo que tiene al frente, pero es tan bajo que siempre tiene +1 de cobertura.
+  Cartas *Proyectil EP* (carga hueca: perfora 5 y nunca roza), *Camuflaje* (no le
+  disparan desde 3 o más hasta que se mueva o dispare), *Espresso* y *¡Avanti!*).
   Cada tanque lo comanda un gato con una **manía** que cambia las reglas para él:
   *ritual del té* (quieto recupera moral), *asustadizo* (por detrás pierde 2 de moral),
   *escaladora* (bosque y ruinas le cuestan 1, como al Churchill real), *recarga lenta* (un ataque por turno), *camarada* (+1 de
   daño con un compañero pegado), *valiente* (los golpes no lo dejan en pánico),
   *mecánico* (repara 2 a un compañero pegado al final del turno), *velocista* (6 de
-  movimiento, blindaje delgado) y *glotón* (si no ataca, recupera 1 de moral).
+  movimiento, blindaje delgado), *glotón* (si no ataca, recupera 1 de moral),
+  *dramático* (si recibe 5 o más, el resto del pelotón gana 1 de moral), *emboscador*
+  (si no se movió, pega +2) y *remachado* (si le entran 7 o más, recibe 1 extra).
   **Cada gato tiene sus propias cartas** (no hay mazo compartido): el cañón de su
   tanque, dos cartas propias y *Encarar*, que todos tienen. Se elige un tanque y abajo
   aparecen las suyas. Todos comparten 3 de energía por turno; cada carta se usa una
@@ -161,7 +167,7 @@ del juego, y `docs/licencias/` lleva la licencia de la fuente y los créditos de
 
 ## Pendiente
 
-- Más batallones (francés, italiano, de Alemania Oriental…).
+- Más batallones (francés, polaco…).
 - Ojo con las fuentes de arte: los mapas de Dice Grimorium no publican licencia de uso
   comercial; usar arte propio o CC0 (p. ej. Kenney.nl).
 - Música.
@@ -170,8 +176,8 @@ del juego, y `docs/licencias/` lleva la licencia de la fuente y los créditos de
 ## Tanques reales de referencia y derechos
 
 Los tanques están **inspirados** en el Centurion Mk1, el Sherman Firefly, el Churchill
-Mk VII, el IS-2, el T-34-85, el M4 Sherman, el M18 Hellcat y el M26 Pershing (y, sin usar
-por ahora, el P40). Los Firefly, Churchill, IS-2, T-34-85, Hellcat y Pershing se dibujaron con medidas públicas generales, sin
+Mk VII, el IS-2, el T-34-85, el M4 Sherman, el M18 Hellcat, el M26 Pershing, el M13/40,
+el Semovente da 75/18 y el P26/40. Los Firefly, Churchill, IS-2, T-34-85, Hellcat, Pershing, M13/40 y Semovente se dibujaron con medidas públicas generales, sin
 calcar ningún plano ni foto. No llevan insignias nacionales ni políticas. La forma de un vehículo real no es el problema:
 lo protegido son los *dibujos y fotos concretos* de otros. Regla: usar las fuentes
 como **referencia** y dibujar los sprites propios; no calcar ni recortar imágenes.

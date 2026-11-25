@@ -38,13 +38,13 @@ func _ready() -> void:
 
 	# Izquierda: un botón por tanque.
 	var lista := VBoxContainer.new()
-	lista.add_theme_constant_override("separation", 8)
+	lista.add_theme_constant_override("separation", 5)
 	lista.custom_minimum_size = Vector2(240, 0)
 	fila.add_child(lista)
 	for i in _fichas.size():
 		var b := Button.new()
 		b.text = _fichas[i]["nombre"]
-		b.custom_minimum_size = Vector2(0, 46)
+		b.custom_minimum_size = Vector2(0, 36)
 		b.pressed.connect(_mostrar.bind(i))
 		lista.add_child(b)
 

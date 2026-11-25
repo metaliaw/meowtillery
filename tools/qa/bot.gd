@@ -93,10 +93,12 @@ func _mover(c, i: int, amenaza: Dictionary) -> void:
 	var mejor_celda: Vector2i = u["pos"]
 	var mejor := -INF
 	var original: Vector2i = u["pos"]
+	var se_movio_antes: bool = u.get("se_movio", false)
 	for celda in opciones:
 		u["pos"] = celda
+		u["se_movio"] = se_movio_antes or celda != original  # el emboscador pierde el bono
 		var puntaje := _dano_posible(c, u) * 10.0
-		puntaje += c.mapa.cobertura(celda) * 3.0
+		puntaje += c.cobertura_de(u) * 3.0
 		puntaje -= amenaza.get(celda, 0) * 4.0
 		puntaje -= _distancia_enemigo(c, celda) * 0.5
 		puntaje -= opciones[celda][0] * 0.1  # a igualdad, moverse menos
@@ -106,6 +108,7 @@ func _mover(c, i: int, amenaza: Dictionary) -> void:
 			mejor = puntaje
 			mejor_celda = celda
 	u["pos"] = original
+	u["se_movio"] = se_movio_antes
 	if mejor_celda != original:
 		c.mover(i, mejor_celda)
 
@@ -126,7 +129,7 @@ func _dano_posible(c, u: Dictionary) -> float:
 				continue
 			var lado: String = c.lado_de_impacto(e, u["pos"])
 			var i: Dictionary = c.calcular_impacto(e, c.dano_de_carta(carta, lado) + c.bonus_de_ataque(u, carta, e),
-				int(carta.get("penetracion", 0)), lado, c.mapa.cobertura(e["pos"]))
+				int(carta.get("penetracion", 0)), lado, c.cobertura_de(e))
 			mejor = maxf(mejor, i["al_casco"] + (8.0 if i["derriba"] else 0.0))
 	return mejor
 
@@ -190,6 +193,8 @@ func _valor(c, carta: Dictionary, id: String, a: int, o: int, amenaza: Dictionar
 			for otro in c.aliados:
 				if c.vivo(otro) and Mapa.distancia(otro["pos"], u["pos"]) <= radio and amenaza.has(otro["pos"]):
 					v += int(carta.get("escudo", 0)) * 0.7
+			if carta.get("camuflaje", false) and not u.get("camuflado", false) and amenaza.has(u["pos"]):
+				v += 5.0
 			if carta.get("quieto", false) and u["mov_restante"] > 0:
 				v *= 0.8
 			return v
@@ -227,8 +232,13 @@ func _valor_maniobra(c, carta: Dictionary, a: int, o: int, amenaza: Dictionary) 
 		# Ofensivo: si le puede disparar este turno pero no lo encara, girar evita el -2.
 		if c.penalizacion_punteria(u, e) > 0:
 			for otra in c.cartas_de(a):
-				if otra != "girar" and c.cartas[otra].get("tipo") == "ataque" and c.motivo_uso(otra, a, o) == "":
+				if otra == "girar" or c.cartas[otra].get("tipo") != "ataque":
+					continue
+				var motivo: String = c.motivo_uso(otra, a, o)
+				if motivo == "":
 					v = maxf(v, c.PENALIZACION_FUERA_DEL_FRENTE + 0.5)
+				elif motivo.begins_with("Sin torreta"):
+					v = maxf(v, 6.0)  # sin girar no puede disparar
 		# Defensivo: darle el frente (lo más blindado) al que lo va a atacar.
 		if e["intencion"].has("dano"):
 			var lado: String = c.lado_de_impacto(u, e["pos"])

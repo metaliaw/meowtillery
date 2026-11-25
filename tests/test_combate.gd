@@ -55,6 +55,7 @@ func _init() -> void:
 	_probar_vision()
 	_probar_roces()
 	_probar_campana()
+	_probar_italianos()
 	print("\nTODO OK" if _fallos == 0 else "\n%d FALLOS" % _fallos)
 	quit(1 if _fallos > 0 else 0)
 
@@ -746,6 +747,59 @@ func _probar_campana() -> void:
 	DirAccess.remove_absolute(p.archivo_campana)
 	DirAccess.remove_absolute(p.archivo_arsenal)
 	p.free()
+
+
+## Batallón italiano: sin torreta, perfil bajo, emboscador, EP, camuflaje, dramático y remachado.
+func _probar_italianos() -> void:
+	var c := _batalla("italiano", "britanico")
+	_comprobar(c.aliados.map(func(u): return u["nombre"]) == ["Tiramisù", "Cannoli", "Panettone"], "batallón italiano")
+	for u in c.aliados:
+		for id in u["habilidades"]:
+			_comprobar(c.cartas.has(id), "%s: existe su carta %s" % [u["nombre"], id])
+	_enemigos_quietos(c)
+	var tira: Dictionary = c.aliados[0]
+	var cannoli: Dictionary = c.aliados[1]
+	var pane: Dictionary = c.aliados[2]
+	var blanco: Dictionary = c.enemigos[0]
+	for i in c.enemigos.size():
+		c.enemigos[i]["pos"] = Vector2i(9 + i, 0)
+	tira["pos"] = Vector2i(0, 0)
+	pane["pos"] = Vector2i(1, 0)
+	cannoli["pos"] = Vector2i(2, 6)
+	cannoli["orientacion"] = Vector2i.UP
+	blanco["pos"] = Vector2i(4, 6)
+	blanco["orientacion"] = Vector2i.LEFT
+	_comprobar(c.cobertura_de(cannoli) == 1, "Semovente: perfil bajo, +1 de cobertura en el llano")
+	_comprobar(c.motivo_uso("disparo_75_18", 1, 0).begins_with("Sin torreta"), "sin torreta: no dispara a un costado")
+	_comprobar(c.usar("girar", 1, 0) and c.motivo_uso("disparo_75_18", 1, 0) == "", "después de Encarar, sí")
+	_comprobar(c.prever_uso("disparo_75_18", 1, 0)[0]["bonus"] == 2, "emboscador: quieto pega +2")
+	cannoli["se_movio"] = true
+	_comprobar(c.prever_uso("disparo_75_18", 1, 0)[0]["bonus"] == 0, "emboscador: si se movió, no")
+	cannoli["se_movio"] = false
+
+	c.dificultad = {"punteria": true}
+	blanco["pos"] = Vector2i(6, 6)  # a 4 casillas
+	cannoli["orientacion"] = Vector2i.RIGHT
+	_comprobar(is_equal_approx(c.prever_uso("proyectil_ep", 1, 0)[0]["acierto"], 1.0), "Proyectil EP: carga hueca, nunca roza")
+	_comprobar(c.prever_uso("proyectil_ep", 1, 0)[0]["penetracion"] == 5, "y perfora 5")
+
+	_comprobar(c.usar("camuflaje", 1, 0) and cannoli.get("camuflado", false), "Camuflaje")
+	_comprobar(not c.puede_apuntar(cannoli, cannoli["pos"] + Vector2i(3, 0)), "camuflado: no le apuntan desde 3")
+	_comprobar(c.puede_apuntar(cannoli, cannoli["pos"] + Vector2i(2, 0)), "pero sí desde 2")
+	c.energia = 3
+	c.usar("proyectil_ep", 1, 0)
+	_comprobar(not cannoli.get("camuflado", false), "al disparar deja el camuflaje")
+
+	var energia_antes := c.energia
+	_comprobar(c.usar("espresso", 0, 0) and c.energia == energia_antes + 1, "Espresso: +1 de energía")
+
+	cannoli["moral"] = 3
+	pane["moral"] = 5
+	c.golpear(tira, 9, 0, "flanco")
+	_comprobar(cannoli["moral"] == 4 and pane["moral"] == 5, "dramático: un golpe fuerte da +1 de moral al resto")
+	var duro: Dictionary = Combate.calcular_impacto(pane, 9, 0, "trasera")
+	var suave: Dictionary = Combate.calcular_impacto(pane, 5, 0, "trasera")
+	_comprobar(duro["al_casco"] == 9 and suave["al_casco"] == 4, "remachado: si entran 7 o más, 1 extra")
 
 
 func _probar_cartas_de_batallon() -> void:

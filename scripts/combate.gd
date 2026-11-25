@@ -35,6 +35,9 @@ const ACCIONES_ENEMIGAS_MAX := 3
 ## Preferencia de la IA por cada lado del blanco.
 const PREFERENCIA_LADO := {"frente": 0, "flanco": 1, "trasera": 2}
 ## Daño que se pierde al disparar a un blanco fuera del frente propio (ver penalizacion_punteria).
+const BONUS_EMBOSCADA := 2
+const GOLPE_QUE_SALTA_REMACHES := 7
+const DISTANCIA_CAMUFLAJE := 3
 const PENALIZACION_FUERA_DEL_FRENTE := 2
 
 var mapa := Mapa.new()
@@ -283,6 +286,8 @@ func _motivo_comun(c: Dictionary, actor: Dictionary, i_objetivo: int) -> String:
 			return "Fuera de alcance: distancia %d, alcance %d-%d." % [dist, alc[0], alc[1]]
 		if not ve_a(c, actor["pos"], enemigos[i_objetivo]["pos"]):
 			return "Sin línea de visión: hay una roca en medio."
+		if actor.get("sin_torreta", false) and penalizacion_punteria(actor, enemigos[i_objetivo]) > 0:
+			return "Sin torreta: no lo tiene al frente. Usa Encarar primero."
 	if c.get("requiere_objetivo", false) and not hay_objetivo:
 		return "Elige un enemigo en pie."
 	return ""
@@ -299,9 +304,16 @@ func probabilidad_acierto(actor: Dictionary, objetivo: Dictionary) -> float:
 	return 0.85 if dist <= 4 else 0.7
 
 
-## Cobertura del terreno en `celda` para este ataque (la artillería la ignora).
-func _cobertura_para(c: Dictionary, celda: Vector2i) -> int:
-	return 0 if c.get("ignora_cobertura", false) else mapa.cobertura(celda)
+## Cobertura de `u` donde está: la del terreno más su perfil bajo (el Semovente, sin
+## torreta, es tan bajo que siempre tiene +1).
+func cobertura_de(u: Dictionary) -> int:
+	return mapa.cobertura(u["pos"]) + int(u.get("perfil_bajo", 0))
+
+
+## Cobertura de `u` contra este ataque (la artillería ignora la del terreno, no el perfil).
+func _cobertura_para(c: Dictionary, u: Dictionary) -> int:
+	var terreno := 0 if c.get("ignora_cobertura", false) else mapa.cobertura(u["pos"])
+	return terreno + int(u.get("perfil_bajo", 0))
 
 
 ## Repara vida (sin pasar del máximo) y lo avisa con un texto verde.
@@ -429,6 +441,7 @@ func _aplicar(id: String, i_actor: int, i_objetivo: int) -> void:
 	if c.has("dano"):
 		evento.emit("disparo")
 		actor["ataques_turno"] = int(actor.get("ataques_turno", 0)) + 1
+		_descamuflar(actor)
 		if i_actor == orden:
 			orden_cumplida = true
 		var objetivo: Dictionary = enemigos[i_objetivo]
@@ -440,20 +453,20 @@ func _aplicar(id: String, i_actor: int, i_objetivo: int) -> void:
 			_anotar("  (dispara sin encarar: -%d de daño)" % penal)
 		var dano := maxi(dano_de_carta(c, lado) + bonus_de_ataque(actor, c, objetivo) - penal, 1)
 		# Puntería (Veterano y As): de lejos el disparo puede rozar y hacer la mitad.
-		var prob := probabilidad_acierto(actor, objetivo)
+		var prob := 1.0 if c.get("sin_roce", false) else probabilidad_acierto(actor, objetivo)
 		var tirada: float = forzar_tirada if forzar_tirada >= 0.0 else rng.randf()
 		if tirada >= prob:
 			dano = maxi(dano / 2, 1)
 			_anotar("  ¡Roce! El disparo apenas lo toca (mitad de daño).")
 			_avisar(objetivo, "¡Roce!", "malo")
-		golpear(objetivo, dano, int(c.get("penetracion", 0)), lado, _cobertura_para(c, objetivo["pos"]))
+		golpear(objetivo, dano, int(c.get("penetracion", 0)), lado, _cobertura_para(c, objetivo))
 		var salpicadura := int(c.get("salpicadura", 0))
 		if salpicadura > 0:
 			for d in Mapa.DIRECCIONES:
 				var vecino := unidad_en(objetivo["pos"] + d)
 				if vecino.get("bando") == "enemigo":
 					var e: Dictionary = enemigos[vecino["indice"]]
-					golpear(e, salpicadura, 0, lado_de_impacto(e, actor["pos"]), _cobertura_para(c, e["pos"]))
+					golpear(e, salpicadura, 0, lado_de_impacto(e, actor["pos"]), _cobertura_para(c, e))
 
 	var radio := int(c.get("radio", 0))
 	var receptores := aliados.filter(func(a): return vivo(a) and Mapa.distancia(a["pos"], actor["pos"]) <= radio)
@@ -466,6 +479,9 @@ func _aplicar(id: String, i_actor: int, i_objetivo: int) -> void:
 			u["moral"] = clampi(u["moral"] + int(c["moral"]), 0, u["moral_max"])
 			var m := int(c["moral"])
 			_avisar(u, ("+%d moral" if m > 0 else "%d moral") % m, "moral" if m > 0 else "malo")
+	if c.get("camuflaje", false):
+		actor["camuflado"] = true
+		_avisar(actor, "Camuflado", "escudo")
 	if c.get("encarar", false):
 		actor["orientacion"] = direccion_hacia(actor["pos"], enemigos[i_objetivo]["pos"])
 		accion.emit({"tipo": "girar", "clave": actor["clave"], "orientacion": actor["orientacion"]})
@@ -509,6 +525,8 @@ static func calcular_impacto(u: Dictionary, dano: int, penetracion: int, lado: S
 	var blindaje := int(u["blindaje"].get(lado, 0))
 	var reduccion := maxi(blindaje + cobertura - penetracion, 0)
 	var efectivo := maxi(dano - reduccion, 1)
+	if u.get("mania") == "remachado" and efectivo >= GOLPE_QUE_SALTA_REMACHES:
+		efectivo += 1  # saltan los remaches
 	var absorbido := mini(int(u["escudo"]), efectivo)
 	var al_casco := efectivo - absorbido
 	var casco_final := maxi(int(u["casco"]) - al_casco, 0)
@@ -551,12 +569,25 @@ func golpear(u: Dictionary, dano: int, penetracion: int, lado: String, cobertura
 	_anotar(texto)
 	if salvado:
 		_anotar("  ¡%s se salva por los bigotes! Queda con 1 de vida." % u["nombre"])
+	if u.get("mania") == "dramatico" and vivo(u) and i["al_casco"] >= DANO_QUE_BAJA_MORAL:
+		_drama(u)
 	accion.emit({"tipo": "golpe", "clave": u.get("clave", ""), "al_casco": i["al_casco"],
 		"absorbido": i["absorbido"], "casco": u["casco"], "escudo": u["escudo"], "moral": u["moral"],
 		"derriba": not vivo(u), "voz": "susto" if entra_en_panico or salvado else "", "lado": lado})
 	if salvado:
 		_avisar(u, "¡Salvado por los bigotes!", "moral")
 	return i["al_casco"]
+
+
+## Manía "dramático": tras un golpe fuerte grita y el resto de su bando gana 1 de moral.
+func _drama(u: Dictionary) -> void:
+	var propios: Array = aliados if u["bando"] == "aliado" else enemigos
+	_anotar("  ¡%s grita «¡Avanti!»! Su pelotón gana 1 de moral." % u["nombre"])
+	_avisar(u, "¡Avanti!", "moral")
+	for otro in propios:
+		if not is_same(otro, u) and vivo(otro) and otro["moral"] < otro["moral_max"]:
+			otro["moral"] += 1
+			_avisar(otro, "+1 moral", "moral")
 
 
 ## Texto flotante sobre una unidad (escudo, moral...), con su estado ya actualizado.
@@ -585,6 +616,8 @@ func bonus_de_ataque(atacante: Dictionary, c: Dictionary, objetivo: Dictionary) 
 			if vecino.get("bando") == atacante["bando"]:
 				bonus += 1
 				break
+	if atacante.get("mania") == "emboscador" and not atacante.get("se_movio", false):
+		bonus += BONUS_EMBOSCADA
 	var por_aliado := int(c.get("bonus_por_aliado", 0))
 	if por_aliado > 0:
 		for otro in propios:
@@ -624,7 +657,7 @@ func prever_uso(id: String, i_actor: int, i_objetivo: int) -> Array:
 	var actor: Dictionary = aliados[i_actor]
 	var objetivo: Dictionary = enemigos[i_objetivo]
 	var pen := int(c.get("penetracion", 0))
-	var cob := _cobertura_para(c, objetivo["pos"])
+	var cob := _cobertura_para(c, objetivo)
 	var lado := lado_de_impacto(objetivo, actor["pos"])
 	var bonus := bonus_de_ataque(actor, c, objetivo)
 	var penal := penalizacion_punteria(actor, objetivo)
@@ -633,7 +666,7 @@ func prever_uso(id: String, i_actor: int, i_objetivo: int) -> Array:
 	principal["principal"] = true
 	principal["bonus"] = bonus
 	principal["penal"] = penal
-	principal["acierto"] = probabilidad_acierto(actor, objetivo)
+	principal["acierto"] = 1.0 if c.get("sin_roce", false) else probabilidad_acierto(actor, objetivo)
 	var dano_lleno := maxi(dano_de_carta(c, lado) + bonus - penal, 1)
 	principal["roce"] = calcular_impacto(objetivo, maxi(dano_lleno / 2, 1), pen, lado, cob)["al_casco"]
 	var por_lado := {}
@@ -648,7 +681,7 @@ func prever_uso(id: String, i_actor: int, i_objetivo: int) -> Array:
 			var vecino := unidad_en(objetivo["pos"] + d)
 			if vecino.get("bando") == "enemigo":
 				var e: Dictionary = enemigos[vecino["indice"]]
-				var i := calcular_impacto(e, salpicadura, 0, lado_de_impacto(e, actor["pos"]), _cobertura_para(c, e["pos"]))
+				var i := calcular_impacto(e, salpicadura, 0, lado_de_impacto(e, actor["pos"]), _cobertura_para(c, e))
 				i["indice"] = vecino["indice"]
 				i["principal"] = false
 				res.append(i)
@@ -673,12 +706,15 @@ func texto_intencion(u: Dictionary) -> String:
 
 
 ## Celdas que el enemigo puede atacar en su próxima fase (moverse + alcance).
-func celdas_amenaza(e: Dictionary) -> Dictionary:
+## `alcance_max`: tope de distancia (contra un blanco camuflado, que solo se ve de cerca).
+func celdas_amenaza(e: Dictionary, alcance_max: int = 99) -> Dictionary:
 	var res := {}
 	var a: Dictionary = e["intencion"]
 	if not vivo(e) or not a.has("dano"):
 		return res
-	var alc: Array = a["alcance"]
+	var alc: Array = [a["alcance"][0], mini(a["alcance"][1], alcance_max)]
+	if alc[1] < alc[0]:
+		return res
 	for origen in casillas_de_movimiento(e, e["movimiento"]):
 		for dy in range(-alc[1], alc[1] + 1):
 			for dx in range(-alc[1], alc[1] + 1):
@@ -687,6 +723,17 @@ func celdas_amenaza(e: Dictionary) -> Dictionary:
 				if dist >= alc[0] and dist <= alc[1] and mapa.dentro(celda) and not res.has(celda) 						and ve_a(a, origen, celda):
 					res[celda] = true
 	return res
+
+
+## Un tanque camuflado solo puede ser blanco desde menos de DISTANCIA_CAMUFLAJE casillas.
+func puede_apuntar(blanco: Dictionary, desde: Vector2i) -> bool:
+	return not blanco.get("camuflado", false) or Mapa.distancia(desde, blanco["pos"]) < DISTANCIA_CAMUFLAJE
+
+
+func _descamuflar(u: Dictionary) -> void:
+	if u.get("camuflado", false):
+		u["camuflado"] = false
+		_anotar("  %s deja el camuflaje." % u["nombre"])
 
 
 ## Línea de visión para esta carta o acción (la artillería dispara por encima: no la necesita).
@@ -847,10 +894,11 @@ func dano_en_peligro(u: Dictionary) -> int:
 		var a: Dictionary = e.get("intencion", {})
 		if not vivo(e) or not a.has("dano") or a.get("reserva", false) or a.get("paralizado", false):
 			continue
-		if not celdas_amenaza(e).has(u["pos"]):
+		var tope := DISTANCIA_CAMUFLAJE - 1 if u.get("camuflado", false) else 99
+		if not celdas_amenaza(e, tope).has(u["pos"]):
 			continue
 		var i := calcular_impacto(u, int(a["dano"]) + bonus_de_ataque(e, a, u), int(a.get("penetracion", 0)),
-			"flanco", mapa.cobertura(u["pos"]))
+			"flanco", cobertura_de(u))
 		total += i["al_casco"] + i["absorbido"]
 	return maxi(total - int(u["escudo"]), 0)
 
@@ -903,7 +951,8 @@ func _atacar_como_enemigo(e: Dictionary, a: Dictionary) -> void:
 	if mejor_celda != e["pos"]:
 		_mover_a(e, mejor_celda, opciones)
 	var dist_final := Mapa.distancia(e["pos"], objetivo["pos"])
-	if dist_final < alc[0] or dist_final > alc[1] or not ve_a(a, e["pos"], objetivo["pos"]):
+	if dist_final < alc[0] or dist_final > alc[1] or not ve_a(a, e["pos"], objetivo["pos"]) \
+			or not puede_apuntar(objetivo, e["pos"]):
 		_anotar("%s avanza." % e["nombre"])
 		return
 	e["orientacion"] = direccion_hacia(e["pos"], objetivo["pos"])
@@ -913,7 +962,7 @@ func _atacar_como_enemigo(e: Dictionary, a: Dictionary) -> void:
 	accion.emit({"tipo": "disparo", "clave": e["clave"], "objetivo": objetivo["clave"],
 		"orientacion": e["orientacion"]})
 	golpear(objetivo, int(a["dano"]) + bonus_de_ataque(e, a, objetivo), int(a.get("penetracion", 0)),
-		lado_de_impacto(objetivo, e["pos"]), mapa.cobertura(objetivo["pos"]))
+		lado_de_impacto(objetivo, e["pos"]), cobertura_de(objetivo))
 
 
 func _plan_simple(e: Dictionary, a: Dictionary, opciones: Dictionary) -> Dictionary:
@@ -927,7 +976,7 @@ func _plan_simple(e: Dictionary, a: Dictionary, opciones: Dictionary) -> Diction
 		var dist := Mapa.distancia(celda, objetivo["pos"])
 		var coste: int = opciones[celda][0]
 		var puntaje: float
-		if dist >= alc[0] and dist <= alc[1] and ve_a(a, celda, objetivo["pos"]):
+		if dist >= alc[0] and dist <= alc[1] and ve_a(a, celda, objetivo["pos"]) and puede_apuntar(objetivo, celda):
 			puntaje = 1000 + PREFERENCIA_LADO[lado_de_impacto(objetivo, celda)] * 10 - coste
 		else:
 			puntaje = -dist * 10 - coste
@@ -946,16 +995,17 @@ func _plan_listo(e: Dictionary, a: Dictionary, opciones: Dictionary) -> Dictiona
 	for celda in opciones:
 		var coste: int = opciones[celda][0]
 		e["pos"] = celda  # para que el bono de "camarada" mire desde la casilla candidata
+		e["se_movio"] = celda != original  # y el de "emboscador" sepa si se movió
 		var cerca := 1 << 20
 		for u in aliados:
 			if not vivo(u):
 				continue
 			var dist := Mapa.distancia(celda, u["pos"])
 			cerca = mini(cerca, dist)
-			if dist < alc[0] or dist > alc[1] or not ve_a(a, celda, u["pos"]):
+			if dist < alc[0] or dist > alc[1] or not ve_a(a, celda, u["pos"]) or not puede_apuntar(u, celda):
 				continue
 			var lado := lado_de_impacto(u, celda)
-			var imp := calcular_impacto(u, int(a["dano"]) + bonus_de_ataque(e, a, u), pen, lado, mapa.cobertura(u["pos"]))
+			var imp := calcular_impacto(u, int(a["dano"]) + bonus_de_ataque(e, a, u), pen, lado, cobertura_de(u))
 			var herido := 1.0 - float(u["casco"]) / float(u["casco_max"])
 			var puntaje: float = 1000.0 + imp["al_casco"] * 10.0 + (300.0 if imp["derriba"] else 0.0) \
 				+ herido * 20.0 + mapa.cobertura(celda) * 4.0 - coste
@@ -968,6 +1018,7 @@ func _plan_listo(e: Dictionary, a: Dictionary, opciones: Dictionary) -> Dictiona
 			mejor_puntaje = acercarse
 			mejor = {"celda": celda, "objetivo": _aliado_mas_cercano(celda)}
 	e["pos"] = original
+	e["se_movio"] = false
 	return mejor if not mejor.is_empty() and not mejor["objetivo"].is_empty() else {}
 
 
@@ -998,6 +1049,7 @@ func _mover_a(u: Dictionary, celda: Vector2i, opciones: Dictionary) -> void:
 	u["orientacion"] = celda - anterior
 	u["pos"] = celda
 	u["se_movio"] = true
+	_descamuflar(u)
 	accion.emit({"tipo": "mover", "clave": u.get("clave", ""), "camino": camino, "orientacion": u["orientacion"]})
 
 

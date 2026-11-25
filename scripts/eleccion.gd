@@ -7,7 +7,7 @@ const Gato := preload("res://scripts/gato_animado.gd")
 
 const ESCENA_COMBATE := "res://scenes/combate.tscn"
 const ESCENA_MENU := "res://scenes/menu.tscn"
-const ANCHO_CARTA := 396
+const ANCHO_CARTA := 300
 
 
 var _nombres_cartas := {}  # id -> nombre, para mostrar las cartas de cada gato
@@ -167,7 +167,8 @@ func _carta(id: String, b: Dictionary) -> Control:
 	var lema := Estilo.texto_en_papel("«%s»" % b["lema"], 14)
 	lema.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	caja.add_child(lema)
-	caja.add_child(Estilo.texto_en_papel(b["descripcion"], 12))
+	# Con 4 batallones no entra la descripción: queda al pasar el mouse sobre la carta.
+	panel.tooltip_text = b["descripcion"]
 
 	var gatos: Array[Gato] = []
 	for u in b["unidades"]:

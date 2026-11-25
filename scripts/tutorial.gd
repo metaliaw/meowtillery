@@ -15,7 +15,7 @@ const SEGUNDOS_HABLANDO := 1.6
 
 const PAGINAS := [
 	{
-		"texto": "¡Hola! Soy Muffy y hoy soy tu instructora. Las tripulaciones son gatos y los tanques son de verdad. Primero eliges batallón: británicos, que no pelean sin té; soviéticos, que atacan todos juntos; o estadounidenses, que reparan todo. Son peleas de 3 contra 3.",
+		"texto": "¡Hola! Soy Muffy y hoy soy tu instructora. Las tripulaciones son gatos y los tanques son de verdad. Primero eliges batallón: británicos, que no pelean sin té; soviéticos, que atacan todos juntos; estadounidenses, que reparan todo; o italianos, que esperan camuflados y emboscan. Son peleas de 3 contra 3.",
 		"imagenes": ["res://assets/centurion.png", "res://assets/churchill.png", "res://assets/is2.png", "res://assets/t34_85.png"],
 		"escala": 2,
 	},

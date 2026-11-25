@@ -91,8 +91,10 @@ func mostrar(u: Dictionary, combate, extra: String = "", resaltar: String = "") 
 	_diagrama.configurar(u["blindaje"], u["orientacion"], resaltar if vivo else "")
 	_barras.configurar(u, combate)
 	var terreno: Dictionary = combate.mapa.terreno(u["pos"])
-	var cob := int(terreno.get("cobertura", 0))
+	var cob: int = combate.cobertura_de(u)  # terreno + perfil bajo
 	_terreno.text = "Terreno: %s%s" % [terreno["nombre"], " (+%d de blindaje)" % cob if cob > 0 else ""]
+	if u.get("camuflado", false):
+		_terreno.text += " · camuflado"
 	_mania.text = u.get("mania_texto", "")
 	_mania.visible = _mania.text != ""
 	if not vivo:

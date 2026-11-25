@@ -440,5 +440,135 @@
         ]
       }
     ]
+  },
+  "italiano": {
+    "nombre": "Batallón Italiano",
+    "raza": "Soriano (atigrado italiano)",
+    "lema": "Primero un espresso, después la emboscada.",
+    "descripcion": "Atigrados, dramáticos y pacientes: blindaje delgado, pero esperan camuflados y pegan fuerte de cerca.",
+    "color": "ffc7a0",
+    "unidades": [
+      {
+        "id": "tiramisu",
+        "nombre": "Tiramisù",
+        "inspirado_en": "M13/40",
+        "sprite": "res://assets/m13_40.png",
+        "gato": "res://assets/gatos/tiramisu.png",
+        "escotilla": [
+          37,
+          9
+        ],
+        "casco": 21,
+        "blindaje": {
+          "frente": 3,
+          "flanco": 1,
+          "trasera": 1
+        },
+        "movimiento": 4,
+        "moral": 5,
+        "mania": "dramatico",
+        "mania_texto": "Dramático: si recibe 5 o más, grita «¡Avanti!» y el resto del pelotón gana 1 de moral.",
+        "habilidades": [
+          "disparo_47",
+          "avanti",
+          "espresso"
+        ],
+        "acciones": [
+          {
+            "nombre": "Cañón de 47",
+            "dano": 6,
+            "penetracion": 3,
+            "alcance": [
+              1,
+              4
+            ]
+          },
+          {
+            "nombre": "¡Avanti!",
+            "escudo": 2
+          }
+        ]
+      },
+      {
+        "id": "cannoli",
+        "nombre": "Cannoli",
+        "inspirado_en": "Semovente da 75/18",
+        "sprite": "res://assets/semovente.png",
+        "gato": "res://assets/gatos/cannoli.png",
+        "escotilla": [
+          35,
+          12
+        ],
+        "casco": 20,
+        "blindaje": {
+          "frente": 4,
+          "flanco": 1,
+          "trasera": 1
+        },
+        "movimiento": 4,
+        "moral": 5,
+        "sin_torreta": true,
+        "perfil_bajo": 1,
+        "mania": "emboscador",
+        "mania_texto": "Emboscador: quieto, pega +2. Sin torreta (apunta con Encarar), pero tan bajo que siempre tiene +1 de cobertura.",
+        "habilidades": [
+          "disparo_75_18",
+          "proyectil_ep",
+          "camuflaje"
+        ],
+        "acciones": [
+          {
+            "nombre": "Proyectil EP",
+            "dano": 8,
+            "penetracion": 4,
+            "alcance": [
+              1,
+              3
+            ]
+          }
+        ]
+      },
+      {
+        "id": "panettone",
+        "nombre": "Panettone",
+        "inspirado_en": "Carro Armato P26/40",
+        "sprite": "res://assets/p40.png",
+        "gato": "res://assets/gatos/panettone.png",
+        "escotilla": [
+          39,
+          8
+        ],
+        "casco": 27,
+        "blindaje": {
+          "frente": 4,
+          "flanco": 2,
+          "trasera": 1
+        },
+        "movimiento": 3,
+        "moral": 5,
+        "mania": "remachado",
+        "mania_texto": "Remachado: si le entran 7 o más, recibe 1 extra (saltan los remaches).",
+        "habilidades": [
+          "disparo_75_34",
+          "detras_de_mi",
+          "humo"
+        ],
+        "acciones": [
+          {
+            "nombre": "Cañón de 75/34",
+            "dano": 7,
+            "penetracion": 3,
+            "alcance": [
+              1,
+              4
+            ]
+          },
+          {
+            "nombre": "¡Detrás de mí!",
+            "escudo": 3
+          }
+        ]
+      }
+    ]
   }
 }

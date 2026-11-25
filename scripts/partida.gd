@@ -93,6 +93,7 @@ const RIVALES_CAMPANA := {
 	"britanico": ["sovietico", "estadounidense", "sovietico", "estadounidense", "sovietico"],
 	"sovietico": ["britanico", "estadounidense", "estadounidense", "britanico", "britanico"],
 	"estadounidense": ["britanico", "sovietico", "britanico", "sovietico", "sovietico"],
+	"italiano": ["britanico", "sovietico", "estadounidense", "britanico", "sovietico"],
 }
 
 

@@ -110,5 +110,47 @@
     "sprite": "res://assets/pershing.png",
     "gato": "Donut",
     "dato": "Llegó al final de la guerra. En marzo de 1945, en Colonia, un Pershing ganó un duelo contra un Panther frente a la catedral, y un camarógrafo del ejército lo filmó."
+  },
+  {
+    "id": "m13_40",
+    "nombre": "Carro Armato M13/40",
+    "pais": "Italia",
+    "anio": "1940",
+    "tripulacion": 4,
+    "peso": "unas 14 t",
+    "canon": "47/32 (47 mm)",
+    "blindaje": "30 mm (frente del casco)",
+    "velocidad": "unos 30 km/h",
+    "sprite": "res://assets/m13_40.png",
+    "gato": "Tiramisù",
+    "dato": "Fue el tanque italiano más fabricado de la guerra y peleó sobre todo en el norte de África. Los británicos capturaron tantos en 1941 que armaron unidades enteras con ellos."
+  },
+  {
+    "id": "semovente",
+    "nombre": "Semovente da 75/18",
+    "pais": "Italia",
+    "anio": "1941",
+    "tripulacion": 3,
+    "peso": "unas 15 t",
+    "canon": "obús 75/18 (75 mm)",
+    "blindaje": "50 mm (frente de la casamata)",
+    "velocidad": "unos 30 km/h",
+    "sprite": "res://assets/semovente.png",
+    "gato": "Cannoli",
+    "dato": "Lo hicieron como cañón de apoyo para la artillería, sin torreta y muy bajo. Con munición de carga hueca (EP, «effetto pronto») terminó siendo uno de los mejores cazatanques italianos en El Alamein."
+  },
+  {
+    "id": "p40",
+    "nombre": "Carro Armato P26/40",
+    "pais": "Italia",
+    "anio": "1943",
+    "tripulacion": 4,
+    "peso": "unas 26 t",
+    "canon": "75/34 (75 mm)",
+    "blindaje": "50 mm (frente)",
+    "velocidad": "unos 40 km/h",
+    "sprite": "res://assets/p40.png",
+    "gato": "Panettone",
+    "dato": "Era el tanque pesado italiano, pero llegó tarde: se fabricaron alrededor de 100, y casi todos los usó el ejército alemán después del armisticio italiano de septiembre de 1943."
   }
 ]

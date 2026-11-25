@@ -55,6 +55,15 @@ GORROS = {
         # Barboquejo: tiras finas que bajan por las mejillas.
         "gafas": {"marco": {r: [(6, 6), (25, 25)] for r in range(10, 16)}, "vidrio": {}},
     },
+    # Casco de tanquista italiano (mod. 1935): cuero oscuro acolchado, con un rollo grueso
+    # alrededor de la frente y orejeras cortas. Sin insignias.
+    "casco_carrista": {
+        "colores": {"G": (58, 46, 40), "H": (98, 80, 66), "X": (132, 104, 78)},
+        "forma": {3: (11, 20), 4: (9, 22), 5: (7, 24), 6: (6, 25), 7: (6, 25), 8: (5, 26),
+                  9: [(4, 6), (25, 27)], 10: [(4, 6), (25, 27)], 11: [(4, 6), (25, 27)]},
+        "luz": {4: (10, 13), 5: (8, 10)},
+        "insignia": [(7, c) for c in range(6, 26)] + [(8, c) for c in range(5, 27)],  # rollo acolchado
+    },
     # Gorra de plato de oficial instructora: copa caqui, cinta oscura, visera negra e insignia dorada.
     "gorra": {
         "colores": {"G": (128, 112, 74), "H": (164, 146, 100), "X": (236, 196, 80)},
@@ -79,6 +88,10 @@ PELAJES = {
     "coon_cafe": {"O": (150, 104, 62), "L": (186, 140, 92), "D": (96, 62, 36)},
     "coon_dorado": {"O": (222, 172, 98), "L": (244, 204, 138), "D": (180, 124, 58)},
     "coon_negro": {"O": (58, 58, 68), "L": (90, 90, 104), "D": (44, 44, 52)},
+    # Soriani (atigrados comunes italianos): cacao, crema con rayas marcadas y plateado.
+    "soriano_cacao": {"O": (132, 96, 70), "L": (176, 140, 104), "D": (78, 52, 36)},
+    "soriano_crema": {"O": (226, 194, 146), "L": (246, 224, 186), "D": (170, 124, 76)},
+    "soriano_plata": {"O": (170, 170, 164), "L": (206, 206, 200), "D": (86, 86, 90)},
     # Gris y blanco de pelo largo, como la gata Michi (sin rayas atigradas).
     "gris_blanco": {"O": (122, 128, 140), "L": (154, 160, 172), "D": (110, 116, 128)},
 }
@@ -111,6 +124,9 @@ GATOS = {
     "pancake": ("coon_cafe", "ambar", "casco_m1", MARCAS_MELENA, "normal"),
     "waffles": ("coon_dorado", "verde", "casco_m1", MARCAS_MELENA, "normal"),
     "donut": ("coon_negro", "ambar", "casco_m1", MARCAS_ESMOQUIN, "normal"),
+    "tiramisu": ("soriano_cacao", "ambar", "casco_carrista", [], "normal"),
+    "cannoli": ("soriano_crema", "verde", "casco_carrista", [], "normal"),
+    "panettone": ("soriano_plata", "cobre", "casco_carrista", [(12, 13, 18, "W"), (13, 12, 19, "W")], "normal"),
 }
 
 

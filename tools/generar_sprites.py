@@ -9,6 +9,8 @@ Referencias usadas (solo para proporciones; el dibujo es propio):
     https://commons.wikimedia.org/wiki/File:Centurion_Mk_VII_(Panzer_57)_pic05.JPG
   - Carro Armato P26/40: foto "Ansaldo P40 01.jpg", dominio público.
     https://commons.wikimedia.org/wiki/File:Ansaldo_P40_01.jpg
+  - M13/40 y Semovente da 75/18: medidas públicas generales (largo ~4,9-5,0 m, alto
+    2,4 m y 1,85 m); el dibujo es propio, sin calcar fotos ni planos.
 
 Uso (desde la raíz del proyecto):  python tools/generar_sprites.py
 Escribe assets/<tanque>.png, assets/<tanque>_enemigo.png y tools/vista_previa.png.
@@ -282,6 +284,69 @@ def p40(l):
 
 
 # ---------------------------------------------------------------------------
+# Tren de rodaje italiano (M13/40 y sus semoventi): dos bogies de 4 ruedas chicas
+# con ballestas encima, piñón adelante, rueda tensora atrás y 3 rodillos de retorno.
+# Casco x 21-59 (4,9 m).
+# ---------------------------------------------------------------------------
+def _tren_m13(l):
+    l.oruga([(21, 22), (24, 19), (55, 19), (58, 20), (59, 22), (56, 27), (24, 27), (21, 25)],
+            [(24, 21), (55, 21), (56, 23), (55, 25), (25, 25)])
+    for x0 in (27, 41):
+        l.rect(x0, 22, x0 + 10, 23, "dk")  # ballesta
+        for x in (x0 + 1, x0 + 4, x0 + 7, x0 + 10):
+            l.circulo(x, 25, 1.6, "goma")
+            l.circulo(x, 25, 0.7, "dk")
+    for x in (31, 40, 49):
+        l.circulo(x, 20, 0.9, "tlt")
+    l.circulo(23.5, 23, 2.2, "t")
+    l.circulo(23.5, 23, 0.8, "dk")
+    l.piñon(56, 21.5, 2.6)
+
+
+# ---------------------------------------------------------------------------
+# Carro Armato M13/40: casco remachado de caja con el frente inclinado, torreta chica
+# para dos con el cañón de 47/32 (corto y fino).
+# ---------------------------------------------------------------------------
+def m13_40(l):
+    _tren_m13(l)
+    l.poligono([(22, 13), (46, 13), (52, 15), (57, 18), (57, 19), (22, 19)], "b")
+    l.linea_h(22, 46, 13, "hl")
+    for i in range(6):
+        l.poner(46 + i, 13 + i // 3, "lt")
+    l.linea_h(23, 45, 15, "dk", 3)  # remaches
+    l.linea_h(23, 31, 17, "dk", 2)  # rejillas del motor
+    l.linea_h(22, 57, 19, "dk")
+    # Torreta remachada y 47/32 con su máscara.
+    l.poligono([(32, 13), (33, 9), (43, 9), (45, 11), (45, 13)], "b")
+    l.linea_h(34, 42, 9, "hl")
+    l.linea_h(33, 44, 12, "dk", 2)
+    l.rect(45, 9, 46, 12, "lt")
+    l.linea_v(46, 9, 12, "dk")
+    l.linea_h(47, 57, 10, "lt")
+    l.linea_h(47, 57, 11, "dk")
+
+
+# ---------------------------------------------------------------------------
+# Semovente da 75/18: el mismo chasis sin torreta, con una casamata baja (1,85 m)
+# y el obús corto de 75/18 montado en la plancha delantera, un poco a un costado.
+# ---------------------------------------------------------------------------
+def semovente(l):
+    _tren_m13(l)
+    l.poligono([(22, 15), (26, 13), (45, 13), (54, 17), (57, 19), (22, 19)], "b")
+    l.linea_h(26, 45, 13, "hl")
+    for i in range(9):
+        l.poner(45 + i, 13 + (i * 4) // 9, "lt")  # plancha delantera inclinada
+    l.linea_h(24, 44, 16, "dk", 3)  # remaches
+    l.linea_h(23, 29, 18, "dk", 2)
+    l.linea_h(22, 57, 19, "dk")
+    l.rect(33, 12, 38, 12, "dk")  # escotilla del jefe
+    l.circulo(50.5, 15.5, 1.6, "lt")  # máscara del obús
+    l.linea_h(52, 61, 15, "lt")
+    l.linea_h(52, 61, 16, "dk")
+    l.rect(61, 14, 62, 16, "b")  # boca
+
+
+# ---------------------------------------------------------------------------
 # Sherman Firefly (británico): el mismo casco del Sherman con el 17 libras,
 # mucho más largo y con freno de boca, y la caja de la radio atrás de la torreta.
 # ---------------------------------------------------------------------------
@@ -478,7 +543,9 @@ def pershing(l):
 TANQUES = {
     "sherman": (sherman, "verde_oliva", True, True),
     "centurion": (centurion, "verde_britanico", True, True),
-    "p40": (p40, "arena", True, True),
+    "p40": (p40, "arena", False, True),
+    "m13_40": (m13_40, "arena", False, False),
+    "semovente": (semovente, "arena", False, False),
     "firefly": (firefly, "verde_britanico", False, False),
     "churchill": (churchill, "verde_britanico", False, False),
     "t34_85": (t34_85, "invierno", False, False),
