@@ -20,7 +20,7 @@ func _init() -> void:
 	# Si algún script no compila, las pruebas no pueden dar "TODO OK".
 	# Las escenas que usan los autoloads (Partida, Sonido) no compilan fuera del juego;
 	# esas se revisan abriéndolas. Aquí van las que no dependen de ellos.
-	var de_interfaz := ["tablero", "ficha", "globo", "gato_animado", "sonido"]
+	var de_interfaz := ["tablero", "ficha", "globo", "gato_animado", "sonido", "trofeos"]
 	for s in [Combate, Mapa, PartidaScript] + de_interfaz.map(func(n): return load("res://scripts/%s.gd" % n)):
 		if not s.can_instantiate():
 			printerr("FALLO el script %s no compila" % s.resource_path)
@@ -57,6 +57,9 @@ func _init() -> void:
 	_probar_campana()
 	_probar_italianos()
 	_probar_aereo()
+	_probar_dado()
+	_probar_trofeos()
+	_probar_mapas_nuevos()
 	print("\nTODO OK" if _fallos == 0 else "\n%d FALLOS" % _fallos)
 	quit(1 if _fallos > 0 else 0)
 
@@ -705,7 +708,8 @@ func _probar_roces() -> void:
 
 ## Campaña: mapas, medallas (+vida), avance, recompensas al Arsenal y guardado.
 func _probar_campana() -> void:
-	for ruta in ["res://data/mapas/colinas.json", "res://data/mapas/bosque.json", "res://data/mapas/ciudad.json"]:
+	for ruta in ["res://data/mapas/colinas.json", "res://data/mapas/bosque.json", "res://data/mapas/ciudad.json",
+			"res://data/mapas/desierto.json", "res://data/mapas/rio.json"]:
 		var m: Dictionary = Datos.leer(ruta)
 		_comprobar(m["filas"].size() == 7 and m["aliados"].size() >= 4, "el mapa %s carga" % m["nombre"])
 	var p := PartidaScript.new()
@@ -847,6 +851,185 @@ func _probar_aereo() -> void:
 	propio["pos"] = libre
 	e.terminar_turno()
 	_comprobar(propio["casco"] == antes and e.aereo_enemigo_plan.is_empty(), "si sales de la casilla, el avión enemigo falla")
+
+
+## Prepara el turno del dado y lo tira con el valor pedido.
+func _dado(valor: int, dif: String = "veterano") -> Combate:
+	var c := Combate.new()
+	PartidaScript.iniciar_combate(c, "britanico", "sovietico", 11, false, dif)
+	c.turno = c.TURNO_DADO
+	c.forzar_dado = valor
+	return c
+
+
+func _probar_dado() -> void:
+	var c := Combate.new()
+	PartidaScript.iniciar_combate(c, "britanico", "sovietico", 11, false, "veterano")
+	_comprobar(c.eventos_frente and c.evento_frente.is_empty(), "el dado no sale antes del turno 3")
+	c.forzar_dado = 3
+	_enemigos_quietos(c)
+	c.terminar_turno()
+	_enemigos_quietos(c)
+	c.terminar_turno()
+	_comprobar(c.turno == 3 and c.evento_frente.get("valor") == 3 and c.energia == c.ENERGIA_POR_TURNO + 1,
+		"turno 3: sale el dado (suministros: +1 energía)")
+	_enemigos_quietos(c)
+	c.terminar_turno()
+	_comprobar(not c.evento_activo("suministros") and c.energia == c.ENERGIA_POR_TURNO, "dura un solo turno")
+
+	var l := _dado(1)
+	var u: Dictionary = l.aliados[0]
+	u["mov_restante"] = u["movimiento"]
+	l._tirar_dado()
+	_comprobar(u["mov_restante"] == u["movimiento"] - 1 and l.movimiento_de(l.enemigos[0]) == int(l.enemigos[0]["movimiento"]) - 1,
+		"lluvia: todos se mueven 1 menos")
+
+	var n := _dado(2)
+	n._tirar_dado()
+	var lejos := {"alcance": [1, 5]}
+	_comprobar(n.alcance_de(lejos) == [1, 2], "niebla: nadie dispara a más de 2")
+	var e0: Dictionary = n.enemigos[0]
+	n.aliados[0]["pos"] = e0["pos"] + Vector2i(-4, 0)
+	var ataque := ""
+	for id in n.cartas_de(0):
+		if n.cartas[id].get("tipo") == "ataque" and n.cartas[id]["alcance"][1] >= 4:
+			ataque = id
+	_comprobar(ataque == "" or n.motivo_uso(ataque, 0, 0).begins_with("Hay niebla"), "niebla: el motivo lo explica")
+
+	var m := _dado(4)
+	m.aliados[0]["moral"] = 3
+	m._tirar_dado()
+	_comprobar(m.aliados[0]["moral"] == 4, "cartas de casa: +1 moral")
+
+	var a := _dado(5)
+	for e in a.enemigos:
+		e["intencion"] = {"nombre": "Disparo", "dano": 3, "alcance": [1, 1]}
+	a._tirar_dado()
+	var averiados := a.enemigos.filter(func(e): return e["intencion"].get("averia", false))
+	_comprobar(averiados.size() == 1, "avería: un enemigo no actúa")
+	_comprobar(a.texto_intencion(averiados[0]).begins_with("Avería"), "avería: se ve en su cartelito")
+
+	var p := _dado(6)
+	p.aliados[1]["casco"] = 3
+	p._tirar_dado()
+	_comprobar(p.aliados[1]["casco"] == 5, "pescado: repara 2")
+
+	var buenos := true
+	for s in 60:
+		var r := Combate.new()
+		PartidaScript.iniciar_combate(r, "britanico", "sovietico", s, false, "recluta")
+		r.turno = r.TURNO_DADO
+		r._tirar_dado()
+		buenos = buenos and int(r.evento_frente["valor"]) >= 3
+	_comprobar(buenos, "Recluta: solo salen eventos buenos (3 a 6)")
+
+
+func _probar_trofeos() -> void:
+	# Hazañas que avisa el combate.
+	var c := Combate.new()
+	var ganadas: Array = []
+	c.hazana.connect(func(id): ganadas.append(id))
+	PartidaScript.iniciar_combate(c, "britanico", "sovietico", 3, false, "veterano")
+	c.forzar_tirada = 0.0
+	var e: Dictionary = c.enemigos[0]
+	e["casco"] = 1
+	e["orientacion"] = Vector2i.LEFT
+	c.aliados[0]["pos"] = e["pos"] + Vector2i(2, 0)  # detrás de él (mira a la izquierda)
+	c.aliados[0]["orientacion"] = Vector2i.LEFT
+	if not c.mapa.transitable(c.aliados[0]["pos"]) or not c.unidad_en(c.aliados[0]["pos"]).is_empty():
+		c.aliados[0]["pos"] = e["pos"] + Vector2i(1, 0)
+	var ataque := ""
+	for id in c.cartas_de(0):
+		if c.cartas[id].get("tipo") == "ataque" and c.motivo_uso(id, 0, 0) == "":
+			ataque = id
+	c.energia = 3
+	_comprobar(ataque != "" and c.usar(ataque, 0, 0) and "por_la_espalda" in ganadas, "trofeo: derribar por la trasera")
+	for x in c.enemigos:
+		x["casco"] = 0
+	c._comprobar_fin()
+	_comprobar("primera_victoria" in ganadas and "sin_bajas" in ganadas and not "as_de_ases" in ganadas,
+		"trofeo: victoria sin bajas (no en As)")
+
+	var d := _dado(6)
+	var de_dado: Array = []
+	d.hazana.connect(func(id): de_dado.append(id))
+	d._tirar_dado()
+	_comprobar(de_dado == ["banquete"], "trofeo: banquete con un 6")
+
+	var a := Combate.new()
+	var de_avion: Array = []
+	a.hazana.connect(func(id): de_avion.append(id))
+	PartidaScript.iniciar_combate(a, "estadounidense", "italiano", 7, false, "as")
+	a._ataque_aereo(a.aereo_rival, Vector2i(5, 0) if a.unidad_en(Vector2i(5, 0)).is_empty() else Vector2i(6, 0), "enemigo")
+	_comprobar("esquivado" in de_avion, "trofeo: esquivar el avión enemigo")
+
+	# La vitrina: se guarda, no se repite y cuenta los batallones.
+	var T = load("res://scripts/trofeos.gd").new()
+	T.archivo = "user://trofeos_prueba.json"
+	T.silencioso = true
+	T.borrar_todo()
+	_comprobar(T.conseguir("banquete") and not T.conseguir("banquete"), "vitrina: un trofeo se gana una sola vez")
+	_comprobar(not T.conseguir("no_existe"), "vitrina: ids desconocidos no cuentan")
+	for b in ["britanico", "sovietico", "estadounidense"]:
+		T.victoria_con(b, 4)
+	_comprobar(not T.tiene("gira_mundial"), "vitrina: con 3 batallones no hay gira")
+	T.victoria_con("italiano", 4)
+	_comprobar(T.tiene("gira_mundial"), "vitrina: con los 4, gira mundial")
+	var T2 = load("res://scripts/trofeos.gd").new()
+	T2.archivo = T.archivo
+	T2.silencioso = true
+	T2.cargar()
+	_comprobar(T2.tiene("banquete") and T2.cuantos() == 2, "vitrina: se guarda entre partidas")
+	for i in 3:
+		T2.ficha_vista(i, 3)
+	_comprobar(T2.tiene("gato_de_biblioteca"), "vitrina: gato de biblioteca")
+	DirAccess.remove_absolute(T.archivo)
+	T.free()
+	T2.free()
+	_comprobar(PartidaScript.batallones().size() == 4, "4 batallones para la gira mundial")
+
+
+func _probar_mapas_nuevos() -> void:
+	var c := Combate.new()
+	var ganadas: Array = []
+	c.hazana.connect(func(id): ganadas.append(id))
+	PartidaScript.iniciar_combate(c, "britanico", "sovietico", 5, false, "recluta", "res://data/mapas/desierto.json")
+	_comprobar(c.mapa.tiene("mina") and c.mapa.tapa_vista(Vector2i(4, 3)), "desierto: hay minas y la duna tapa la vista")
+	_comprobar(not c.mapa.linea_de_vision(Vector2i(3, 3), Vector2i(5, 3)), "desierto: la duna corta la línea de visión")
+	_enemigos_quietos(c)
+	var u: Dictionary = c.aliados[1]  # en (1, 3)
+	u["pos"] = Vector2i(4, 1)
+	u["mov_restante"] = 9
+	c.forzar_mina = 6
+	var casco: int = u["casco"]
+	_comprobar(c.mover(1, Vector2i(5, 1)) and u["casco"] == casco and c.minas_pisadas == 1, "mina: con 6 no explota")
+	c.forzar_mina = 1
+	_comprobar(c.mover(1, Vector2i(6, 1)) and u["casco"] == casco - c.DANO_MINA and c.minas_explotadas == 1,
+		"mina: con 1 explota y quita %d" % c.DANO_MINA)
+	_comprobar(not c.mapa.terreno(Vector2i(6, 1)).get("mina", false), "mina: la que explotó desaparece")
+	for e in c.enemigos:
+		e["casco"] = 0
+	c._comprobar_fin()
+	_comprobar(not "pisando_huevos" in ganadas, "pisando huevos: no si te explotó una")
+
+	var s := Combate.new()
+	var de_s: Array = []
+	s.hazana.connect(func(id): de_s.append(id))
+	PartidaScript.iniciar_combate(s, "britanico", "sovietico", 5, false, "recluta", "res://data/mapas/desierto.json")
+	s.aliados[0]["pos"] = Vector2i(4, 1)
+	s.aliados[0]["mov_restante"] = 9
+	s.forzar_mina = 5
+	s.mover(0, Vector2i(5, 1))
+	for e in s.enemigos:
+		e["casco"] = 0
+	s._comprobar_fin()
+	_comprobar("pisando_huevos" in de_s, "pisando huevos: cruzar sin que explote")
+
+	var r := Combate.new()
+	PartidaScript.iniciar_combate(r, "britanico", "sovietico", 5, false, "recluta", "res://data/mapas/rio.json")
+	_comprobar(not r.mapa.transitable(Vector2i(6, 3)) and r.mapa.linea_de_vision(Vector2i(4, 3), Vector2i(8, 3)),
+		"río: no se cruza, pero se ve por encima")
+	_comprobar(r.mapa.transitable(Vector2i(6, 1)) and r.mapa.coste(Vector2i(6, 5)) == 3, "río: puente y vado (cuesta 3)")
 
 
 func _probar_cartas_de_batallon() -> void:

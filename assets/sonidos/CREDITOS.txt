@@ -44,3 +44,11 @@ Todos los maullidos se normalizaron de volumen y se convirtieron a OGG con ffmpe
 avion.ogg
   Motor de avión sintetizado con ffmpeg para este juego (ondas generadas, sin grabaciones
   de terceros). Mismo licenciamiento que el resto del juego.
+
+dado.ogg
+  Dado rodando sintetizado con ffmpeg para este juego (ruido y tonos generados, sin
+  grabaciones de terceros). Mismo licenciamiento que el resto del juego.
+
+trofeo.ogg
+  Arpegio de campanitas sintetizado con ffmpeg para este juego (ondas generadas).
+  Mismo licenciamiento que el resto del juego.

@@ -127,7 +127,8 @@ func _dano_posible(c, u: Dictionary) -> float:
 			if not c.vivo(e):
 				continue
 			var dist := Mapa.distancia(u["pos"], e["pos"])
-			if dist < carta["alcance"][0] or dist > carta["alcance"][1] or not c.ve_a(carta, u["pos"], e["pos"]):
+			var alc: Array = c.alcance_de(carta)
+			if dist < alc[0] or dist > alc[1] or not c.ve_a(carta, u["pos"], e["pos"]):
 				continue
 			var lado: String = c.lado_de_impacto(e, u["pos"])
 			var i: Dictionary = c.calcular_impacto(e, c.dano_de_carta(carta, lado) + c.bonus_de_ataque(u, carta, e),

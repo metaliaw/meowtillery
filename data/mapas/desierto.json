@@ -1,0 +1,87 @@
+{
+  "nombre": "El desierto (El Alamein)",
+  "terreno": {
+    ".": {
+      "nombre": "Arena",
+      "coste": 1,
+      "cobertura": 0,
+      "color": "e8d4a0",
+      "textura": "arena"
+    },
+    "s": {
+      "nombre": "Arena blanda",
+      "coste": 2,
+      "cobertura": 0,
+      "color": "d6bc88",
+      "textura": "blanda"
+    },
+    "d": {
+      "nombre": "Duna (tapa la vista)",
+      "coste": 2,
+      "cobertura": 1,
+      "color": "d8b470",
+      "textura": "duna",
+      "tapa_vista": true
+    },
+    "m": {
+      "nombre": "Campo minado (dado: 1 o 2, ¡bum!)",
+      "coste": 1,
+      "cobertura": 0,
+      "color": "e8d4a0",
+      "textura": "mina",
+      "mina": true
+    },
+    "#": {
+      "nombre": "Roca",
+      "coste": -1,
+      "cobertura": 0,
+      "color": "3a3440",
+      "textura": "roca"
+    }
+  },
+  "filas": [
+    ".....d....s.",
+    "..s..mm..d..",
+    ".d..#mm#....",
+    "....dmmd...s",
+    ".s..#mm#.d..",
+    "....smm.....",
+    "..d......s.."
+  ],
+  "aliados": [
+    [
+      0,
+      2
+    ],
+    [
+      1,
+      3
+    ],
+    [
+      0,
+      4
+    ],
+    [
+      0,
+      0
+    ]
+  ],
+  "enemigos": [
+    [
+      10,
+      1
+    ],
+    [
+      10,
+      3
+    ],
+    [
+      9,
+      5
+    ],
+    [
+      10,
+      6
+    ]
+  ]
+}

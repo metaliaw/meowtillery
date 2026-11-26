@@ -27,9 +27,9 @@ func _ready() -> void:
 	centro.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(centro)
 	var columna := VBoxContainer.new()
-	columna.add_theme_constant_override("separation", 10)
+	columna.add_theme_constant_override("separation", 8)
 	centro.add_child(columna)
-	columna.add_child(Estilo.titulo("ELIGE TU BATALLÓN", 40))
+	columna.add_child(Estilo.titulo("ELIGE TU BATALLÓN", 34))
 	var opciones := HBoxContainer.new()
 	opciones.alignment = BoxContainer.ALIGNMENT_CENTER
 	opciones.add_theme_constant_override("separation", 40)
@@ -108,14 +108,38 @@ func _selector_rival() -> Control:
 		b.text = nombres[id]
 		b.toggle_mode = true
 		b.button_group = grupo
-		b.custom_minimum_size = Vector2(0, 36)
+		b.custom_minimum_size = Vector2(0, 30)
 		b.add_theme_font_size_override("font_size", 14)
 		b.button_pressed = id == Partida.rival_elegido
 		b.toggled.connect(func(activo: bool):
 			if activo:
 				Partida.rival_elegido = id)
 		fila.add_child(b)
+	caja.add_child(_fila_mapas())
 	return caja
+
+
+## Mapa de la batalla suelta: al azar o uno fijo.
+func _fila_mapas() -> Control:
+	var fila := HBoxContainer.new()
+	fila.add_theme_constant_override("separation", 8)
+	var etiqueta := Label.new()
+	etiqueta.text = "Mapa:"
+	fila.add_child(etiqueta)
+	var grupo := ButtonGroup.new()
+	for nombre in [""] + Partida.MAPAS.keys():
+		var b := Button.new()
+		b.text = "Al azar" if nombre == "" else nombre
+		b.toggle_mode = true
+		b.button_group = grupo
+		b.custom_minimum_size = Vector2(0, 30)
+		b.add_theme_font_size_override("font_size", 14)
+		b.button_pressed = nombre == Partida.mapa_elegido
+		b.toggled.connect(func(activo: bool):
+			if activo:
+				Partida.mapa_elegido = nombre)
+		fila.add_child(b)
+	return fila
 
 
 ## Tres botones (Recluta / Veterano / As) y una línea que explica el elegido.

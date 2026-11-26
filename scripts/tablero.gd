@@ -42,6 +42,8 @@ const DUR_TEMBLOR := 0.35
 ## Kill cam: primer plano del tanque derribado (al estilo de los juegos de tanques).
 const DUR_KILLCAM := 2.0
 const DUR_AVION := 1.6       # el avión cruza el tablero; en la mitad suelta el ataque
+const DUR_DADO := 3.4        # el dado rueda, se queda quieto y se lee qué pasó
+const RUEDA_DADO := 1.2
 const IMPACTO_KC := 0.45   # cuándo llega el proyectil dentro de la kill cam
 const SALTO_GATO_KC := 1.0 # cuándo salta el gato por la escotilla
 const DUR_ESCAPE := 1.4    # el gato corre hacia su lado del mapa
@@ -71,8 +73,10 @@ var _trazos: Array = []      # {de, a, t}
 var _explosiones: Array = [] # {pos, t}
 var _temblor: Dictionary = {}  # clave -> segundos restantes
 var _killcam: Dictionary = {}  # {clave, lado, dano, t} mientras se muestra
-var _escapes: Array = []
-var _avion: Dictionary = {}    # avión cruzando: {textura, celda, bando, t}       # gatos corriendo a salvo: {hoja, de, hacia_x, t}
+var _escapes: Array = []       # gatos corriendo a salvo: {hoja, de, hacia_x, t}
+var _avion: Dictionary = {}    # avión cruzando: {textura, celda, bando, t}
+var _dado: Dictionary = {}     # dado del frente rodando: {valor, nombre, texto, t, cara, cambio}
+var _clima := ""               # "lluvia" o "niebla" mientras se ve el evento del dado
 
 
 func preparar(c) -> void:
@@ -92,6 +96,8 @@ func sincronizar() -> void:
 	for u in combate.aliados + combate.enemigos:
 		_vista[u.get("clave", "")] = {"celda": Vector2(u["pos"]), "orientacion": u["orientacion"],
 			"casco": u["casco"], "escudo": u["escudo"], "vivo": combate.vivo(u)}
+	if _clima != "" and not combate.evento_activo(_clima):
+		_clima = ""
 
 
 func encolar(datos: Dictionary) -> void:
@@ -104,7 +110,8 @@ func encolar(datos: Dictionary) -> void:
 func _process(delta: float) -> void:
 	var hay_marcas: bool = combate != null and not (combate.aereo_pendiente.is_empty() and combate.aereo_enemigo_plan.is_empty())
 	var hay_efectos: bool = hay_marcas or not (_flotantes.is_empty() and _trazos.is_empty() and _explosiones.is_empty() \
-		and _temblor.is_empty() and _escapes.is_empty()) or _hay_restos() or not peligro.is_empty()
+		and _temblor.is_empty() and _escapes.is_empty()) or _hay_restos() or not peligro.is_empty() \
+		or _clima != ""
 	_envejecer(delta)
 	if not _cola.is_empty():
 		_avanzar(delta)
@@ -134,6 +141,9 @@ func _avanzar(delta: float) -> void:
 	var a: Dictionary = _cola[0]
 	if a["tipo"] == "avion":
 		_avanzar_avion(a, delta)
+		return
+	if a["tipo"] == "dado":
+		_avanzar_dado(a, delta)
 		return
 	var v: Dictionary = _vista.get(a["clave"], {})
 	if v.is_empty():  # unidad desconocida: se salta
@@ -171,6 +181,31 @@ func _avanzar(delta: float) -> void:
 	if _t >= dur:
 		if a["tipo"] == "golpe" and a["derriba"]:
 			_terminar_killcam(a, v)
+		_cola.pop_front()
+		_t = 0.0
+		_iniciada = false
+
+
+## Dado del frente: rueda saltando, cae en su número y muestra el evento.
+func _avanzar_dado(a: Dictionary, delta: float) -> void:
+	if not _iniciada:
+		_iniciada = true
+		_sonar("dado")
+		_dado = {"valor": a["valor"], "nombre": a["nombre"], "texto": a["texto"], "t": 0.0, "cara": 1, "cambio": 0.0}
+	_t += delta
+	_dado["t"] = _t
+	if _t < RUEDA_DADO:
+		_dado["cambio"] -= delta
+		if _dado["cambio"] <= 0.0:
+			_dado["cambio"] = 0.06 + _t * 0.08  # rueda cada vez más lento
+			_dado["cara"] = (int(_dado["cara"]) + randi_range(1, 5) - 1) % 6 + 1
+	else:
+		_dado["cara"] = a["valor"]
+		var id: String = combate.EVENTOS_FRENTE[int(a["valor"])]["id"]
+		if id in ["lluvia", "niebla"]:
+			_clima = id
+	if _t >= DUR_DADO:
+		_dado = {}
 		_cola.pop_front()
 		_t = 0.0
 		_iniciada = false
@@ -246,6 +281,9 @@ func _iniciar(a: Dictionary, v: Dictionary) -> void:
 				_sonar("explosion")
 				return
 			_temblor[a["clave"]] = DUR_TEMBLOR
+			if a.get("lado") == "panza":  # mina: explota debajo del tanque
+				_explosiones.append({"pos": _centro(v), "t": 0.0})
+				_sonar("explosion")
 			var texto := "-%d" % a["al_casco"]
 			var color: Color = COLORES_TEXTO["dano"]
 			if a["al_casco"] == 0:
@@ -357,8 +395,75 @@ func _draw() -> void:
 	_dibujar_efectos(fuente)
 	_dibujar_escapes()
 	_dibujar_avion()
+	_dibujar_clima()
 	if not _killcam.is_empty():
 		_dibujar_killcam(fuente)
+	_dibujar_dado(fuente)
+
+
+## Lluvia (rayitas cayendo) o niebla (velo blanco con nubes que pasan) sobre todo el tablero.
+func _dibujar_clima() -> void:
+	if _clima == "":
+		return
+	var t := Time.get_ticks_msec() / 1000.0
+	if _clima == "lluvia":
+		draw_rect(Rect2(Vector2.ZERO, size), Color(0.1, 0.2, 0.4, 0.12))
+		for i in 90:
+			var x := 6.0 + fmod(i * 97.3 + t * 140.0, size.x - 6.0)
+			var y := fmod(i * 53.7 + t * 520.0, size.y - 14.0)
+			draw_line(Vector2(x, y), Vector2(x - 5, y + 14), Color(0.75, 0.88, 1.0, 0.55), 1.5)
+	else:
+		draw_rect(Rect2(Vector2.ZERO, size), Color(0.88, 0.9, 0.94, 0.28))
+		for i in 7:
+			var x := 90.0 + fmod(i * 173.0 + t * 18.0, maxf(size.x - 180.0, 1.0))
+			var y := 90.0 + fmod(i * 97.0, maxf(size.y - 180.0, 1.0))
+			draw_circle(Vector2(x, y), 60.0 + 10.0 * (i % 3), Color(0.95, 0.96, 0.98, 0.18))
+
+
+## El dado grande en el centro: salta mientras rueda y después dice qué pasó.
+func _dibujar_dado(fuente: Font) -> void:
+	if _dado.is_empty():
+		return
+	var t: float = _dado["t"]
+	var rodando := t < RUEDA_DADO
+	var centro := size / 2 - Vector2(0, 40)
+	# Franja oscura detrás del dado y del texto, de lado a lado del tablero.
+	var franja := Rect2(Vector2(0, centro.y - 110), Vector2(size.x, 290))
+	draw_rect(franja, Color(0.06, 0.07, 0.12, 0.82))
+	draw_rect(Rect2(franja.position, Vector2(size.x, 4)), Color("ffe08a"))
+	draw_rect(Rect2(franja.position + Vector2(0, franja.size.y - 4), Vector2(size.x, 4)), Color("ffe08a"))
+	var salto := -absf(sin(t * 9.0)) * 34.0 * (1.0 - t / RUEDA_DADO) if rodando else 0.0
+	var giro := sin(t * 23.0) * 0.4 * (1.0 - t / RUEDA_DADO) if rodando else 0.0
+	var escala := 1.0 if rodando else 1.0 + 0.3 * maxf(0.0, 1.0 - (t - RUEDA_DADO) * 5.0)
+	var lado := 104.0 * escala
+	draw_circle(centro + Vector2(0, lado * 0.62), lado * 0.45 + salto * 0.2, Color(0, 0, 0, 0.3))  # sombra
+	draw_set_transform(centro + Vector2(0, salto), giro)
+	var caja := Rect2(-Vector2(lado, lado) / 2, Vector2(lado, lado))
+	draw_rect(caja.grow(4), COLOR_TINTA)
+	draw_rect(caja, Color("fbf6ea"))
+	draw_rect(Rect2(caja.position + Vector2(0, lado - 10), Vector2(lado, 10)), Color("e3dac4"))
+	var cara := int(_dado["cara"])
+	var puntos := {1: [Vector2(0, 0)], 2: [Vector2(-1, -1), Vector2(1, 1)],
+		3: [Vector2(-1, -1), Vector2(0, 0), Vector2(1, 1)],
+		4: [Vector2(-1, -1), Vector2(1, -1), Vector2(-1, 1), Vector2(1, 1)],
+		5: [Vector2(-1, -1), Vector2(1, -1), Vector2(0, 0), Vector2(-1, 1), Vector2(1, 1)],
+		6: [Vector2(-1, -1), Vector2(1, -1), Vector2(-1, 0), Vector2(1, 0), Vector2(-1, 1), Vector2(1, 1)]}
+	for pto in puntos[cara]:
+		draw_circle(pto * lado * 0.28, lado * 0.085, Color("d6334a") if cara == 1 else COLOR_TINTA)
+	draw_set_transform(Vector2.ZERO)
+	if rodando:
+		_texto_centrado(fuente, "¡Dado del frente!", centro.y + 100, 24, Color("ffe08a"))
+		return
+	var id: String = combate.EVENTOS_FRENTE[int(_dado["valor"])]["id"]
+	var color := Color("8ad0ff") if id in ["lluvia", "niebla"] else Color("ffe08a")
+	_texto_centrado(fuente, _dado["nombre"], centro.y + 100, 32, color)
+	_texto_centrado(fuente, _dado["texto"], centro.y + 136, 17, Color.WHITE)
+
+
+func _texto_centrado(fuente: Font, texto: String, y: float, tam: int, color: Color) -> void:
+	for d in [Vector2(2, 2), Vector2.ZERO]:
+		draw_string(fuente, Vector2(20, y) + d, texto, HORIZONTAL_ALIGNMENT_CENTER, size.x - 40, tam,
+			Color(0, 0, 0, 0.8) if d != Vector2.ZERO else color)
 
 
 ## Casillas marcadas para un ataque aéreo: mira azul (el tuyo) o roja (el enemigo, ¡salir de ahí!).
@@ -494,6 +599,8 @@ func _dibujar_killcam(fuente: Font) -> void:
 			draw_arc(punto, lerpf(60.0, 8.0, p), 0, TAU, 24, Color("e84a5f"), 3.0)
 		else:
 			var desde := punto + Vector2((s if lado == "frente" else -s) * 220.0, -6)
+			if lado == "panza":
+				desde = punto + Vector2(0, 220)  # la mina explota desde abajo
 			if lado == "techo":
 				desde = punto + Vector2(-60, -220)  # cae desde el avión
 			var bala := desde.lerp(punto, p)
@@ -504,7 +611,8 @@ func _dibujar_killcam(fuente: Font) -> void:
 		draw_circle(punto, 10.0 + 50.0 * pe, Color(1.0, 0.55, 0.15, 0.85 * (1.0 - pe)))
 		draw_circle(punto, 6.0 + 26.0 * pe, Color(1.0, 0.92, 0.55, 1.0 - pe))
 
-	var nombres_lado := {"frente": "el frente", "flanco": "el flanco", "trasera": "la trasera", "techo": "el techo (desde el aire)"}
+	var nombres_lado := {"frente": "el frente", "flanco": "el flanco", "trasera": "la trasera", "techo": "el techo (desde el aire)",
+		"panza": "la panza (¡una mina!)"}
 	var texto := "¡Derribado! Impacto por %s · -%d" % [nombres_lado.get(lado, lado), _killcam["dano"]]
 	if t > SALTO_GATO_KC:
 		texto = "¡%s salta del tanque y escapa a salvo!" % u["nombre"]
@@ -652,6 +760,9 @@ func _icono_intencion(esquina: Vector2, a: Dictionary) -> void:
 	elif a.get("paralizado", false):
 		fondo = Color("6b6b78")
 		texto = "?"
+	elif a.get("averia", false):
+		fondo = Color("c0702c")
+		texto = "!!"
 	elif a.has("dano"):
 		icono = "mira"
 		texto = str(int(a["dano"]))

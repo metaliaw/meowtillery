@@ -1,0 +1,20 @@
+[
+  {"id": "primera_victoria", "nombre": "¡Primera victoria!", "texto": "Gana una batalla."},
+  {"id": "sin_bajas", "nombre": "Sin un rasguño", "texto": "Gana una batalla sin perder ningún tanque."},
+  {"id": "por_la_espalda", "nombre": "Por la espalda", "texto": "Derriba un tanque disparándole por la trasera."},
+  {"id": "emboscada_perfecta", "nombre": "Emboscada perfecta", "texto": "Derriba un tanque con Cannoli sin haberlo movido ese turno."},
+  {"id": "david_goliat", "nombre": "David contra Goliat", "texto": "Tu tanque con menos vida derriba al tanque con más vida del rival."},
+  {"id": "desde_el_cielo", "nombre": "Desde el cielo", "texto": "Derriba un tanque con tu avión de apoyo (Veterano y As)."},
+  {"id": "esquivado", "nombre": "¡Esquivado!", "texto": "Saca tu tanque de la mira roja y haz que el avión enemigo falle (As)."},
+  {"id": "por_los_bigotes", "nombre": "Por los bigotes", "texto": "Un tanque tuyo se salva quedando con 1 de vida."},
+  {"id": "a_la_orden", "nombre": "¡A la orden, teniente!", "texto": "Cumple una orden de la Teniente Michi."},
+  {"id": "banquete", "nombre": "Banquete", "texto": "Saca un 6 en el dado del frente: ¡pescado para todos!"},
+  {"id": "pisando_huevos", "nombre": "Pisando huevos", "texto": "Pasa por un campo minado y gana sin que te explote ninguna mina."},
+  {"id": "as_de_ases", "nombre": "As de ases", "texto": "Gana una batalla en dificultad As."},
+  {"id": "gira_mundial", "nombre": "Gira mundial", "texto": "Gana al menos una batalla con cada uno de los 4 batallones."},
+  {"id": "campana_britanico", "nombre": "Campaña británica", "texto": "Termina la campaña con los británicos."},
+  {"id": "campana_sovietico", "nombre": "Campaña soviética", "texto": "Termina la campaña con los soviéticos."},
+  {"id": "campana_estadounidense", "nombre": "Campaña estadounidense", "texto": "Termina la campaña con los estadounidenses."},
+  {"id": "campana_italiano", "nombre": "Campaña italiana", "texto": "Termina la campaña con los italianos."},
+  {"id": "gato_de_biblioteca", "nombre": "Gato de biblioteca", "texto": "Mira todas las fichas técnicas."}
+]

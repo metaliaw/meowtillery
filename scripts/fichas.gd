@@ -91,6 +91,7 @@ func _ready() -> void:
 
 func _mostrar(i: int) -> void:
 	var f: Dictionary = _fichas[i]
+	Trofeos.ficha_vista(i, _fichas.size())
 	_titulo.text = "%s  ·  %s, %s" % [f["nombre"], f["pais"], f["anio"]]
 	_imagen.texture = load(f["sprite"])
 	if f.get("avion", false):

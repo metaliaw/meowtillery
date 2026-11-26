@@ -69,6 +69,16 @@ godot --headless --path . -s tests/test_combate.gd
   tiene el suyo: desde el turno 3 marca con una mira roja la casilla de tu tanque más
   dañado y ataca al empezar su fase; si lo sacas de ahí, falla. Los aviones están en las
   fichas técnicas y se dibujan en `tools/generar_sprites.py` (`assets/aviones/`).
+- **Dado del frente.** Al empezar el turno 3 de cada batalla se tira un dado y pasa algo
+  ese turno (el tuyo y la fase enemiga): 1 lluvia (todos mueven 1 menos), 2 niebla (nadie
+  dispara a más de 2), 3 suministros (+1 energía), 4 cartas de casa (+1 moral), 5 avería
+  (un enemigo no actúa, cartelito "!!") y 6 pescado para todos (reparas 2). En Recluta
+  solo salen del 3 al 6. Usa su propio generador, así que no cambia el resto de una
+  partida con semilla. Constantes en `Combate.EVENTOS_FRENTE`.
+- **Trofeos.** 18 logros en `data/trofeos.json` (autoload `Trofeos`, guardados en
+  `user://trofeos.json`), con una vitrina en el menú. El combate avisa las hazañas con la
+  señal `hazana` y la escena las anuncia al terminar la animación (cartel arriba de la
+  pantalla, con su sonido). La copa se dibuja con `tools/generar_trofeo.py`.
 - **Línea de visión.** Las rocas tapan: no se puede disparar si la línea entre los dos
   tanques pasa por una (rozar la esquina no cuenta). La *Artillería* sí, porque cae
   desde arriba. La zona roja de amenaza enemiga también la respeta.
@@ -102,7 +112,14 @@ godot --headless --path . -s tests/test_combate.gd
   disparar a un costado o por detrás hace mucho más daño.
   Daño que entra = daño − (blindaje del lado + cobertura del terreno − penetración), mínimo 1.
 - **Terreno.** Llano (coste 1), bosque (coste 2, +1 cobertura), ruinas (coste 2,
-  +2 cobertura) y roca (intransitable).
+  +2 cobertura) y roca (intransitable). Desierto: arena (1), arena blanda (2), duna (2,
+  +1, tapa la vista) y campo minado (al pasar se tira un dado: con 1 o 2 explota, 5 de
+  daño por la panza, y queda arena blanda). Río: el agua no se cruza pero se ve por
+  encima; puente (1) y vado (3). Propiedades del terreno en el JSON del mapa:
+  `tapa_vista`, `mina`.
+- **Mapas.** Pradera (`data/mapa.json`), colinas, bosque, ciudad, desierto y río
+  (`data/mapas/`). En batalla suelta se elige uno o al azar; la campaña usa colinas y
+  bosque (Recluta), desierto y río (Veterano) y la ciudad (As, la final).
 - **Moral.** Cada impacto de 5 o más baja 1 de moral. Con 0 la tripulación entra en
   pánico y ese tanque no puede atacar (*Arenga* la recupera). Un enemigo en pánico
   pierde su turno y se recupera.
@@ -132,7 +149,7 @@ godot --headless --path . -s tests/test_combate.gd
 | `tools/qa/` | `bot.gd` (jugador automático) y `simular.gd`: juega cientos de batallas para medir balance (`godot --headless --path . -s tools/qa/simular.gd`, o `-- --azar` para un bot al azar, `-- --mapa=bosque` para un mapa de campaña). |
 | `scripts/escena_combate.gd` | Interfaz: fichas, mano de cartas, registro, menú de pausa. |
 | `scripts/ficha.gd` | Ficha visual de un tanque: retrato del gato, tanque visto desde arriba con el blindaje de cada lado (rojo = delgado, verde = grueso; anillo amarillo en el lado donde le pegas), barras de casco y moral, movimiento, escudo, terreno y manía. |
-| `scripts/campana.gd`, `data/mapas/` | Pantallas de campaña (elegir batallón, progreso con medallas y Arsenal, recompensa, final) y sus tres mapas. |
+| `scripts/campana.gd`, `data/mapas/` | Pantallas de campaña (elegir batallón, progreso con medallas y Arsenal, recompensa, final) y sus mapas. |
 | `scripts/fichas.gd`, `data/fichas.json` | Pantalla de fichas técnicas con datos reales de cada tanque. |
 | `scripts/menu.gd`, `scripts/tutorial.gd` | Pantalla de inicio y tutorial de 10 páginas guiado por Muffy (instructora) y la teniente Michi (explica las cartas). |
 | `scripts/gato_animado.gd` | Anima a un gato desde su hoja de sprites. Por defecto, Muffy (`assets/muchi/`, el archivo conserva el nombre original del personaje; arte propio de la autora, todos los derechos reservados). |

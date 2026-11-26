@@ -25,7 +25,7 @@ const PAGINAS := [
 		"anim": "happy",
 	},
 	{
-		"texto": "El campo de batalla es una mesa de cartas. El llano cuesta 1 de movimiento. El bosque y las ruinas cuestan 2, pero te cubren: +1 y +2 de blindaje. Las cartas boca abajo son rocas: por ahí no se pasa y no se ve, así que tampoco se dispara a través de ellas (la artillería sí, porque cae desde arriba).",
+		"texto": "El campo de batalla es una mesa de cartas. El llano cuesta 1 de movimiento. El bosque y las ruinas cuestan 2, pero te cubren: +1 y +2 de blindaje. Las cartas boca abajo son rocas: por ahí no se pasa y no se ve, así que tampoco se dispara a través de ellas (la artillería sí, porque cae desde arriba). En el desierto las dunas también tapan la vista y las minas (⚠) explotan con un 1 o un 2 en el dado; el río no se cruza, salvo por el puente o el vado.",
 		"imagenes": ["res://assets/terreno/llano_0.png", "res://assets/terreno/bosque_0.png",
 			"res://assets/terreno/ruinas_0.png", "res://assets/terreno/roca_0.png"],
 		"escala": 2,
@@ -56,7 +56,7 @@ const PAGINAS := [
 		"anim": "angry",
 	},
 	{
-		"texto": "Cuando no te quede nada por hacer, pulsa Terminar turno. ¡Derrota a todos los enemigos para ganar! Cada tanque que derribes te deja elegir una de sus cartas de botín, y lo que no uses se guarda en tu Arsenal. En Veterano y As puedes pedir un avión una vez por batalla; en As el enemigo también: si ves una mira roja, ¡sal de esa casilla! Y tranquilo: si un tanque cae, su gato siempre salta y escapa a salvo. ¿Lista la tripulación?",
+		"texto": "Cuando no te quede nada por hacer, pulsa Terminar turno. ¡Derrota a todos los enemigos para ganar! Cada tanque que derribes te deja elegir una de sus cartas de botín, y lo que no uses se guarda en tu Arsenal. En Veterano y As puedes pedir un avión una vez por batalla; en As el enemigo también: si ves una mira roja, ¡sal de esa casilla! En el turno 3 se tira el dado del frente: puede llover, haber niebla o llegar pescado para todos. Y tranquilo: si un tanque cae, su gato siempre salta y escapa a salvo. ¿Lista la tripulación?",
 		"anim": "happy",
 	},
 ]

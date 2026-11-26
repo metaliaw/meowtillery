@@ -69,6 +69,8 @@ func _ready() -> void:
 	_boton(botones, "Campaña", func(): get_tree().change_scene_to_file("res://scenes/campana.tscn"))
 	_boton(botones, "Cómo se juega", func(): get_tree().change_scene_to_file(ESCENA_TUTORIAL))
 	_boton(botones, "Fichas técnicas", func(): get_tree().change_scene_to_file("res://scenes/fichas.tscn"))
+	_boton(botones, "Trofeos (%d/%d)" % [Trofeos.cuantos(), Trofeos.lista().size()],
+		func(): get_tree().change_scene_to_file("res://scenes/vitrina.tscn"))
 	if not OS.has_feature("web"):  # en el navegador no hay ventana que cerrar
 		_boton(botones, "Salir", func(): get_tree().quit())
 	botones.add_child(ControlSonido.new())

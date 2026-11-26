@@ -20,6 +20,8 @@ signal evento(nombre: String)
 ##   golpe    {al_casco, absorbido, casco, escudo, derriba, lado, voz}
 ##   texto    {texto, color: "escudo"|"moral"|"malo", escudo, moral}
 signal accion(datos: Dictionary)
+## Algo digno de un trofeo (ids de data/trofeos.json). La escena se lo pasa al autoload Trofeos.
+signal hazana(id: String)
 
 const Mapa := preload("res://scripts/mapa.gd")
 
@@ -40,6 +42,21 @@ const TURNO_AVION_ENEMIGO := 3
 const GOLPE_QUE_SALTA_REMACHES := 7
 const DISTANCIA_CAMUFLAJE := 3
 const PENALIZACION_FUERA_DEL_FRENTE := 2
+## Dado de eventos del frente: al empezar el turno TURNO_DADO se tira un dado de 6 y pasa
+## algo que dura ese turno (el tuyo y la fase enemiga que le sigue).
+## Minas (mapa del desierto): al pasar por una se tira un dado; con 1 o 2, explota.
+const DANO_MINA := 5
+const MINA_EXPLOTA_HASTA := 2
+const TURNO_DADO := 3
+const ALCANCE_NIEBLA := 2
+const EVENTOS_FRENTE := {
+	1: {"id": "lluvia", "nombre": "Lluvia", "texto": "Barro por todas partes: todos se mueven 1 casilla menos este turno."},
+	2: {"id": "niebla", "nombre": "Niebla", "texto": "No se ve nada: nadie dispara a más de 2 casillas este turno."},
+	3: {"id": "suministros", "nombre": "Suministros", "texto": "¡Llegó un camión! +1 de energía este turno."},
+	4: {"id": "cartas", "nombre": "Cartas de casa", "texto": "Correo desde casa: +1 de moral a tus gatos."},
+	5: {"id": "averia", "nombre": "Avería", "texto": "Un tanque enemigo se avería y no actúa este turno."},
+	6: {"id": "pescado", "nombre": "¡Pescado para todos!", "texto": "Banquete: tus tanques reparan 2 de vida."},
+}
 
 var mapa := Mapa.new()
 var aliados: Array = []
@@ -89,7 +106,22 @@ var aereo_pendiente: Dictionary = {}
 var aereo_enemigo_plan: Dictionary = {}
 ## Para las pruebas: si es >= 0, reemplaza la tirada de puntería (0.0 acierta, 0.99 roza).
 var forzar_tirada := -1.0
+## Dado del frente: activado por Partida en las batallas de verdad (las pruebas lo prenden a mano).
+var eventos_frente := false
+## Lo que salió: {"valor", "id", "nombre", "texto", "turno"}; vacío = todavía no se tiró.
+var evento_frente: Dictionary = {}
+## Para las pruebas: 1..6 fija el dado.
+var forzar_dado := 0
+## Para las pruebas: 1..6 fija el dado de las minas.
+var forzar_mina := 0
+## Minas por las que pasaron tus tanques y cuántas les explotaron (trofeo "Pisando huevos").
+var minas_pisadas := 0
+var minas_explotadas := 0
+## Rng aparte para el dado, así no cambia el resto de la partida de una semilla.
+var _rng_dado := RandomNumberGenerator.new()
 var _spawns_aliados: Array = []
+## Quién está atacando ahora (para los trofeos): el tanque propio, o {"aereo": true}.
+var _atacante: Dictionary = {}
 
 
 ## semilla >= 0 hace la partida reproducible (útil en pruebas).
@@ -98,6 +130,10 @@ func iniciar(def_mapa: Dictionary, def_aliados: Array, def_enemigos: Array, def_
 		rng.seed = semilla
 	else:
 		rng.randomize()
+	_rng_dado.seed = rng.seed + 7
+	evento_frente = {}
+	minas_pisadas = 0
+	minas_explotadas = 0
 	mapa = Mapa.new()
 	mapa.cargar(def_mapa)
 	_spawns_aliados = def_mapa["aliados"].map(func(par): return _celda(par))
@@ -299,7 +335,9 @@ func _motivo_comun(c: Dictionary, actor: Dictionary, i_objetivo: int) -> String:
 		if not hay_objetivo:
 			return "Elige un enemigo en pie."
 		var dist := Mapa.distancia(actor["pos"], enemigos[i_objetivo]["pos"])
-		var alc: Array = c["alcance"]
+		var alc: Array = alcance_de(c)
+		if evento_activo("niebla") and dist > ALCANCE_NIEBLA:
+			return "Hay niebla: este turno no se ve a más de %d casillas." % ALCANCE_NIEBLA
 		if dist < alc[0] or dist > alc[1]:
 			return "Fuera de alcance: distancia %d, alcance %d-%d." % [dist, alc[0], alc[1]]
 		if not ve_a(c, actor["pos"], enemigos[i_objetivo]["pos"]):
@@ -482,6 +520,7 @@ func _aplicar(id: String, i_actor: int, i_objetivo: int) -> void:
 			dano = maxi(dano / 2, 1)
 			_anotar("  ¡Roce! El disparo apenas lo toca (mitad de daño).")
 			_avisar(objetivo, "¡Roce!", "malo")
+		_atacante = actor
 		golpear(objetivo, dano, int(c.get("penetracion", 0)), lado, _cobertura_para(c, objetivo))
 		var salpicadura := int(c.get("salpicadura", 0))
 		if salpicadura > 0:
@@ -490,6 +529,7 @@ func _aplicar(id: String, i_actor: int, i_objetivo: int) -> void:
 				if vecino.get("bando") == "enemigo":
 					var e: Dictionary = enemigos[vecino["indice"]]
 					golpear(e, salpicadura, 0, lado_de_impacto(e, actor["pos"]), _cobertura_para(c, e))
+		_atacante = {}
 
 	var radio := int(c.get("radio", 0))
 	var receptores := aliados.filter(func(a): return vivo(a) and Mapa.distancia(a["pos"], actor["pos"]) <= radio)
@@ -596,6 +636,8 @@ func golpear(u: Dictionary, dano: int, penetracion: int, lado: String, cobertura
 		texto += ". ¡Fuera de combate! El gato escapa a salvo."
 		evento.emit("explosion")
 		_capturar_de(u)
+		if u["bando"] == "enemigo":
+			_hazanas_de_derribo(u, lado)
 	_anotar(texto)
 	if salvado:
 		_anotar("  ¡%s se salva por los bigotes! Queda con 1 de vida." % u["nombre"])
@@ -606,7 +648,25 @@ func golpear(u: Dictionary, dano: int, penetracion: int, lado: String, cobertura
 		"derriba": not vivo(u), "voz": "susto" if entra_en_panico or salvado else "", "lado": lado})
 	if salvado:
 		_avisar(u, "¡Salvado por los bigotes!", "moral")
+		hazana.emit("por_los_bigotes")
 	return i["al_casco"]
+
+
+## Trofeos que se ganan al derribar a un enemigo (según quién y cómo).
+func _hazanas_de_derribo(u: Dictionary, lado: String) -> void:
+	if _atacante.get("aereo", false):
+		hazana.emit("desde_el_cielo")
+		return
+	if _atacante.is_empty():
+		return
+	if lado == "trasera":
+		hazana.emit("por_la_espalda")
+	if _atacante.get("mania") == "emboscador" and not _atacante.get("se_movio", false):
+		hazana.emit("emboscada_perfecta")
+	var menos_vida: int = aliados.map(func(a): return int(a["casco_max"])).min()
+	var mas_vida: int = enemigos.map(func(e): return int(e["casco_max"])).max()
+	if menos_vida < mas_vida and int(_atacante["casco_max"]) == menos_vida and int(u["casco_max"]) == mas_vida:
+		hazana.emit("david_goliat")
 
 
 ## Manía "dramático": tras un golpe fuerte grita y el resto de su bando gana 1 de moral.
@@ -751,10 +811,13 @@ func texto_intencion(u: Dictionary) -> String:
 		return ""
 	if a.get("paralizado", false):
 		return "En pánico: pierde el turno"
+	if a.get("averia", false):
+		return "Avería: este turno no actúa"
 	if a.get("reserva", false):
 		return "En reserva: este turno no actúa (solo actúan %d)" % acciones_max()
 	if a.has("dano"):
-		return "%s: %d daño, alcance %d-%d, al más cercano" % [a["nombre"], int(a["dano"]), a["alcance"][0], a["alcance"][1]]
+		var alc: Array = alcance_de(a)
+		return "%s: %d daño, alcance %d-%d, al más cercano" % [a["nombre"], int(a["dano"]), alc[0], alc[1]]
 	if a.has("moral"):
 		return "%s: -%d moral a quien esté a %d o menos" % [a["nombre"], int(a["moral"]), int(a.get("radio", 99))]
 	if a.has("escudo"):
@@ -769,10 +832,11 @@ func celdas_amenaza(e: Dictionary, alcance_max: int = 99) -> Dictionary:
 	var a: Dictionary = e["intencion"]
 	if not vivo(e) or not a.has("dano"):
 		return res
-	var alc: Array = [a["alcance"][0], mini(a["alcance"][1], alcance_max)]
+	var alc: Array = alcance_de(a)
+	alc[1] = mini(alc[1], alcance_max)
 	if alc[1] < alc[0]:
 		return res
-	for origen in casillas_de_movimiento(e, e["movimiento"]):
+	for origen in casillas_de_movimiento(e, movimiento_de(e)):
 		for dy in range(-alc[1], alc[1] + 1):
 			for dx in range(-alc[1], alc[1] + 1):
 				var dist := absi(dx) + absi(dy)
@@ -809,8 +873,11 @@ func _ataque_aereo(id: String, celda: Vector2i, bando: String) -> void:
 			blanco = u
 	if blanco.is_empty():
 		_anotar("  ¡El %s ataca (%d, %d), pero ahí ya no hay nadie!" % [c["nombre"], celda.x, celda.y])
+		if bando == "enemigo":
+			hazana.emit("esquivado")
 	else:
 		_anotar("  ¡El %s ataca a %s desde el aire!" % [c["nombre"], blanco["nombre"]])
+		_atacante = {"aereo": true} if bando == "aliado" else {}
 		golpear(blanco, int(c["dano"]), int(c.get("penetracion", 0)), "techo", 0)
 		if vivo(blanco) and c.has("baja_moral"):
 			blanco["moral"] = maxi(blanco["moral"] - int(c["baja_moral"]), 0)
@@ -820,6 +887,7 @@ func _ataque_aereo(id: String, celda: Vector2i, bando: String) -> void:
 		for u in victimas:
 			if vivo(u) and Mapa.distancia(u["pos"], celda) == 1:
 				golpear(u, salpicadura, 0, "techo", 0)
+	_atacante = {}
 
 
 ## Avión enemigo (As): desde el turno TURNO_AVION_ENEMIGO, una vez por batalla, marca la
@@ -874,7 +942,68 @@ func _iniciar_turno() -> void:
 	_robar(CARTAS_POR_TURNO)
 	_elegir_intenciones()
 	_anotar("== Turno %d ==" % turno)
+	_tirar_dado()
 	_dar_orden()
+
+
+## Dado del frente (ver EVENTOS_FRENTE). En Recluta solo salen los buenos (3 a 6).
+func _tirar_dado() -> void:
+	if not eventos_frente or turno != TURNO_DADO or estado != "jugando":
+		return
+	var minimo := 3 if dificultad.get("dado_amable", false) else 1
+	var valor := forzar_dado if forzar_dado > 0 else _rng_dado.randi_range(minimo, 6)
+	var ev: Dictionary = EVENTOS_FRENTE[valor].duplicate()
+	ev["valor"] = valor
+	ev["turno"] = turno
+	evento_frente = ev
+	_anotar("¡Dado del frente: %d! %s. %s" % [valor, ev["nombre"], ev["texto"]])
+	accion.emit({"tipo": "dado", "clave": "", "valor": valor, "nombre": ev["nombre"], "texto": ev["texto"]})
+	evento.emit("dado")
+	match ev["id"]:
+		"lluvia":
+			for u in aliados:
+				u["mov_restante"] = mini(u["mov_restante"], movimiento_de(u))
+		"suministros":
+			energia += 1
+		"cartas":
+			for u in aliados:
+				if vivo(u) and u["moral"] < u["moral_max"]:
+					u["moral"] += 1
+					_avisar(u, "+1 moral", "moral")
+		"averia":
+			var candidatos: Array = []
+			for e in enemigos:
+				var a: Dictionary = e["intencion"]
+				if vivo(e) and not a.is_empty() and not a.get("reserva", false) and not a.get("paralizado", false):
+					candidatos.append(e)
+			if candidatos.is_empty():
+				_anotar("  Ningún enemigo iba a hacer nada: la avería no cambia nada.")
+			else:
+				var e: Dictionary = candidatos[_rng_dado.randi_range(0, candidatos.size() - 1)]
+				e["intencion"] = {"nombre": "Avería", "averia": true}
+				_avisar(e, "¡Avería!", "malo")
+		"pescado":
+			for u in aliados:
+				_reparar(u, 2)
+			hazana.emit("banquete")
+
+
+## ¿Está pasando este evento del dado ahora mismo?
+func evento_activo(id: String) -> bool:
+	return evento_frente.get("id", "") == id and int(evento_frente.get("turno", -1)) == turno
+
+
+## Movimiento de este turno (la lluvia quita 1, nunca baja de 1).
+func movimiento_de(u: Dictionary) -> int:
+	return maxi(int(u["movimiento"]) - (1 if evento_activo("lluvia") else 0), 1)
+
+
+## Alcance de una carta o acción este turno (con niebla, nada pasa de ALCANCE_NIEBLA).
+func alcance_de(c: Dictionary) -> Array:
+	var alc: Array = c["alcance"]
+	if evento_activo("niebla"):
+		return [alc[0], mini(alc[1], ALCANCE_NIEBLA)]
+	return [alc[0], alc[1]]
 
 
 ## Manía "mandona" del oficial: elige un tanque que pueda disparar y le ordena atacar.
@@ -900,6 +1029,7 @@ func _revisar_orden() -> void:
 	var u: Dictionary = aliados[orden]
 	if orden_cumplida:
 		energia_extra = 1
+		hazana.emit("a_la_orden")
 		_anotar("%s: «Aceptable.» +1 energía el próximo turno." % oficial["nombre"])
 	else:
 		u["moral"] = maxi(u["moral"] - 1, 0)
@@ -1012,7 +1142,8 @@ func dano_en_peligro(u: Dictionary) -> int:
 	var total := 0
 	for e in enemigos:
 		var a: Dictionary = e.get("intencion", {})
-		if not vivo(e) or not a.has("dano") or a.get("reserva", false) or a.get("paralizado", false):
+		if not vivo(e) or not a.has("dano") or a.get("reserva", false) or a.get("paralizado", false) \
+				or a.get("averia", false):
 			continue
 		var tope := DISTANCIA_CAMUFLAJE - 1 if u.get("camuflado", false) else 99
 		if not celdas_amenaza(e, tope).has(u["pos"]):
@@ -1046,6 +1177,9 @@ func _turno_enemigo_acciones() -> void:
 		if a.get("reserva", false):
 			_anotar("%s espera en reserva." % e["nombre"])
 			continue
+		if a.get("averia", false):
+			_anotar("%s está arreglando su avería y no actúa." % e["nombre"])
+			continue
 		if a.has("dano"):
 			_atacar_como_enemigo(e, a)
 		if a.has("moral"):
@@ -1068,12 +1202,12 @@ func _turno_enemigo_acciones() -> void:
 ## IA lista (Veterano/As): prueba cada casilla y cada blanco y se queda con el mayor
 ## daño esperado; prefiere rematar, pegarle al más dañado y quedar en cobertura.
 func _atacar_como_enemigo(e: Dictionary, a: Dictionary) -> void:
-	var opciones := casillas_de_movimiento(e, e["movimiento"])
+	var opciones := casillas_de_movimiento(e, movimiento_de(e))
 	var plan := _plan_listo(e, a, opciones) if dificultad.get("ia_lista", false) else _plan_simple(e, a, opciones)
 	if plan.is_empty():
 		return
 	var objetivo: Dictionary = plan["objetivo"]
-	var alc: Array = a["alcance"]
+	var alc: Array = alcance_de(a)
 	var mejor_celda: Vector2i = plan["celda"]
 	if mejor_celda != e["pos"]:
 		_mover_a(e, mejor_celda, opciones)
@@ -1096,7 +1230,7 @@ func _plan_simple(e: Dictionary, a: Dictionary, opciones: Dictionary) -> Diction
 	var objetivo := _aliado_mas_cercano(e["pos"])
 	if objetivo.is_empty():
 		return {}
-	var alc: Array = a["alcance"]
+	var alc: Array = alcance_de(a)
 	var mejor_celda: Vector2i = e["pos"]
 	var mejor_puntaje := -INF
 	for celda in opciones:
@@ -1114,7 +1248,7 @@ func _plan_simple(e: Dictionary, a: Dictionary, opciones: Dictionary) -> Diction
 
 
 func _plan_listo(e: Dictionary, a: Dictionary, opciones: Dictionary) -> Dictionary:
-	var alc: Array = a["alcance"]
+	var alc: Array = alcance_de(a)
 	var pen := int(a.get("penetracion", 0))
 	var original: Vector2i = e["pos"]
 	var mejor := {}
@@ -1178,6 +1312,32 @@ func _mover_a(u: Dictionary, celda: Vector2i, opciones: Dictionary) -> void:
 	u["se_movio"] = true
 	_descamuflar(u)
 	accion.emit({"tipo": "mover", "clave": u.get("clave", ""), "camino": camino, "orientacion": u["orientacion"]})
+	for paso in camino.slice(1):
+		if vivo(u) and mapa.terreno(paso).get("mina", false):
+			_pisar_mina(u, paso)
+
+
+## Pasar por una mina: dado de 6; con 1 o 2 explota (pega por la panza, sin blindaje que
+## valga) y la casilla queda como arena removida. Si no, ¡uf!
+func _pisar_mina(u: Dictionary, celda: Vector2i) -> void:
+	var valor := forzar_mina if forzar_mina > 0 else _rng_dado.randi_range(1, 6)
+	if u["bando"] == "aliado":
+		minas_pisadas += 1
+	if valor > MINA_EXPLOTA_HASTA:
+		_anotar("  %s pasa por el campo minado... dado %d: ¡uf, no explota!" % [u["nombre"], valor])
+		_avisar(u, "¡Uf! (dado %d)" % valor, "moral")
+		return
+	_anotar("  %s pisa una mina... dado %d: ¡BUM!" % [u["nombre"], valor])
+	if u["bando"] == "aliado":
+		minas_explotadas += 1
+	mapa.cambiar(celda, str(mapa_letra_crater()))
+	_avisar(u, "¡Mina! (dado %d)" % valor, "malo", "susto")
+	golpear(u, DANO_MINA, 99, "panza", 0)
+
+
+## Letra del terreno en que queda una mina que explotó (la "arena blanda" del mapa, o llano).
+func mapa_letra_crater() -> String:
+	return "s" if mapa._tipos.has("s") else "."
 
 
 ## Dijkstra sin límite práctico ni recorte de casillas ocupadas por los propios
@@ -1231,6 +1391,13 @@ func _comprobar_fin() -> void:
 		estado = "victoria"
 		_anotar("Victoria!")
 		evento.emit("victoria")
+		hazana.emit("primera_victoria")
+		if aliados.all(func(a): return vivo(a)):
+			hazana.emit("sin_bajas")
+		if minas_pisadas > 0 and minas_explotadas == 0:
+			hazana.emit("pisando_huevos")
+		if dificultad.get("nombre", "") == "As":
+			hazana.emit("as_de_ases")
 	elif _primer_vivo(aliados) < 0:
 		estado = "derrota"
 		_anotar("Derrota...")
@@ -1242,7 +1409,8 @@ func _anotar(texto: String) -> void:
 
 
 func _nombre_lado(lado: String) -> String:
-	return {"frente": "el frente", "flanco": "el flanco", "trasera": "la trasera"}.get(lado, lado)
+	return {"frente": "el frente", "flanco": "el flanco", "trasera": "la trasera", "techo": "el techo",
+		"panza": "la panza"}.get(lado, lado)
 
 
 ## JSON entrega números como float; posiciones y rangos se pasan a int.

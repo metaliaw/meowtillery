@@ -21,7 +21,7 @@ const BATALLAS_SIN_MICHI_MAX := 3
 ## Niveles de dificultad (ver Combate.dificultad). Calibrados con tools/qa/simular.gd.
 const DIFICULTADES := {
 	"recluta": {"nombre": "Recluta", "texto": "Para aprender. Actúan 2 enemigos por turno y pegan 2 menos.",
-		"acciones_max": 2, "bonus_dano": -2, "ia_lista": false, "salvavidas": true},
+		"acciones_max": 2, "bonus_dano": -2, "ia_lista": false, "salvavidas": true, "dado_amable": true},
 	"veterano": {"nombre": "Veterano", "texto": "El enemigo piensa: remata, flanquea, se cubre y pega 2 más. Un tanque sano no cae en un solo turno. De lejos puedes rozar. Tienes un avión de apoyo.",
 		"acciones_max": 3, "bonus_dano": 2, "ia_lista": true, "salvavidas": true, "punteria": true,
 		"aereo": true},
@@ -32,12 +32,21 @@ const DIFICULTADES := {
 
 ## Mapa de las partidas sueltas y mapas de la campaña.
 const MAPA_LIBRE := "res://data/mapa.json"
+## Mapas para elegir en la batalla suelta (nombre corto para el botón -> archivo).
+const MAPAS := {
+	"Pradera": MAPA_LIBRE,
+	"Colinas": "res://data/mapas/colinas.json",
+	"Bosque": "res://data/mapas/bosque.json",
+	"Ciudad": "res://data/mapas/ciudad.json",
+	"Desierto": "res://data/mapas/desierto.json",
+	"Río": "res://data/mapas/rio.json",
+}
 ## Campaña: 5 batallas seguidas. El rival alterna entre los otros dos batallones.
 const CAMPANA := [
 	{"dificultad": "recluta", "mapa": "res://data/mapas/colinas.json"},
 	{"dificultad": "recluta", "mapa": "res://data/mapas/bosque.json"},
-	{"dificultad": "veterano", "mapa": "res://data/mapas/ciudad.json"},
-	{"dificultad": "veterano", "mapa": "res://data/mapas/bosque.json"},
+	{"dificultad": "veterano", "mapa": "res://data/mapas/desierto.json"},
+	{"dificultad": "veterano", "mapa": "res://data/mapas/rio.json"},
 	{"dificultad": "as", "mapa": "res://data/mapas/ciudad.json"},
 ]
 const VIDA_POR_MEDALLA := 2
@@ -59,6 +68,8 @@ var arsenal: Array = []
 var llevar: Array = []  # posiciones del arsenal elegidas para la próxima batalla
 var archivo_arsenal := ARCHIVO_ARSENAL  # las pruebas usan otro archivo
 var mapa_actual := MAPA_LIBRE
+## Mapa elegido para la batalla suelta (una clave de MAPAS; "" = al azar).
+var mapa_elegido := ""
 ## Campaña en curso: {"batallon", "batalla" (0..5), "medallas": {id: n}, "recompensa": [ids]}.
 ## Vacío = no hay campaña. `modo_campana` dice si la batalla que se juega es de campaña.
 var campana: Dictionary = {}
@@ -120,7 +131,7 @@ func preparar_batalla_campana() -> void:
 ## Partida suelta (no campaña): mapa normal.
 func preparar_partida_libre() -> void:
 	modo_campana = false
-	mapa_actual = MAPA_LIBRE
+	mapa_actual = MAPAS.get(mapa_elegido, MAPAS.values()[randi() % MAPAS.size()])
 
 
 ## Victoria en campaña: medalla a cada gato que sigue en pie, avanza a la próxima batalla
@@ -266,6 +277,7 @@ static func iniciar_combate(combate, id_jugador: String, id_rival: String, semil
 	combate.oficial = OFICIAL if con_michi else {}
 	combate.dificultad = DIFICULTADES.get(id_dificultad, {})
 	combate.refuerzo = b[id_jugador].get("refuerzo", {})
+	combate.eventos_frente = true  # el dado del turno 3
 	# Apoyo aéreo (Veterano y As): un avión por batalla; en As, el rival también tiene el suyo.
 	combate.aereo = b[id_jugador].get("apoyo_aereo", "") if combate.dificultad.get("aereo", false) else ""
 	combate.aereo_rival = b[id_rival].get("apoyo_aereo", "") if combate.dificultad.get("aereo_enemigo", false) else ""

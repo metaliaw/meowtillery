@@ -1,0 +1,93 @@
+{
+  "nombre": "El río",
+  "terreno": {
+    ".": {
+      "nombre": "Llano",
+      "coste": 1,
+      "cobertura": 0,
+      "color": "6b8a52",
+      "textura": "llano"
+    },
+    "b": {
+      "nombre": "Bosque",
+      "coste": 2,
+      "cobertura": 1,
+      "color": "3c6b45",
+      "textura": "bosque"
+    },
+    "r": {
+      "nombre": "Ruinas",
+      "coste": 2,
+      "cobertura": 2,
+      "color": "7d7670",
+      "textura": "ruinas"
+    },
+    "~": {
+      "nombre": "Río (se ve por encima)",
+      "coste": -1,
+      "cobertura": 0,
+      "color": "6ea4dc",
+      "textura": "rio",
+      "tapa_vista": false
+    },
+    "=": {
+      "nombre": "Puente",
+      "coste": 1,
+      "cobertura": 0,
+      "color": "cea470",
+      "textura": "puente"
+    },
+    "v": {
+      "nombre": "Vado (cuesta 3)",
+      "coste": 3,
+      "cobertura": 0,
+      "color": "bec4ac",
+      "textura": "vado"
+    }
+  },
+  "filas": [
+    "..b...~..b..",
+    ".....b=.....",
+    "..b...~.b...",
+    "..r...~..r..",
+    ".b....~...b.",
+    "......v.....",
+    "..b..b~b...."
+  ],
+  "aliados": [
+    [
+      0,
+      2
+    ],
+    [
+      1,
+      3
+    ],
+    [
+      0,
+      4
+    ],
+    [
+      0,
+      0
+    ]
+  ],
+  "enemigos": [
+    [
+      10,
+      1
+    ],
+    [
+      10,
+      3
+    ],
+    [
+      9,
+      5
+    ],
+    [
+      10,
+      6
+    ]
+  ]
+}

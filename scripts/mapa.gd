@@ -11,7 +11,7 @@ var _tipos: Dictionary = {}
 
 
 func cargar(def: Dictionary) -> void:
-	_filas = def["filas"]
+	_filas = (def["filas"] as Array).duplicate()  # una mina que explota cambia el terreno
 	_tipos = def["terreno"]
 	alto = _filas.size()
 	ancho = (_filas[0] as String).length()
@@ -34,6 +34,27 @@ func transitable(c: Vector2i) -> bool:
 	return dentro(c) and coste(c) > 0
 
 
+## ¿La casilla tapa la vista? Por defecto, las intransitables sí (rocas) y las demás no;
+## el terreno puede decir otra cosa con "tapa_vista" (la duna tapa; el río no).
+func tapa_vista(c: Vector2i) -> bool:
+	return bool(terreno(c).get("tapa_vista", coste(c) <= 0))
+
+
+## ¿Hay alguna casilla con esta propiedad (por ejemplo "mina")?
+func tiene(propiedad: String) -> bool:
+	for y in alto:
+		for x in ancho:
+			if terreno(Vector2i(x, y)).get(propiedad, false):
+				return true
+	return false
+
+
+## Cambia el terreno de una casilla (letra de la tabla de terrenos).
+func cambiar(c: Vector2i, letra: String) -> void:
+	var fila: String = _filas[c.y]
+	_filas[c.y] = fila.substr(0, c.x) + letra + fila.substr(c.x + 1)
+
+
 ## Blindaje extra que da el terreno a quien está en la celda.
 func cobertura(c: Vector2i) -> int:
 	return int(terreno(c).get("cobertura", 0))
@@ -43,15 +64,15 @@ static func distancia(a: Vector2i, b: Vector2i) -> int:
 	return absi(a.x - b.x) + absi(a.y - b.y)
 
 
-## ¿Se ve `hasta` desde `desde`? Las rocas (casillas intransitables) tapan la vista si la
-## línea entre los centros pasa por el medio de la roca; rozarle una esquina no cuenta.
-## El bosque y las ruinas no tapan: dan cobertura.
+## ¿Se ve `hasta` desde `desde`? Las rocas y las dunas (ver tapa_vista) tapan la vista si la
+## línea entre los centros pasa por el medio; rozarles una esquina no cuenta.
+## El bosque y las ruinas no tapan: dan cobertura. Por encima del río se ve.
 func linea_de_vision(desde: Vector2i, hasta: Vector2i) -> bool:
 	var pasos := maxi(distancia(desde, hasta) * 8, 1)
 	for k in range(1, pasos):
 		var p := Vector2(desde).lerp(Vector2(hasta), float(k) / pasos)
 		var c := Vector2i(roundi(p.x), roundi(p.y))
-		if c == desde or c == hasta or not dentro(c) or coste(c) > 0:
+		if c == desde or c == hasta or not dentro(c) or not tapa_vista(c):
 			continue
 		if absf(p.x - c.x) < 0.45 and absf(p.y - c.y) < 0.45:
 			return false

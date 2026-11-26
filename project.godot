@@ -15,6 +15,7 @@ config/windows_native_icon="res://icon.ico"
 
 Sonido="*res://scripts/sonido.gd"
 Partida="*res://scripts/partida.gd"
+Trofeos="*res://scripts/trofeos.gd"
 
 [display]
 

@@ -35,6 +35,7 @@ var _fila_michi: HBoxContainer
 var _orden: Globo
 var _orden_anterior := -2  # para que Michi reaccione solo cuando cambia la orden
 var _fin_sonado := false
+var _hazanas: Array = []  # trofeos ganados en la acción que se está animando
 var _mano: HBoxContainer
 var _cara_actor: TextureRect
 var _atlas_cara := AtlasTexture.new()
@@ -65,6 +66,9 @@ func _nueva_partida() -> void:
 	combate.evento.connect(_al_evento)
 	# Cada acción se anima en el tablero, en orden (y ahí suenan disparos y explosiones).
 	combate.accion.connect(_tablero.encolar)
+	# Los trofeos se anuncian cuando termina la animación (después de la kill cam, no antes).
+	_hazanas.clear()
+	combate.hazana.connect(func(id: String): _hazanas.append(id))
 	_fin_sonado = false
 	var con_michi := Partida.nueva_batalla(combate)
 	_fila_michi.visible = con_michi
@@ -441,6 +445,9 @@ func _refrescar() -> void:
 		_bloquear()  # se refresca de verdad cuando termina la animación
 		return
 	_tablero.sincronizar()
+	for id in _hazanas:
+		Trofeos.conseguir(id)
+	_hazanas.clear()
 	actor_sel = _seleccion_valida(combate.aliados, actor_sel)
 	objetivo_sel = _seleccion_valida(combate.enemigos, objetivo_sel)
 	var actor: Dictionary = combate.aliados[actor_sel]
@@ -450,8 +457,11 @@ func _refrescar() -> void:
 	var energia := "Energía %d" % combate.energia
 	if combate.energia > Combate.ENERGIA_POR_TURNO:
 		energia += " (+%d extra)" % (combate.energia - Combate.ENERGIA_POR_TURNO)  # Michi o Recarga
-	_info.text = "%s   ·   Turno %d   ·   %s   ·   Elige un tanque para ver sus cartas" % [
-		combate.dificultad.get("nombre", ""), combate.turno, energia]
+	var evento_dado := ""
+	if not combate.evento_frente.is_empty() and combate.evento_activo(combate.evento_frente["id"]):
+		evento_dado = "   ·   Dado: %s" % combate.evento_frente["nombre"]
+	_info.text = "%s   ·   Turno %d   ·   %s%s   ·   Elige un tanque para ver sus cartas" % [
+		combate.dificultad.get("nombre", ""), combate.turno, energia, evento_dado]
 
 	_tablero.actor_pos = actor["pos"] if combate.vivo(actor) else Vector2i(-1, -1)
 	_tablero.objetivo_pos = objetivo["pos"] if combate.vivo(objetivo) else Vector2i(-1, -1)
@@ -525,8 +535,12 @@ func _refrescar() -> void:
 		_boton_volver.text = "Continuar campaña" if combate.estado == "victoria" else "Volver a la campaña"
 	if not jugando and not _fin_sonado:
 		_fin_sonado = true
+		if combate.estado == "victoria":
+			Trofeos.victoria_con(Partida.jugador, Partida.batallones().size())
 		if Partida.modo_campana and combate.estado == "victoria":
-			Partida.campana_ganada(combate)
+			var batallon: String = Partida.campana.get("batallon", "")
+			if Partida.campana_ganada(combate):
+				Trofeos.campana_terminada(batallon)
 		Sonido.tocar(combate.estado)
 		if combate.estado == "victoria":
 			# Después de la fanfarria, los gatos ronronean contentos.
@@ -564,7 +578,8 @@ func _celdas_a_tiro(actor: Dictionary) -> Dictionary:
 			for x in combate.mapa.ancho:
 				var celda := Vector2i(x, y)
 				var dist: int = Mapa.distancia(actor["pos"], celda)
-				if dist >= c["alcance"][0] and dist <= c["alcance"][1] and combate.ve_a(c, actor["pos"], celda):
+				var alc: Array = combate.alcance_de(c)
+				if dist >= alc[0] and dist <= alc[1] and combate.ve_a(c, actor["pos"], celda):
 					res[celda] = true
 	return res
 
