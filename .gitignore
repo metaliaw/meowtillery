@@ -8,3 +8,6 @@ build/*
 
 # Grabaciones originales (personales). Solo los recortes elegidos pasan a assets/sonidos/.
 grabaciones/
+
+# Dedicatoria del regalo (lleva un nombre: va en el zip de Windows, no en GitHub ni en la web).
+data/dedicatoria.json

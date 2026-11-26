@@ -8,6 +8,11 @@ const ControlSonido := preload("res://scripts/control_sonido.gd")
 
 const ESCENA_COMBATE := "res://scenes/eleccion.tscn"  # primero se elige batallón
 const ESCENA_TUTORIAL := "res://scenes/tutorial.tscn"
+## Dedicatoria del regalo: solo existe en la versión de Windows (no está en GitHub ni en la web).
+const ARCHIVO_DEDICATORIA := "res://data/dedicatoria.json"
+
+## Se muestra una vez cada vez que se abre el juego.
+static var _dedicatoria_vista := false
 
 var _muffy: Gato
 
@@ -88,6 +93,9 @@ func _ready() -> void:
 	for lado in ["left", "right", "top", "bottom"]:
 		esquina.add_theme_constant_override("margin_" + lado, 16)
 	add_child(esquina)
+	if not _dedicatoria_vista and FileAccess.file_exists(ARCHIVO_DEDICATORIA):
+		_dedicatoria_vista = true
+		_mostrar_dedicatoria.call_deferred()
 	var fila_idioma := HBoxContainer.new()
 	fila_idioma.alignment = BoxContainer.ALIGNMENT_END
 	fila_idioma.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
@@ -104,3 +112,55 @@ func _boton(padre: Control, texto: String, accion: Callable) -> void:
 	b.pressed.connect(accion)
 	b.mouse_entered.connect(func(): _muffy.animar("happy", 0.8))
 	padre.add_child(b)
+
+
+## Pantalla de dedicatoria encima del menú: Muffy y Michi, el texto, y un clic para seguir.
+func _mostrar_dedicatoria() -> void:
+	var d = JSON.parse_string(FileAccess.get_file_as_string(ARCHIVO_DEDICATORIA))
+	if not d is Dictionary:
+		return
+	var capa := ColorRect.new()
+	capa.color = Color("16302b")
+	capa.set_anchors_preset(Control.PRESET_FULL_RECT)
+	add_child(capa)
+	var centro := CenterContainer.new()
+	centro.set_anchors_preset(Control.PRESET_FULL_RECT)
+	centro.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	capa.add_child(centro)
+	var columna := VBoxContainer.new()
+	columna.add_theme_constant_override("separation", 26)
+	columna.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	centro.add_child(columna)
+	columna.add_child(Estilo.titulo(d.get("titulo", ""), 76))
+	var texto := Label.new()
+	texto.text = d.get("texto", "")
+	texto.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	texto.add_theme_font_size_override("font_size", 28)
+	columna.add_child(texto)
+	var gatos := HBoxContainer.new()
+	gatos.alignment = BoxContainer.ALIGNMENT_CENTER
+	gatos.add_theme_constant_override("separation", 80)
+	columna.add_child(gatos)
+	var muffy := Gato.new(6)
+	var michi := Gato.new(6, load(Partida.OFICIAL["gato"]))
+	gatos.add_child(muffy)
+	gatos.add_child(michi)
+	var seguir := Label.new()
+	seguir.text = tr("Haz clic para empezar")
+	seguir.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	seguir.add_theme_color_override("font_color", Estilo.ACENTO)
+	columna.add_child(seguir)
+	var parpadeo := seguir.create_tween().set_loops()
+	parpadeo.tween_property(seguir, "modulate:a", 0.3, 0.8)
+	parpadeo.tween_property(seguir, "modulate:a", 1.0, 0.8)
+	get_tree().create_timer(0.5).timeout.connect(func():
+		if is_instance_valid(muffy):
+			Sonido.tocar("ronroneo")
+			muffy.animar("happy", 1.2)
+			michi.animar("happy", 1.2))
+	capa.gui_input.connect(func(e: InputEvent):
+		if e is InputEventMouseButton and e.pressed or e is InputEventKey and e.pressed:
+			capa.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			var salida := capa.create_tween()
+			salida.tween_property(capa, "modulate:a", 0.0, 0.4)
+			salida.tween_callback(capa.queue_free))

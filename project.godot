@@ -32,3 +32,7 @@ renderer/rendering_method.mobile="gl_compatibility"
 
 ; Filtro "Nearest" para que el pixel art no se vea borroso al escalar.
 textures/canvas_textures/default_texture_filter=0
+
+[internationalization]
+
+locale/fallback="es"

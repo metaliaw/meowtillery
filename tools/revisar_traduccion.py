@@ -78,6 +78,8 @@ def textos():
 
     for ruta in sorted(glob.glob(os.path.join(RAIZ, "data", "*.json")) +
                        glob.glob(os.path.join(RAIZ, "data", "mapas", "*.json"))):
+        if os.path.basename(ruta) == "dedicatoria.json":  # personal: no se traduce
+            continue
         recorrer(json.load(open(ruta, encoding="utf-8")))
     return claves
 

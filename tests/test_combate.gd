@@ -1052,6 +1052,9 @@ func _probar_ingles() -> void:
 	var c := Combate.new()
 	PartidaScript.iniciar_combate(c, "britanico", "sovietico", 1, false, "recluta")
 	_comprobar("== Turn 1 ==" in c.registro, "inglés: el registro de batalla")
+	TranslationServer.set_locale("es")
+	_comprobar(Datos.leer("res://data/cartas.json")[0]["nombre"] == "Disparo AP",
+		"con el inglés cargado, en español sale español (el respaldo es español, no inglés)")
 	TranslationServer.set_locale(antes)
 	TranslationServer.remove_translation(tr_en)
 	_comprobar(Datos.leer("res://data/cartas.json")[0]["nombre"] == "Disparo AP", "y de vuelta en español")

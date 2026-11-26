@@ -1,4 +1,47 @@
-# Meowtillery (prototipo)
+# Meowtillery
+
+**Turn-based WWII tank tactics, with cards — and the crews are cats.** 🐾
+
+**▶ Play in your browser:** <https://metaliaw.github.io/meowtillery/> (press **English** in the top-right corner of the menu)
+
+![Battle in the desert](docs/capturas/combate.png)
+
+A small pixel-art game made in Godot as a gift for a young tank fan: grid tactics in the
+style of *Fire Emblem*, where every action comes from a hand of cards like in *Slay the
+Spire*. Every tank is crewed by a cat with a quirk of its own, and every tank is a real one.
+
+- **4 battalions, 11 real tanks.** British (Centurion Mk 1, Sherman Firefly, Churchill
+  Mk VII), Soviet (IS-2, T-34-85), American (M4 Sherman, M18 Hellcat, M26 Pershing) and
+  Italian (M13/40, Semovente da 75/18, P26/40).
+- **Armor that matters.** Each tank has front, flank and rear armor; cards have damage and
+  pierce. Flank them, use cover, keep line of sight, and watch your facing — the Semovente
+  has no turret, so it has to turn to shoot.
+- **Cats with quirks.** Earl Grey regains morale drinking tea, Boris's 122 mm hits hard but
+  reloads slowly, Cannoli hits harder from ambush, Panettone's rivets pop on big hits…
+- **Air support** on the harder difficulties: Typhoon, Il-2 Shturmovik, P-47 Thunderbolt
+  and CR.42 Falco. On Ace the enemy calls one in too — get out of the red crosshair!
+- **Frontline Die** on turn 3: rain, fog, supplies, letters from home, a breakdown, or fish
+  for everyone.
+- **Campaign** of 5 battles on 5 maps (hills, forest, El Alamein desert with a minefield, a
+  river with a bridge and a ford, and a ruined city), medals for the surviving cats, loot
+  cards for your Arsenal, and **18 trophies** to collect.
+- **Tech sheets** with real data and a "did you know?" for every tank and plane.
+- **Kill cam** — and don't worry: when a tank is knocked out, its cat always jumps out and
+  escapes safely.
+
+| | |
+|---|---|
+| ![Kill cam](docs/capturas/killcam.png) | ![Choose your battalion](docs/capturas/batallones.png) |
+| ![Frontline Die](docs/capturas/dado.png) | ![Tech sheets](docs/capturas/fichas.png) |
+
+Also available for Windows (zip, no install needed) — see *Exportar* below. The art is
+drawn by code (`tools/`), with no copied images; tanks carry no national or political
+insignia. Sounds are CC0 (Kenney, OpenGameArt) and Lieutenant Michi's voice is a real cat.
+The game is written in Spanish and translated into English (`data/idioma/en.json`).
+
+---
+
+# Meowtillery (prototipo, en español)
 
 Táctica por turnos en grilla al estilo **Fire Emblem**, donde las acciones salen de un
 **mazo de cartas** (al estilo Slay the Spire) y los tanques los comandan **gatos**.
@@ -174,7 +217,9 @@ godot --headless --path . -s tests/test_combate.gd
 | `assets/` | Sprites. Los tanques son de 80×28 px a escala real (1 px = 13 cm) y se dibujan a ×1 en casillas de 64 px; la variante `_enemigo` es el mismo tanque en gris. |
 | `tools/generar_sprites.py` | Dibuja los sprites de tanques por código (`python tools/generar_sprites.py`). `tools/vista_previa.png` los muestra ampliados. |
 | `icon.png`, `icon.ico` | Ícono del juego (Earl Grey con su boina). |
-| `export_presets.cfg`, `tools/LEEME-regalo.txt` | Presets de exportación (Windows y Web) y el LEEME que va en el zip. |
+| `export_presets.cfg`, `tools/LEEME-regalo.txt`, `tools/README-gift-en.txt` | Presets de exportación (Windows y Web; la web lleva etiquetas para la vista previa del enlace) y los LEEME en español e inglés que van en el zip. |
+| `data/dedicatoria.json` | Dedicatoria del regalo (pantalla al abrir el juego). No se sube a GitHub (`.gitignore`) ni va en la web (filtro del preset Web): solo en el zip de Windows. |
+| `docs/capturas/` | Capturas en inglés para la presentación (README y vista previa del enlace). |
 
 ### Campos de una carta
 
