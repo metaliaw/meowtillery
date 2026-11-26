@@ -22,10 +22,12 @@ const BATALLAS_SIN_MICHI_MAX := 3
 const DIFICULTADES := {
 	"recluta": {"nombre": "Recluta", "texto": "Para aprender. Actúan 2 enemigos por turno y pegan 2 menos.",
 		"acciones_max": 2, "bonus_dano": -2, "ia_lista": false, "salvavidas": true},
-	"veterano": {"nombre": "Veterano", "texto": "El enemigo piensa: remata, flanquea, se cubre y pega 2 más. Un tanque sano no cae en un solo turno. De lejos puedes rozar.",
-		"acciones_max": 3, "bonus_dano": 2, "ia_lista": true, "salvavidas": true, "punteria": true},
-	"as": {"nombre": "As", "texto": "Sin piedad: actúan todos, pegan 2 más y no hay red de seguridad.",
-		"acciones_max": 4, "bonus_dano": 2, "ia_lista": true, "punteria": true},
+	"veterano": {"nombre": "Veterano", "texto": "El enemigo piensa: remata, flanquea, se cubre y pega 2 más. Un tanque sano no cae en un solo turno. De lejos puedes rozar. Tienes un avión de apoyo.",
+		"acciones_max": 3, "bonus_dano": 2, "ia_lista": true, "salvavidas": true, "punteria": true,
+		"aereo": true},
+	"as": {"nombre": "As", "texto": "Sin piedad: actúan todos, pegan 2 más y no hay red de seguridad. El rival también pide un avión.",
+		"acciones_max": 4, "bonus_dano": 2, "ia_lista": true, "punteria": true,
+		"aereo": true, "aereo_enemigo": true},
 }
 
 ## Mapa de las partidas sueltas y mapas de la campaña.
@@ -264,6 +266,9 @@ static func iniciar_combate(combate, id_jugador: String, id_rival: String, semil
 	combate.oficial = OFICIAL if con_michi else {}
 	combate.dificultad = DIFICULTADES.get(id_dificultad, {})
 	combate.refuerzo = b[id_jugador].get("refuerzo", {})
+	# Apoyo aéreo (Veterano y As): un avión por batalla; en As, el rival también tiene el suyo.
+	combate.aereo = b[id_jugador].get("apoyo_aereo", "") if combate.dificultad.get("aereo", false) else ""
+	combate.aereo_rival = b[id_rival].get("apoyo_aereo", "") if combate.dificultad.get("aereo_enemigo", false) else ""
 	# Medallas de campaña: +VIDA_POR_MEDALLA de vida cada una, y una estrella en el nombre.
 	var propios: Array = []
 	for def in b[id_jugador]["unidades"]:

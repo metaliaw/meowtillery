@@ -398,5 +398,56 @@
     "radio": 1,
     "recarga": 1,
     "texto": "+3 escudo a este\ntanque y a los pegados."
+  },
+  {
+    "id": "aereo_typhoon",
+    "coste": 2,
+    "tipo": "aereo",
+    "aereo": true,
+    "requiere_objetivo": true,
+    "nombre": "Typhoon",
+    "avion": "res://assets/aviones/typhoon.png",
+    "dano": 8,
+    "penetracion": 3,
+    "texto": "Apoyo aéreo: al turno\nsiguiente, cohetes al\nmarcado: 8, perfora 3."
+  },
+  {
+    "id": "aereo_il2",
+    "coste": 2,
+    "tipo": "aereo",
+    "aereo": true,
+    "requiere_objetivo": true,
+    "nombre": "Il-2 Shturmovik",
+    "avion": "res://assets/aviones/il2.png",
+    "dano": 5,
+    "penetracion": 2,
+    "salpicadura": 3,
+    "texto": "Apoyo aéreo: al turno\nsiguiente, 5 al marcado\ny 3 a sus pegados."
+  },
+  {
+    "id": "aereo_p47",
+    "coste": 2,
+    "tipo": "aereo",
+    "aereo": true,
+    "requiere_objetivo": true,
+    "nombre": "P-47 Thunderbolt",
+    "avion": "res://assets/aviones/p47.png",
+    "dano": 7,
+    "penetracion": 2,
+    "baja_moral": 1,
+    "texto": "Apoyo aéreo: al turno\nsiguiente, 7 daño y\n-1 moral al marcado."
+  },
+  {
+    "id": "aereo_cr42",
+    "coste": 1,
+    "tipo": "aereo",
+    "aereo": true,
+    "requiere_objetivo": true,
+    "nombre": "CR.42 Falco",
+    "avion": "res://assets/aviones/cr42.png",
+    "dano": 5,
+    "penetracion": 2,
+    "inmediato": true,
+    "texto": "Apoyo aéreo ya mismo:\n5 daño desde arriba,\nperfora 2."
   }
 ]

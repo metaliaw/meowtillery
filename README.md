@@ -28,7 +28,7 @@ godot --headless --path . -s tests/test_combate.gd
   gato que sigue en pie al ganar recibe una **medalla** (★, +2 de vida para el resto de la
   campaña), y tras cada victoria se elige una de 3 cartas para el Arsenal. Si pierdes,
   reintentas esa batalla. Se guarda sola en `user://campana.json`.
-- **Fichas técnicas.** Desde el menú: los 11 tanques con su sprite, datos reales
+- **Fichas técnicas.** Desde el menú: los 11 tanques y los 4 aviones con su sprite, datos reales
   (país, peso, cañón, blindaje, velocidad, cuántos se fabricaron) y un "¿Sabías que…?".
 - **Batallones y gatos.** Antes del combate se elige batallón y rival (o rival al azar).
   Todas las peleas son **3 contra 3**: **británico** (precisión y té), **soviético**
@@ -60,6 +60,15 @@ godot --headless --path . -s tests/test_combate.gd
 - **Apuntar.** Disparar a un blanco que no está en tu frente (las diagonales exactas
   cuentan como frente) resta 2 de daño. *Encarar* hacia el blanco lo evita y, de paso,
   le da tu frente blindado. La moral máxima es 5.
+- **Apoyo aéreo (Veterano y As).** Una vez por batalla, cualquier tanque puede pedir el
+  avión de su batallón (cuesta 2 de energía). Marca a un enemigo y el avión lo busca al
+  empezar tu próximo turno; pega desde arriba (el techo, tan delgado como la trasera),
+  sin cobertura ni línea de visión. *Typhoon* (británico): cohetes, 8 de daño. *Il-2*
+  (soviético): 5 al blanco y 3 a los pegados. *P-47* (estadounidense): 7 y -1 de moral.
+  *CR.42* (italiano): cuesta 1 y pega ya mismo, pero solo 5. En **As** el rival también
+  tiene el suyo: desde el turno 3 marca con una mira roja la casilla de tu tanque más
+  dañado y ataca al empezar su fase; si lo sacas de ahí, falla. Los aviones están en las
+  fichas técnicas y se dibujan en `tools/generar_sprites.py` (`assets/aviones/`).
 - **Línea de visión.** Las rocas tapan: no se puede disparar si la línea entre los dos
   tanques pasa por una (rozar la esquina no cuenta). La *Artillería* sí, porque cae
   desde arriba. La zona roja de amenaza enemiga también la respeta.

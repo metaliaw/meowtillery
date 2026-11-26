@@ -56,7 +56,7 @@ const PAGINAS := [
 		"anim": "angry",
 	},
 	{
-		"texto": "Cuando no te quede nada por hacer, pulsa Terminar turno. ¡Derrota a todos los enemigos para ganar! Cada tanque que derribes te deja elegir una de sus cartas de botín, y lo que no uses se guarda en tu Arsenal. Y tranquilo: si un tanque cae, su gato siempre salta y escapa a salvo. ¿Lista la tripulación?",
+		"texto": "Cuando no te quede nada por hacer, pulsa Terminar turno. ¡Derrota a todos los enemigos para ganar! Cada tanque que derribes te deja elegir una de sus cartas de botín, y lo que no uses se guarda en tu Arsenal. En Veterano y As puedes pedir un avión una vez por batalla; en As el enemigo también: si ves una mira roja, ¡sal de esa casilla! Y tranquilo: si un tanque cae, su gato siempre salta y escapa a salvo. ¿Lista la tripulación?",
 		"anim": "happy",
 	},
 ]

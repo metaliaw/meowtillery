@@ -10,7 +10,7 @@ const CARPETA := "res://assets/sonidos/"
 const ARCHIVOS := {
 	"hover": "hover.wav", "clic": "clic.wav", "carta": "carta.wav", "mover": "mover.wav",
 	"error": "error.wav", "victoria": "victoria.wav", "derrota": "derrota.wav",
-	"turno": "turno.wav", "disparo": "disparo.ogg", "explosion": "explosion.ogg",
+	"turno": "turno.wav", "disparo": "disparo.ogg", "explosion": "explosion.ogg", "avion": "avion.ogg",
 	# Gatos: Muffy maúlla, un gato asustado maúlla agudo y se ronronea al ganar.
 	"maullido": "maullido.ogg", "maullido_suave": "maullido_suave.ogg", "ronroneo": "ronroneo.ogg",
 	"susto": "susto.ogg",
@@ -18,7 +18,7 @@ const ARCHIVOS := {
 	"michi_voz": "michi_voz.ogg", "michi_grunido": "michi_grunido.ogg", "michi_aprueba": "michi_aprueba.ogg",
 }
 ## Ajuste de volumen por sonido (dB): el cañón y la explosión son fuertes y el hover se repite mucho.
-const VOLUMEN := {"hover": -14.0, "clic": -6.0, "disparo": -8.0, "explosion": -6.0, "turno": -6.0,
+const VOLUMEN := {"avion": -6.0, "hover": -14.0, "clic": -6.0, "disparo": -8.0, "explosion": -6.0, "turno": -6.0,
 	"maullido": -6.0, "maullido_suave": -6.0, "ronroneo": -4.0, "susto": -8.0,
 	"michi_voz": -4.0, "michi_grunido": -5.0, "michi_aprueba": -5.0}
 const REPRODUCTORES := 8

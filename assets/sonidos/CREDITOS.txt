@@ -40,3 +40,7 @@ susto.ogg
   https://opengameart.org/content/kitten-mew
 
 Todos los maullidos se normalizaron de volumen y se convirtieron a OGG con ffmpeg.
+
+avion.ogg
+  Motor de avión sintetizado con ffmpeg para este juego (ondas generadas, sin grabaciones
+  de terceros). Mismo licenciamiento que el resto del juego.

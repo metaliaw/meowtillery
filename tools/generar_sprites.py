@@ -29,11 +29,13 @@ COMUNES = {
     "tdk": (34, 34, 32), "t": (62, 62, 58), "tlt": (98, 98, 92),
     "goma": (40, 40, 38), "sombra": (26, 26, 24), "borde": (20, 20, 16),
     "estrella": (222, 222, 210),
+    "vidrio": (150, 196, 214), "helice": (150, 150, 140),
 }
 PALETAS = {
     "verde_oliva": {"dk": (52, 58, 33), "b": (86, 92, 52), "lt": (118, 124, 74), "hl": (152, 158, 100)},
     "verde_britanico": {"dk": (40, 50, 36), "b": (64, 78, 54), "lt": (92, 108, 76), "hl": (126, 142, 104)},
     "arena": {"dk": (138, 116, 76), "b": (184, 160, 108), "lt": (210, 190, 138), "hl": (232, 216, 170)},
+    "verde_sovietico": {"dk": (56, 70, 40), "b": (90, 110, 62), "lt": (122, 142, 88), "hl": (160, 178, 120)},
     "gris_enemigo": {"dk": (50, 52, 58), "b": (82, 86, 94), "lt": (116, 120, 130), "hl": (154, 158, 168)},
     # Encalado de invierno soviético: cal blanca gastada sobre el verde 4BO.
     "invierno": {"dk": (138, 144, 146), "b": (196, 202, 204), "lt": (220, 224, 226), "hl": (240, 242, 244),
@@ -555,6 +557,95 @@ TANQUES = {
 }
 
 
+# ===========================================================================
+# Aviones de apoyo (vista lateral, mirando a la derecha). No van a escala: se ajustan
+# al mismo lienzo de 80x28 que los tanques. Sin insignias. Dibujo propio a partir de
+# medidas y siluetas generales públicas.
+# ===========================================================================
+def _helice(l, x, cy):
+    l.circulo(x - 1, cy, 2.0, "tdk")  # buje
+    for y in range(cy - 9, cy + 10, 2):  # hélice girando: borrosa
+        l.poner(x + 1, y, "helice")
+
+
+def _cola(l, x0, cy):
+    l.poligono([(x0, cy - 1), (x0 + 1, cy - 9), (x0 + 5, cy - 9), (x0 + 10, cy - 2)], "b")
+    l.linea_h(x0 + 1, x0 + 5, cy - 9, "hl")
+    l.linea_h(x0 - 1, x0 + 11, cy + 1, "dk")  # estabilizador horizontal
+
+
+# Hawker Typhoon: radiador grande bajo el morro, cabina de burbuja y cohetes RP-3.
+def typhoon(l):
+    cy = 12
+    l.poligono([(4, 11), (12, 10), (56, 9), (68, 10), (74, 12), (72, 16), (64, 17), (48, 17), (28, 15), (10, 14), (4, 13)], "b")
+    l.linea_h(12, 56, 9, "hl")
+    l.poligono([(58, 15), (68, 15), (68, 20), (60, 20)], "dk")  # radiador bajo el morro
+    l.poligono([(45, 9), (48, 5), (54, 5), (57, 9)], "vidrio")
+    l.linea_v(51, 5, 8, "dk")
+    _cola(l, 4, cy - 1)
+    l.poligono([(32, 15), (58, 15), (60, 17), (34, 17)], "lt")  # ala
+    for y in (18, 20):  # cohetes RP-3 bajo el ala
+        l.linea_h(38, 54, y, "tlt")
+        l.poner(55, y, "estrella")
+    _helice(l, 75, cy + 1)
+
+
+# Ilyushin Il-2 Shturmovik: biplaza blindado, cabina alta y larga, ala gruesa y bombas.
+def il2(l):
+    cy = 12
+    l.poligono([(4, 12), (12, 11), (40, 9), (64, 9), (72, 11), (74, 13), (72, 16), (60, 18), (30, 17), (10, 15), (4, 14)], "b")
+    l.linea_h(40, 64, 9, "hl")
+    l.poligono([(40, 9), (43, 5), (57, 5), (60, 9)], "vidrio")
+    for x in (46, 51, 55):
+        l.linea_v(x, 5, 8, "dk")
+    l.linea_h(62, 72, 13, "dk", 2)  # escapes del motor
+    _cola(l, 4, cy)
+    l.poligono([(30, 15), (58, 15), (62, 18), (34, 19)], "lt")  # ala gruesa
+    for x in (42, 50):  # contenedores de bombas PTAB
+        l.poligono([(x - 3, 20), (x + 3, 20), (x + 4, 21), (x + 3, 22), (x - 3, 22)], "tdk")
+    _helice(l, 75, cy + 1)
+
+
+# Republic P-47 Thunderbolt: morro redondo enorme (motor radial), burbuja y una bomba.
+def p47(l):
+    cy = 13
+    l.poligono([(4, 12), (12, 11), (40, 9), (56, 8), (68, 7), (73, 9), (74, 13), (73, 18), (68, 20), (56, 19), (30, 17), (10, 15), (4, 14)], "b")
+    l.linea_h(40, 68, 8, "hl")
+    l.linea_v(67, 8, 19, "dk")  # anillo del capó
+    l.poligono([(42, 8), (44, 4), (52, 4), (55, 8)], "vidrio")
+    _cola(l, 4, cy - 1)
+    l.poligono([(34, 16), (60, 16), (62, 18), (36, 19)], "lt")
+    l.poligono([(44, 21), (56, 21), (58, 22), (56, 23), (44, 23)], "tdk")  # bomba
+    l.linea_v(45, 20, 23, "t")
+    _helice(l, 76, cy)
+
+
+# Fiat CR.42 Falco: biplano con motor radial, cabina abierta y tren fijo carenado.
+def cr42(l):
+    cy = 12
+    l.poligono([(10, 12), (18, 11), (50, 10), (64, 10), (70, 11), (72, 13), (70, 16), (64, 17), (40, 16), (18, 14), (10, 14)], "b")
+    l.linea_h(18, 64, 10, "hl")
+    l.rect(66, 10, 70, 16, "dk")  # capó del radial
+    l.linea_h(42, 46, 9, "vidrio")  # parabrisas de la cabina abierta
+    l.rect(38, 3, 62, 4, "lt")  # ala de arriba
+    l.linea_h(38, 62, 3, "hl")
+    for x in (44, 56):
+        l.linea_v(x, 5, 9, "t")  # montantes
+    l.rect(40, 15, 60, 16, "lt")  # ala de abajo
+    l.poligono([(55, 17), (60, 17), (60, 22), (55, 22)], "b")  # tren carenado
+    l.circulo(57.5, 23.5, 2.0, "goma")
+    _cola(l, 10, cy)
+    _helice(l, 73, cy + 1)
+
+
+AVIONES = {
+    "typhoon": (typhoon, "verde_britanico"),
+    "il2": (il2, "verde_sovietico"),
+    "p47": (p47, "verde_oliva"),
+    "cr42": (cr42, "arena"),
+}
+
+
 def generar(raiz):
     assets = os.path.join(raiz, "assets")
     hojas = []
@@ -569,6 +660,12 @@ def generar(raiz):
             l.png(os.path.join(assets, f"{nombre}{sufijo}.png"))
             if not sufijo:
                 hojas.append(l)
+    for nombre, (dibujar, paleta) in AVIONES.items():
+        l = Lienzo(paleta, False)
+        dibujar(l)
+        l.contorno()
+        l.png(os.path.join(assets, "aviones", f"{nombre}.png"))
+        hojas.append(l)
     # Vista previa ×6, de a 4 tanques por fila.
     esc, fondo, por_fila = 6, (214, 222, 200), 4
     filas = []

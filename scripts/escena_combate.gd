@@ -650,7 +650,8 @@ func _ocultar_prevision() -> void:
 
 
 func _lado_con_articulo(lado: String) -> String:
-	return {"frente": "el frente", "flanco": "el flanco", "trasera": "la trasera"}.get(lado, lado)
+	return {"frente": "el frente", "flanco": "el flanco", "trasera": "la trasera",
+		"techo": "el techo (desde el aire)"}.get(lado, lado)
 
 
 func _al_pulsar_celda(celda: Vector2i) -> void:

@@ -36,6 +36,7 @@ const ACCIONES_ENEMIGAS_MAX := 3
 const PREFERENCIA_LADO := {"frente": 0, "flanco": 1, "trasera": 2}
 ## Daño que se pierde al disparar a un blanco fuera del frente propio (ver penalizacion_punteria).
 const BONUS_EMBOSCADA := 2
+const TURNO_AVION_ENEMIGO := 3
 const GOLPE_QUE_SALTA_REMACHES := 7
 const DISTANCIA_CAMUFLAJE := 3
 const PENALIZACION_FUERA_DEL_FRENTE := 2
@@ -77,6 +78,15 @@ var _sanos_en_fase: Dictionary = {}
 ## Tanque que llega con la carta "¡Refuerzos!" (definición de la unidad; vacío = no hay).
 var refuerzo: Dictionary = {}
 var refuerzo_usado := false
+## Apoyo aéreo: id de la carta del avión propio y del rival ("" = no hay en esta dificultad).
+var aereo := ""
+var aereo_rival := ""
+var aereo_usado := false
+var aereo_rival_usado := false
+## Ataques aéreos anunciados: {"carta": id, "celda": Vector2i}. El propio cae al empezar tu
+## próximo turno; el enemigo, al empezar su fase (tienes un turno para salir de ahí).
+var aereo_pendiente: Dictionary = {}
+var aereo_enemigo_plan: Dictionary = {}
 ## Para las pruebas: si es >= 0, reemplaza la tirada de puntería (0.0 acierta, 0.99 roza).
 var forzar_tirada := -1.0
 var _spawns_aliados: Array = []
@@ -92,6 +102,10 @@ func iniciar(def_mapa: Dictionary, def_aliados: Array, def_enemigos: Array, def_
 	mapa.cargar(def_mapa)
 	_spawns_aliados = def_mapa["aliados"].map(func(par): return _celda(par))
 	refuerzo_usado = false
+	aereo_usado = false
+	aereo_rival_usado = false
+	aereo_pendiente = {}
+	aereo_enemigo_plan = {}
 	aliados.clear()
 	for i in def_aliados.size():
 		aliados.append(_crear_unidad(def_aliados[i], "aliado", _celda(def_mapa["aliados"][i]), Vector2i.RIGHT))
@@ -208,6 +222,8 @@ func cartas_de(i_actor: int) -> Array:
 	var res: Array = u["habilidades"].duplicate()
 	if not res.has("girar"):
 		res.append("girar")
+	if aereo != "" and cartas.has(aereo):
+		res.append(aereo)  # el avión lo puede pedir cualquier tanque (una vez por batalla)
 	return res
 
 
@@ -270,6 +286,8 @@ func motivo_uso(id: String, i_actor: int, i_objetivo: int) -> String:
 func _motivo_comun(c: Dictionary, actor: Dictionary, i_objetivo: int) -> String:
 	if c.get("refuerzo", false) and (refuerzo.is_empty() or refuerzo_usado):
 		return "Ya no quedan refuerzos."
+	if c.get("aereo", false) and aereo_usado:
+		return "El avión ya vino en esta batalla."
 	if coste_de(c, actor) > energia:
 		return "No hay energía suficiente."
 	var hay_objetivo := i_objetivo >= 0 and i_objetivo < enemigos.size() and vivo(enemigos[i_objetivo])
@@ -437,6 +455,11 @@ func _aplicar(id: String, i_actor: int, i_objetivo: int) -> void:
 	var actor: Dictionary = aliados[i_actor]
 	energia -= coste_de(c, actor)
 	_anotar("%s usa %s." % [actor["nombre"], c["nombre"]])
+	if c.get("aereo", false):
+		_pedir_aereo(id, i_objetivo)
+		_comprobar_fin()
+		cambio.emit()
+		return
 
 	if c.has("dano"):
 		evento.emit("disparo")
@@ -511,6 +534,13 @@ func terminar_turno() -> void:
 	_revisar_orden()
 	evento.emit("turno")
 	_turno_enemigo()
+	if not aereo_pendiente.is_empty() and _primer_vivo(enemigos) >= 0:
+		var marcado: Dictionary = enemigos[aereo_pendiente["indice"]]
+		if vivo(marcado):
+			_ataque_aereo(aereo_pendiente["carta"], marcado["pos"], "aliado")
+		else:
+			_anotar("El %s llega, pero %s ya estaba fuera de combate." % [cartas[aereo_pendiente["carta"]]["nombre"], marcado["nombre"]])
+	aereo_pendiente = {}
 	_comprobar_fin()
 	if estado == "jugando":
 		_iniciar_turno()
@@ -522,7 +552,7 @@ func terminar_turno() -> void:
 ## Reducción = blindaje del lado + cobertura del terreno - penetración (mínimo 0).
 ## Siempre entra al menos 1; después el escudo absorbe lo que pueda.
 static func calcular_impacto(u: Dictionary, dano: int, penetracion: int, lado: String, cobertura: int = 0) -> Dictionary:
-	var blindaje := int(u["blindaje"].get(lado, 0))
+	var blindaje := int(u["blindaje"].get(lado, u["blindaje"].get("trasera", 0)))  # techo = como la trasera
 	var reduccion := maxi(blindaje + cobertura - penetracion, 0)
 	var efectivo := maxi(dano - reduccion, 1)
 	if u.get("mania") == "remachado" and efectivo >= GOLPE_QUE_SALTA_REMACHES:
@@ -656,6 +686,8 @@ func prever_uso(id: String, i_actor: int, i_objetivo: int) -> Array:
 		return []
 	var actor: Dictionary = aliados[i_actor]
 	var objetivo: Dictionary = enemigos[i_objetivo]
+	if c.get("aereo", false):
+		return _prever_aereo(c, i_objetivo)
 	var pen := int(c.get("penetracion", 0))
 	var cob := _cobertura_para(c, objetivo)
 	var lado := lado_de_impacto(objetivo, actor["pos"])
@@ -685,6 +717,31 @@ func prever_uso(id: String, i_actor: int, i_objetivo: int) -> Array:
 				i["indice"] = vecino["indice"]
 				i["principal"] = false
 				res.append(i)
+	return res
+
+
+## Vista previa del avión: desde arriba (techo), sin cobertura, sin roces ni penalización.
+func _prever_aereo(c: Dictionary, i_objetivo: int) -> Array:
+	var objetivo: Dictionary = enemigos[i_objetivo]
+	var principal := calcular_impacto(objetivo, int(c["dano"]), int(c.get("penetracion", 0)), "techo", 0)
+	principal["indice"] = i_objetivo
+	principal["principal"] = true
+	principal["bonus"] = 0
+	principal["penal"] = 0
+	principal["acierto"] = 1.0
+	principal["roce"] = principal["al_casco"]
+	var v: int = principal["al_casco"] + principal["absorbido"]
+	principal["por_lado"] = {"frente": v, "flanco": v, "trasera": v}
+	var res := [principal]
+	var salpicadura := int(c.get("salpicadura", 0))
+	if salpicadura > 0:
+		for i in enemigos.size():
+			var e: Dictionary = enemigos[i]
+			if vivo(e) and Mapa.distancia(e["pos"], objetivo["pos"]) == 1:
+				var imp := calcular_impacto(e, salpicadura, 0, "techo", 0)
+				imp["indice"] = i
+				imp["principal"] = false
+				res.append(imp)
 	return res
 
 
@@ -723,6 +780,64 @@ func celdas_amenaza(e: Dictionary, alcance_max: int = 99) -> Dictionary:
 				if dist >= alc[0] and dist <= alc[1] and mapa.dentro(celda) and not res.has(celda) 						and ve_a(a, origen, celda):
 					res[celda] = true
 	return res
+
+
+## Pide el avión contra el enemigo elegido (queda marcado con humo de color). Si no es
+## inmediato, llega al empezar tu próximo turno y lo busca donde esté.
+func _pedir_aereo(id: String, i_objetivo: int) -> void:
+	aereo_usado = true
+	var c: Dictionary = cartas[id]
+	var celda: Vector2i = enemigos[i_objetivo]["pos"]
+	if c.get("inmediato", false):
+		_ataque_aereo(id, celda, "aliado")
+		return
+	aereo_pendiente = {"carta": id, "indice": i_objetivo, "celda": celda}
+	_anotar("  El %s viene en camino: buscará a %s al empezar tu próximo turno." % [c["nombre"], enemigos[i_objetivo]["nombre"]])
+	_avisar(enemigos[i_objetivo], "¡Marcado!", "malo")
+
+
+## Pasa el avión de `bando` sobre `celda`: pega desde arriba (techo: ignora cobertura y
+## línea de visión) al rival que esté ahí y, si la carta salpica, a sus pegados.
+func _ataque_aereo(id: String, celda: Vector2i, bando: String) -> void:
+	var c: Dictionary = cartas[id]
+	var victimas: Array = enemigos if bando == "aliado" else aliados
+	accion.emit({"tipo": "avion", "clave": "", "avion": c.get("avion", ""), "celda": celda, "bando": bando})
+	evento.emit("avion")
+	var blanco := {}
+	for u in victimas:
+		if vivo(u) and u["pos"] == celda:
+			blanco = u
+	if blanco.is_empty():
+		_anotar("  ¡El %s ataca (%d, %d), pero ahí ya no hay nadie!" % [c["nombre"], celda.x, celda.y])
+	else:
+		_anotar("  ¡El %s ataca a %s desde el aire!" % [c["nombre"], blanco["nombre"]])
+		golpear(blanco, int(c["dano"]), int(c.get("penetracion", 0)), "techo", 0)
+		if vivo(blanco) and c.has("baja_moral"):
+			blanco["moral"] = maxi(blanco["moral"] - int(c["baja_moral"]), 0)
+			_avisar(blanco, "-%d moral" % int(c["baja_moral"]), "malo")
+	var salpicadura := int(c.get("salpicadura", 0))
+	if salpicadura > 0:
+		for u in victimas:
+			if vivo(u) and Mapa.distancia(u["pos"], celda) == 1:
+				golpear(u, salpicadura, 0, "techo", 0)
+
+
+## Avión enemigo (As): desde el turno TURNO_AVION_ENEMIGO, una vez por batalla, marca la
+## casilla del tanque propio más dañado. Cae al empezar la fase enemiga.
+func _planear_aereo_enemigo() -> void:
+	if aereo_rival == "" or aereo_rival_usado or turno < TURNO_AVION_ENEMIGO or not cartas.has(aereo_rival):
+		return
+	var blanco := {}
+	for u in aliados:
+		if vivo(u) and (blanco.is_empty() or u["casco"] < blanco["casco"]):
+			blanco = u
+	if blanco.is_empty():
+		return
+	aereo_rival_usado = true
+	aereo_enemigo_plan = {"carta": aereo_rival, "celda": blanco["pos"]}
+	_anotar("¡Avión enemigo a la vista! Atacará (%d, %d) al empezar su fase: ¡saca a %s de ahí!" % [
+		blanco["pos"].x, blanco["pos"].y, blanco["nombre"]])
+	_avisar(blanco, "¡Avión enemigo!", "malo", "susto")
 
 
 ## Un tanque camuflado solo puede ser blanco desde menos de DISTANCIA_CAMUFLAJE casillas.
@@ -811,6 +926,7 @@ func _elegir_intenciones() -> void:
 				# La dificultad ya va incluida en lo que anuncia, así el ícono no miente.
 				a["dano"] = maxi(int(a["dano"]) + int(dificultad.get("bonus_dano", 0)), 1)
 			e["intencion"] = a
+	_planear_aereo_enemigo()
 
 
 ## Cuántos enemigos actúan por turno con la dificultad actual.
@@ -879,7 +995,11 @@ func _turno_enemigo() -> void:
 		for u in aliados:
 			if vivo(u) and u["casco"] == u["casco_max"]:
 				_sanos_en_fase[u["clave"]] = true
-	_turno_enemigo_acciones()
+	if not aereo_enemigo_plan.is_empty():
+		_ataque_aereo(aereo_enemigo_plan["carta"], aereo_enemigo_plan["celda"], "enemigo")
+		aereo_enemigo_plan = {}
+	if _primer_vivo(aliados) >= 0:
+		_turno_enemigo_acciones()
 	_sanos_en_fase.clear()
 	_cerrar_turno_de(enemigos)
 
@@ -900,6 +1020,13 @@ func dano_en_peligro(u: Dictionary) -> int:
 		var i := calcular_impacto(u, int(a["dano"]) + bonus_de_ataque(e, a, u), int(a.get("penetracion", 0)),
 			"flanco", cobertura_de(u))
 		total += i["al_casco"] + i["absorbido"]
+	if not aereo_enemigo_plan.is_empty():
+		var ca: Dictionary = cartas[aereo_enemigo_plan["carta"]]
+		var dist := Mapa.distancia(u["pos"], aereo_enemigo_plan["celda"])
+		var dano_aereo := int(ca["dano"]) if dist == 0 else (int(ca.get("salpicadura", 0)) if dist == 1 else 0)
+		if dano_aereo > 0:
+			var ia := calcular_impacto(u, dano_aereo, int(ca.get("penetracion", 0)) if dist == 0 else 0, "techo", 0)
+			total += ia["al_casco"] + ia["absorbido"]
 	return maxi(total - int(u["escudo"]), 0)
 
 

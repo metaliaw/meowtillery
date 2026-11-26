@@ -41,6 +41,7 @@ const DUR_FLOTANTE := 1.1
 const DUR_TEMBLOR := 0.35
 ## Kill cam: primer plano del tanque derribado (al estilo de los juegos de tanques).
 const DUR_KILLCAM := 2.0
+const DUR_AVION := 1.6       # el avión cruza el tablero; en la mitad suelta el ataque
 const IMPACTO_KC := 0.45   # cuándo llega el proyectil dentro de la kill cam
 const SALTO_GATO_KC := 1.0 # cuándo salta el gato por la escotilla
 const DUR_ESCAPE := 1.4    # el gato corre hacia su lado del mapa
@@ -70,7 +71,8 @@ var _trazos: Array = []      # {de, a, t}
 var _explosiones: Array = [] # {pos, t}
 var _temblor: Dictionary = {}  # clave -> segundos restantes
 var _killcam: Dictionary = {}  # {clave, lado, dano, t} mientras se muestra
-var _escapes: Array = []       # gatos corriendo a salvo: {hoja, de, hacia_x, t}
+var _escapes: Array = []
+var _avion: Dictionary = {}    # avión cruzando: {textura, celda, bando, t}       # gatos corriendo a salvo: {hoja, de, hacia_x, t}
 
 
 func preparar(c) -> void:
@@ -100,7 +102,8 @@ func encolar(datos: Dictionary) -> void:
 # ------------------------------------------------------------------ animación ---
 
 func _process(delta: float) -> void:
-	var hay_efectos := not (_flotantes.is_empty() and _trazos.is_empty() and _explosiones.is_empty() \
+	var hay_marcas: bool = combate != null and not (combate.aereo_pendiente.is_empty() and combate.aereo_enemigo_plan.is_empty())
+	var hay_efectos: bool = hay_marcas or not (_flotantes.is_empty() and _trazos.is_empty() and _explosiones.is_empty() \
 		and _temblor.is_empty() and _escapes.is_empty()) or _hay_restos() or not peligro.is_empty()
 	_envejecer(delta)
 	if not _cola.is_empty():
@@ -129,6 +132,9 @@ func _envejecer(delta: float) -> void:
 
 func _avanzar(delta: float) -> void:
 	var a: Dictionary = _cola[0]
+	if a["tipo"] == "avion":
+		_avanzar_avion(a, delta)
+		return
 	var v: Dictionary = _vista.get(a["clave"], {})
 	if v.is_empty():  # unidad desconocida: se salta
 		_cola.pop_front()
@@ -165,6 +171,26 @@ func _avanzar(delta: float) -> void:
 	if _t >= dur:
 		if a["tipo"] == "golpe" and a["derriba"]:
 			_terminar_killcam(a, v)
+		_cola.pop_front()
+		_t = 0.0
+		_iniciada = false
+
+
+## Avión de apoyo: cruza el tablero por la fila del blanco; a la mitad, explosión en la casilla.
+func _avanzar_avion(a: Dictionary, delta: float) -> void:
+	if not _iniciada:
+		_iniciada = true
+		_sonar("avion")
+		_avion = {"textura": _textura(a["avion"]) if a["avion"] != "" else null, "celda": a["celda"],
+			"bando": a["bando"], "t": 0.0, "solto": false}
+	_t += delta
+	_avion["t"] = _t
+	if not _avion["solto"] and _t >= DUR_AVION * 0.5:
+		_avion["solto"] = true
+		_explosiones.append({"pos": Vector2(a["celda"]) * TAM + Vector2(TAM, TAM) / 2, "t": 0.0})
+		_sonar("explosion")
+	if _t >= DUR_AVION:
+		_avion = {}
 		_cola.pop_front()
 		_t = 0.0
 		_iniciada = false
@@ -327,10 +353,54 @@ func _draw() -> void:
 			_calavera(celda)
 	for celda in prevision:
 		_etiqueta_dano(celda, prevision[celda])
+	_dibujar_marcas_aereas()
 	_dibujar_efectos(fuente)
 	_dibujar_escapes()
+	_dibujar_avion()
 	if not _killcam.is_empty():
 		_dibujar_killcam(fuente)
+
+
+## Casillas marcadas para un ataque aéreo: mira azul (el tuyo) o roja (el enemigo, ¡salir de ahí!).
+func _dibujar_marcas_aereas() -> void:
+	if animando:
+		return
+	var t := Time.get_ticks_msec() / 1000.0
+	for par in [[combate.aereo_pendiente, Color("6fb6ff")], [combate.aereo_enemigo_plan, Color("ff5a5a")]]:
+		var plan: Dictionary = par[0]
+		if plan.is_empty():
+			continue
+		var color: Color = par[1]
+		var celda: Vector2i = plan["celda"]
+		if plan.has("indice"):  # el propio sigue al tanque marcado
+			var marcado: Dictionary = combate.enemigos[plan["indice"]]
+			if not combate.vivo(marcado):
+				continue
+			celda = marcado["pos"]
+		var centro := Vector2(celda) * TAM + Vector2(TAM, TAM) / 2
+		var r := 22.0 + 3.0 * sin(t * 6.0)
+		draw_arc(centro, r, 0, TAU, 32, color, 3.0)
+		for d in [Vector2.UP, Vector2.DOWN, Vector2.LEFT, Vector2.RIGHT]:
+			draw_line(centro + d * (r - 8), centro + d * (r + 6), color, 3.0)
+		var tex := _textura(combate.cartas[plan["carta"]].get("avion", ""))
+		if tex:
+			draw_texture_rect(tex, Rect2(centro + Vector2(-20, -TAM / 2 - 4), Vector2(40, 14)), false)
+
+
+## El avión pasa volando de un borde al otro, con su sombra en el suelo.
+func _dibujar_avion() -> void:
+	if _avion.is_empty() or _avion["textura"] == null:
+		return
+	var p: float = _avion["t"] / DUR_AVION
+	var aliado: bool = _avion["bando"] == "aliado"
+	var celda: Vector2 = Vector2(_avion["celda"]) * TAM + Vector2(TAM, TAM) / 2
+	var x := lerpf(-160.0, size.x + 160.0, p) if aliado else lerpf(size.x + 160.0, -160.0, p)
+	var y := celda.y - 60.0 - sin(p * PI) * -20.0
+	var tam := Vector2(80, 28) * 2.0
+	draw_circle(Vector2(x, celda.y + 10), 22.0, Color(0, 0, 0, 0.25))  # sombra
+	draw_set_transform(Vector2(x, y), 0.0, Vector2(1, 1) if aliado else Vector2(-1, 1))
+	draw_texture_rect(_avion["textura"], Rect2(-tam / 2, tam), false)
+	draw_set_transform(Vector2.ZERO)
 
 
 ## Tanque derribado: chamuscado, con fueguitos que titilan y humo que sube.
@@ -424,6 +494,8 @@ func _dibujar_killcam(fuente: Font) -> void:
 			draw_arc(punto, lerpf(60.0, 8.0, p), 0, TAU, 24, Color("e84a5f"), 3.0)
 		else:
 			var desde := punto + Vector2((s if lado == "frente" else -s) * 220.0, -6)
+			if lado == "techo":
+				desde = punto + Vector2(-60, -220)  # cae desde el avión
 			var bala := desde.lerp(punto, p)
 			draw_line(bala - (punto - desde).normalized() * 30.0, bala, Color(1, 0.9, 0.5, 0.6), 4.0)
 			draw_circle(bala, 5.0, Color(1, 0.95, 0.7))
@@ -432,7 +504,7 @@ func _dibujar_killcam(fuente: Font) -> void:
 		draw_circle(punto, 10.0 + 50.0 * pe, Color(1.0, 0.55, 0.15, 0.85 * (1.0 - pe)))
 		draw_circle(punto, 6.0 + 26.0 * pe, Color(1.0, 0.92, 0.55, 1.0 - pe))
 
-	var nombres_lado := {"frente": "el frente", "flanco": "el flanco", "trasera": "la trasera"}
+	var nombres_lado := {"frente": "el frente", "flanco": "el flanco", "trasera": "la trasera", "techo": "el techo (desde el aire)"}
 	var texto := "¡Derribado! Impacto por %s · -%d" % [nombres_lado.get(lado, lado), _killcam["dano"]]
 	if t > SALTO_GATO_KC:
 		texto = "¡%s salta del tanque y escapa a salvo!" % u["nombre"]

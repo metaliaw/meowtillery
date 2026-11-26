@@ -126,7 +126,8 @@
           "casco_oculto"
         ]
       }
-    ]
+    ],
+    "apoyo_aereo": "aereo_typhoon"
   },
   "sovietico": {
     "nombre": "Batallón Soviético",
@@ -305,7 +306,8 @@
         "andanada",
         "aceleron"
       ]
-    }
+    },
+    "apoyo_aereo": "aereo_il2"
   },
   "estadounidense": {
     "nombre": "Batallón Estadounidense",
@@ -439,7 +441,8 @@
           }
         ]
       }
-    ]
+    ],
+    "apoyo_aereo": "aereo_p47"
   },
   "italiano": {
     "nombre": "Batallón Italiano",
@@ -569,6 +572,7 @@
           }
         ]
       }
-    ]
+    ],
+    "apoyo_aereo": "aereo_cr42"
   }
 }

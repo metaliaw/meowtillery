@@ -100,6 +100,8 @@ func _mover(c, i: int, amenaza: Dictionary) -> void:
 		var puntaje := _dano_posible(c, u) * 10.0
 		puntaje += c.cobertura_de(u) * 3.0
 		puntaje -= amenaza.get(celda, 0) * 4.0
+		if c.aereo_enemigo_plan.get("celda", Vector2i(-9, -9)) == celda:
+			puntaje -= 15.0  # ahí cae el avión enemigo
 		puntaje -= _distancia_enemigo(c, celda) * 0.5
 		puntaje -= opciones[celda][0] * 0.1  # a igualdad, moverse menos
 		if u.get("mania") == "ritual_te" and celda == original:
@@ -209,6 +211,12 @@ func _valor(c, carta: Dictionary, id: String, a: int, o: int, amenaza: Dictionar
 			return falta * 0.8
 		"maniobra":
 			return _valor_maniobra(c, carta, a, o, amenaza)
+		"aereo":
+			# Si no es inmediato, el blanco puede moverse: vale un poco menos.
+			var v := 0.0
+			for imp in c.prever_uso(id, a, o):
+				v += imp["al_casco"] + (10.0 if imp["derriba"] else 0.0)
+			return v * (1.0 if carta.get("inmediato", false) else 0.7)
 	return 0.0
 
 

@@ -56,6 +56,7 @@ func _init() -> void:
 	_probar_roces()
 	_probar_campana()
 	_probar_italianos()
+	_probar_aereo()
 	print("\nTODO OK" if _fallos == 0 else "\n%d FALLOS" % _fallos)
 	quit(1 if _fallos > 0 else 0)
 
@@ -800,6 +801,52 @@ func _probar_italianos() -> void:
 	var duro: Dictionary = Combate.calcular_impacto(pane, 9, 0, "trasera")
 	var suave: Dictionary = Combate.calcular_impacto(pane, 5, 0, "trasera")
 	_comprobar(duro["al_casco"] == 9 and suave["al_casco"] == 4, "remachado: si entran 7 o más, 1 extra")
+
+
+## Apoyo aéreo: Veterano y As. El propio busca al marcado al turno siguiente; el
+## enemigo (solo As) marca una casilla y se puede esquivar.
+func _probar_aereo() -> void:
+	var r := Combate.new()
+	PartidaScript.iniciar_combate(r, "britanico", "sovietico", 7, false, "recluta")
+	_comprobar(not r.cartas_de(0).has("aereo_typhoon"), "Recluta: sin avión")
+	var c := Combate.new()
+	PartidaScript.iniciar_combate(c, "britanico", "sovietico", 7, false, "veterano")
+	_comprobar(c.cartas_de(0).has("aereo_typhoon") and c.cartas_de(2).has("aereo_typhoon"), "Veterano: cualquier tanque pide el Typhoon")
+	_comprobar(c.aereo_rival == "", "Veterano: el rival no tiene avión")
+	_enemigos_quietos(c)
+	var blanco: Dictionary = c.enemigos[0]
+	var prev: Array = c.prever_uso("aereo_typhoon", 0, 0)
+	_comprobar(prev[0]["lado"] == "techo" and prev[0]["cobertura"] == 0, "pega al techo, sin cobertura")
+	c.energia = 3
+	_comprobar(c.usar("aereo_typhoon", 0, 0) and c.energia == 1, "pedirlo cuesta 2")
+	_comprobar(c.motivo_uso("aereo_typhoon", 1, 0) != "", "una vez por batalla")
+	var casco: int = blanco["casco"]
+	_comprobar(blanco["casco"] == casco, "no pega en el mismo turno")
+	blanco["pos"] += Vector2i(0, 1) if c.mapa.transitable(blanco["pos"] + Vector2i(0, 1)) and c.unidad_en(blanco["pos"] + Vector2i(0, 1)).is_empty() else Vector2i(0, -1)
+	c.terminar_turno()
+	_comprobar(blanco["casco"] < casco and c.aereo_pendiente.is_empty(), "al turno siguiente busca al marcado aunque se mueva")
+
+	var e := Combate.new()
+	PartidaScript.iniciar_combate(e, "estadounidense", "italiano", 7, false, "as")
+	_comprobar(e.aereo_rival == "aereo_cr42" and e.cartas_de(0).has("aereo_p47"), "As: los dos bandos tienen avión")
+	e.turno = PartidaScript.batallones().size() * 0 + e.TURNO_AVION_ENEMIGO
+	e._planear_aereo_enemigo()
+	_comprobar(not e.aereo_enemigo_plan.is_empty(), "el rival marca una casilla")
+	var celda: Vector2i = e.aereo_enemigo_plan["celda"]
+	var marcado: Dictionary = e.unidad_en(celda)
+	_comprobar(marcado.get("bando") == "aliado", "la de un tanque propio")
+	var propio: Dictionary = e.aliados[marcado["indice"]]
+	_comprobar(e.dano_en_peligro(propio) > 0, "la calavera cuenta el avión")
+	var antes: int = propio["casco"]
+	_enemigos_quietos(e)
+	var libre := celda
+	for d in [Vector2i.UP, Vector2i.DOWN, Vector2i.LEFT, Vector2i.RIGHT]:
+		if e.mapa.transitable(celda + d) and e.unidad_en(celda + d).is_empty():
+			libre = celda + d
+			break
+	propio["pos"] = libre
+	e.terminar_turno()
+	_comprobar(propio["casco"] == antes and e.aereo_enemigo_plan.is_empty(), "si sales de la casilla, el avión enemigo falla")
 
 
 func _probar_cartas_de_batallon() -> void:
