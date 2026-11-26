@@ -29,7 +29,7 @@ func _ready() -> void:
 	var columna := VBoxContainer.new()
 	columna.add_theme_constant_override("separation", 16)
 	margen.add_child(columna)
-	columna.add_child(Estilo.titulo("FICHAS TÉCNICAS", 40))
+	columna.add_child(Estilo.titulo(tr("FICHAS TÉCNICAS"), 40))
 
 	var fila := HBoxContainer.new()
 	fila.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -75,12 +75,12 @@ func _ready() -> void:
 	_dato = Estilo.texto_en_papel("", 17)
 	_dato.add_theme_color_override("font_color", Color("3b6fb0"))
 	ficha.add_child(_dato)
-	var nota := Estilo.texto_en_papel("Datos aproximados de los tanques y aviones reales. En el juego los números están simplificados.", 12)
+	var nota := Estilo.texto_en_papel(tr("Datos aproximados de los tanques y aviones reales. En el juego los números están simplificados."), 12)
 	nota.add_theme_color_override("font_color", Color("6b6b78"))
 	ficha.add_child(nota)
 
 	var volver := Button.new()
-	volver.text = "Volver"
+	volver.text = tr("Volver")
 	volver.custom_minimum_size = Vector2(140, 44)
 	volver.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	volver.pressed.connect(func(): get_tree().change_scene_to_file(ESCENA_MENU))
@@ -95,9 +95,9 @@ func _mostrar(i: int) -> void:
 	_titulo.text = "%s  ·  %s, %s" % [f["nombre"], f["pais"], f["anio"]]
 	_imagen.texture = load(f["sprite"])
 	if f.get("avion", false):
-		_datos.text = "Tripulación: %d\nPeso: %s\nArmamento: %s\nBlindaje: %s\nVelocidad: %s\nEn el juego: %s (Veterano y As)" % [
+		_datos.text = tr("Tripulación: %d\nPeso: %s\nArmamento: %s\nBlindaje: %s\nVelocidad: %s\nEn el juego: %s (Veterano y As)") % [
 			int(f["tripulacion"]), f["peso"], f["armamento"], f["blindaje"], f["velocidad"], f["gato"]]
 	else:
-		_datos.text = "Tripulación: %d\nPeso: %s\nCañón: %s\nBlindaje: %s\nVelocidad: %s\nEn el juego lo maneja: %s" % [
+		_datos.text = tr("Tripulación: %d\nPeso: %s\nCañón: %s\nBlindaje: %s\nVelocidad: %s\nEn el juego lo maneja: %s") % [
 			int(f["tripulacion"]), f["peso"], f["canon"], f["blindaje"], f["velocidad"], f["gato"]]
-	_dato.text = "¿Sabías que…? " + f["dato"]
+	_dato.text = tr("¿Sabías que…? ") + f["dato"]

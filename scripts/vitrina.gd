@@ -22,9 +22,9 @@ func _ready() -> void:
 	var columna := VBoxContainer.new()
 	columna.add_theme_constant_override("separation", 14)
 	margen.add_child(columna)
-	columna.add_child(Estilo.titulo("VITRINA DE TROFEOS", 40))
+	columna.add_child(Estilo.titulo(tr("VITRINA DE TROFEOS"), 40))
 	var cuenta := Label.new()
-	cuenta.text = "Tienes %d de %d trofeos." % [Trofeos.cuantos(), Trofeos.lista().size()]
+	cuenta.text = tr("Tienes %d de %d trofeos.") % [Trofeos.cuantos(), Trofeos.lista().size()]
 	cuenta.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	cuenta.add_theme_font_size_override("font_size", 20)
 	columna.add_child(cuenta)
@@ -43,7 +43,7 @@ func _ready() -> void:
 		grilla.add_child(_tarjeta(t, Trofeos.tiene(t["id"])))
 
 	var volver := Button.new()
-	volver.text = "Volver"
+	volver.text = tr("Volver")
 	volver.custom_minimum_size = Vector2(140, 44)
 	volver.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	volver.pressed.connect(func(): get_tree().change_scene_to_file(ESCENA_MENU))

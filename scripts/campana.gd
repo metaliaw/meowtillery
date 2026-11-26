@@ -38,7 +38,7 @@ func _refrescar() -> void:
 	for hijo in _contenido.get_children():
 		_contenido.remove_child(hijo)
 		hijo.queue_free()
-	_contenido.add_child(Estilo.titulo("CAMPAÑA", 44))
+	_contenido.add_child(Estilo.titulo(tr("CAMPAÑA"), 44))
 	if not Partida.campana_activa():
 		_pantalla_inicio()
 	elif not Partida.campana.get("recompensa", []).is_empty():
@@ -76,26 +76,26 @@ func _fila_centrada() -> HBoxContainer:
 
 
 func _pantalla_inicio() -> void:
-	_contenido.add_child(_texto("5 batallas seguidas, de Recluta a As, en tres mapas distintos.\n" +
-		"Cada gato que sobrevive a una victoria gana una medalla (+%d de vida para el resto de la campaña),\n" % Partida.VIDA_POR_MEDALLA +
-		"y después de cada victoria eliges una carta para tu Arsenal. Si pierdes, reintentas esa batalla."))
-	_contenido.add_child(_texto("Elige tu batallón:", 20, Estilo.ACENTO))
+	_contenido.add_child(_texto(tr("5 batallas seguidas, de Recluta a As, en cinco mapas distintos.\n") +
+		tr("Cada gato que sobrevive a una victoria gana una medalla (+%d de vida para el resto de la campaña),\n") % Partida.VIDA_POR_MEDALLA +
+		tr("y después de cada victoria eliges una carta para tu Arsenal. Si pierdes, reintentas esa batalla.")))
+	_contenido.add_child(_texto(tr("Elige tu batallón:"), 20, Estilo.ACENTO))
 	var fila := _fila_centrada()
 	var batallones: Dictionary = Partida.batallones()
 	for id in batallones:
 		fila.add_child(_boton(batallones[id]["nombre"], func():
 			Partida.empezar_campana(id)
 			_refrescar()))
-	_fila_centrada().add_child(_boton("Volver al menú", _ir_al_menu))
+	_fila_centrada().add_child(_boton(tr("Volver al menú"), _ir_al_menu))
 
 
 func _pantalla_recompensa() -> void:
-	_contenido.add_child(_texto("¡Victoria! Tus gatos ganaron medallas.", 22, Estilo.ACENTO))
-	_contenido.add_child(_texto("Elige una carta de recompensa: va a tu Arsenal y la puedes llevar a la próxima batalla."))
+	_contenido.add_child(_texto(tr("¡Victoria! Tus gatos ganaron medallas."), 22, Estilo.ACENTO))
+	_contenido.add_child(_texto(tr("Elige una carta de recompensa: va a tu Arsenal y la puedes llevar a la próxima batalla.")))
 	var fila := _fila_centrada()
 	for id in Partida.campana["recompensa"]:
 		var c: Dictionary = _cartas[id]
-		var b := _boton("%s  [%d]\n%s" % [c["nombre"], int(c["coste"]), c["texto"]], func():
+		var b := _boton(tr("%s  [%d]\n%s") % [c["nombre"], int(c["coste"]), c["texto"]], func():
 			Partida.elegir_recompensa(id)
 			_refrescar(), 250)
 		b.custom_minimum_size = Vector2(250, 110)
@@ -106,10 +106,10 @@ func _pantalla_recompensa() -> void:
 
 
 func _pantalla_final() -> void:
-	_contenido.add_child(_texto("¡CAMPAÑA COMPLETADA!", 30, Estilo.ACENTO))
-	_contenido.add_child(_texto("Tus gatos ganaron las 5 batallas. Estas son sus medallas:"))
+	_contenido.add_child(_texto(tr("¡CAMPAÑA COMPLETADA!"), 30, Estilo.ACENTO))
+	_contenido.add_child(_texto(tr("Tus gatos ganaron las 5 batallas. Estas son sus medallas:")))
 	_contenido.add_child(_fila_gatos())
-	_fila_centrada().add_child(_boton("Terminar campaña", func():
+	_fila_centrada().add_child(_boton(tr("Terminar campaña"), func():
 		Partida.abandonar_campana()
 		_ir_al_menu()))
 
@@ -118,34 +118,34 @@ func _pantalla_progreso() -> void:
 	var c: Dictionary = Partida.campana
 	var n: int = c["batalla"]
 	var batallones: Dictionary = Partida.batallones()
-	_contenido.add_child(_texto("%s · batalla %d de %d" % [batallones[c["batallon"]]["nombre"], n + 1, Partida.CAMPANA.size()], 20, Estilo.ACENTO))
+	_contenido.add_child(_texto(tr("%s · batalla %d de %d") % [batallones[c["batallon"]]["nombre"], n + 1, Partida.CAMPANA.size()], 20, Estilo.ACENTO))
 	# Las 5 batallas: hechas, la próxima y las que vienen.
 	var fila := _fila_centrada()
 	for i in Partida.CAMPANA.size():
 		var paso: Dictionary = Partida.CAMPANA[i]
 		var mapa: Dictionary = Datos.leer(paso["mapa"])
-		var rival_nombre := String(batallones[Partida.rival_de_campana(i)]["nombre"]).replace("Batallón ", "")
-		var estado := "Ganada" if i < n else ("Próxima" if i == n else "")
+		var rival_nombre: String = batallones[Partida.rival_de_campana(i)]["nombre_corto"]
+		var estado := tr("Ganada") if i < n else (tr("Próxima") if i == n else "")
 		var panel := PanelContainer.new()
 		var color := Color("cfe8c4") if i < n else (Color("fff1c2") if i == n else Estilo.PAPEL)
 		panel.add_theme_stylebox_override("panel", Estilo.caja(color, Estilo.TINTA, 3 if i == n else 2))
 		panel.custom_minimum_size = Vector2(168, 0)
-		var t := Estilo.texto_en_papel("%d. %s\n%s\nvs %s\n%s" % [i + 1, mapa.get("nombre", "Mapa"),
-			NOMBRES_DIFICULTAD[paso["dificultad"]], rival_nombre, estado], 14)
+		var t := Estilo.texto_en_papel(tr("%d. %s\n%s\nvs %s\n%s") % [i + 1, mapa.get("nombre", tr("Mapa")),
+			tr(NOMBRES_DIFICULTAD[paso["dificultad"]]), rival_nombre, estado], 14)
 		t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		panel.add_child(t)
 		fila.add_child(panel)
-	_contenido.add_child(_texto("Medallas de tus gatos (+%d de vida cada una):" % Partida.VIDA_POR_MEDALLA))
+	_contenido.add_child(_texto(tr("Medallas de tus gatos (+%d de vida cada una):") % Partida.VIDA_POR_MEDALLA))
 	_contenido.add_child(_fila_gatos())
 	_contenido.add_child(_fila_arsenal())
 	var botones := _fila_centrada()
-	botones.add_child(_boton("¡A la batalla!", func():
+	botones.add_child(_boton(tr("¡A la batalla!"), func():
 		Partida.preparar_batalla_campana()
 		get_tree().change_scene_to_file(ESCENA_COMBATE)))
-	botones.add_child(_boton("Abandonar campaña", func():
+	botones.add_child(_boton(tr("Abandonar campaña"), func():
 		Partida.abandonar_campana()
 		_refrescar(), 220))
-	botones.add_child(_boton("Volver al menú", _ir_al_menu, 200))
+	botones.add_child(_boton(tr("Volver al menú"), _ir_al_menu, 200))
 
 
 ## Los gatos del batallón de la campaña, con sus medallas.
@@ -161,7 +161,7 @@ func _fila_gatos() -> HBoxContainer:
 		gato.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 		caja.add_child(gato)
 		var n := int(medallas.get(u["id"], 0))
-		caja.add_child(_texto("%s\n%s" % [u["nombre"], "★".repeat(n) if n > 0 else "sin medallas"], 15))
+		caja.add_child(_texto("%s\n%s" % [u["nombre"], "★".repeat(n) if n > 0 else tr("sin medallas")], 15))
 		fila.add_child(caja)
 	return fila
 
@@ -175,9 +175,9 @@ func _fila_arsenal() -> HBoxContainer:
 	titulo.add_theme_color_override("font_color", Estilo.ACENTO)
 	fila.add_child(titulo)
 	if Partida.arsenal.is_empty():
-		titulo.text = "Arsenal vacío: derriba tanques y gana batallas para conseguir cartas."
+		titulo.text = tr("Arsenal vacío: derriba tanques y gana batallas para conseguir cartas.")
 		return fila
-	titulo.text = "Arsenal (llevas %d/%d):" % [Partida.llevar.size(), Partida.LLEVAR_MAX]
+	titulo.text = tr("Arsenal (llevas %d/%d):") % [Partida.llevar.size(), Partida.LLEVAR_MAX]
 	for i in Partida.arsenal.size():
 		var id: String = Partida.arsenal[i]
 		var b := Button.new()

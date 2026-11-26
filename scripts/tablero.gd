@@ -240,7 +240,7 @@ func _terminar_killcam(a: Dictionary, v: Dictionary) -> void:
 	if u.has("gato"):
 		var hacia_x: float = -40.0 if u["bando"] == "aliado" else size.x + 40.0
 		_escapes.append({"hoja": _textura(u["gato"]), "de": _centro(v) + Vector2(0, -18), "hacia_x": hacia_x, "t": 0.0})
-	_flotar(v, "¡A salvo!", COLORES_TEXTO["moral"])
+	_flotar(v, tr("¡A salvo!"), COLORES_TEXTO["moral"])
 
 
 func _unidad(clave: String) -> Dictionary:
@@ -287,7 +287,7 @@ func _iniciar(a: Dictionary, v: Dictionary) -> void:
 			var texto := "-%d" % a["al_casco"]
 			var color: Color = COLORES_TEXTO["dano"]
 			if a["al_casco"] == 0:
-				texto = "escudo -%d" % a["absorbido"]
+				texto = tr("escudo -%d") % a["absorbido"]
 				color = COLORES_TEXTO["escudo"]
 			_flotar(v, texto, color)
 			if a.get("voz", "") != "":
@@ -452,7 +452,7 @@ func _dibujar_dado(fuente: Font) -> void:
 		draw_circle(pto * lado * 0.28, lado * 0.085, Color("d6334a") if cara == 1 else COLOR_TINTA)
 	draw_set_transform(Vector2.ZERO)
 	if rodando:
-		_texto_centrado(fuente, "¡Dado del frente!", centro.y + 100, 24, Color("ffe08a"))
+		_texto_centrado(fuente, tr("¡Dado del frente!"), centro.y + 100, 24, Color("ffe08a"))
 		return
 	var id: String = combate.EVENTOS_FRENTE[int(_dado["valor"])]["id"]
 	var color := Color("8ad0ff") if id in ["lluvia", "niebla"] else Color("ffe08a")
@@ -556,7 +556,7 @@ func _dibujar_killcam(fuente: Font) -> void:
 	var cabecera := Rect2(panel.position, Vector2(panel.size.x, 30))
 	draw_rect(cabecera, Color("e84a5f"))
 	draw_rect(cabecera, COLOR_TINTA, false, 3.0)
-	draw_string(fuente, cabecera.position + Vector2(12, 22), "KILL CAM", HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color.WHITE)
+	draw_string(fuente, cabecera.position + Vector2(12, 22), tr("KILL CAM"), HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color.WHITE)
 	draw_string(fuente, cabecera.position + Vector2(120, 22), "%s · %s" % [u["nombre"], u.get("inspirado_en", "")],
 		HORIZONTAL_ALIGNMENT_LEFT, panel.size.x - 130, 15, Color.WHITE)
 
@@ -611,11 +611,11 @@ func _dibujar_killcam(fuente: Font) -> void:
 		draw_circle(punto, 10.0 + 50.0 * pe, Color(1.0, 0.55, 0.15, 0.85 * (1.0 - pe)))
 		draw_circle(punto, 6.0 + 26.0 * pe, Color(1.0, 0.92, 0.55, 1.0 - pe))
 
-	var nombres_lado := {"frente": "el frente", "flanco": "el flanco", "trasera": "la trasera", "techo": "el techo (desde el aire)",
-		"panza": "la panza (¡una mina!)"}
-	var texto := "¡Derribado! Impacto por %s · -%d" % [nombres_lado.get(lado, lado), _killcam["dano"]]
+	var nombres_lado := {"frente": tr("el frente"), "flanco": tr("el flanco"), "trasera": tr("la trasera"), "techo": tr("el techo (desde el aire)"),
+		"panza": tr("la panza (¡una mina!)")}
+	var texto := tr("¡Derribado! Impacto por %s · -%d") % [nombres_lado.get(lado, lado), _killcam["dano"]]
 	if t > SALTO_GATO_KC:
-		texto = "¡%s salta del tanque y escapa a salvo!" % u["nombre"]
+		texto = tr("¡%s salta del tanque y escapa a salvo!") % u["nombre"]
 	var pie := panel.position + Vector2(0, panel.size.y - 14)
 	draw_string(fuente, pie, texto, HORIZONTAL_ALIGNMENT_CENTER, panel.size.x, 17, COLOR_TINTA)
 
@@ -756,7 +756,7 @@ func _icono_intencion(esquina: Vector2, a: Dictionary) -> void:
 	var icono := ""
 	if a.get("reserva", false):
 		fondo = Color("34495e")
-		texto = "zZ"
+		texto = tr("zZ")
 	elif a.get("paralizado", false):
 		fondo = Color("6b6b78")
 		texto = "?"

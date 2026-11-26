@@ -216,7 +216,7 @@ func mover(i_aliado: int, celda: Vector2i) -> bool:
 		return false
 	u["mov_restante"] -= opciones[celda][0]
 	_mover_a(u, celda, opciones)
-	_anotar("%s se mueve a (%d, %d)." % [u["nombre"], celda.x, celda.y])
+	_anotar(tr("%s se mueve a (%d, %d).") % [u["nombre"], celda.x, celda.y])
 	evento.emit("mover")
 	cambio.emit()
 	return true
@@ -291,61 +291,61 @@ func tanques_con_acciones() -> Array:
 ## Devuelve "" si la carta de la mano se puede jugar, o el motivo por el que no.
 func motivo_no_jugable(i_mano: int, i_actor: int, i_objetivo: int) -> String:
 	if i_mano < 0 or i_mano >= mano.size():
-		return "Carta inválida."
+		return tr("Carta inválida.")
 	return motivo_uso(mano[i_mano], i_actor, i_objetivo)
 
 
 ## Devuelve "" si el tanque puede usar la carta `id` contra el blanco, o el motivo por el que no.
 func motivo_uso(id: String, i_actor: int, i_objetivo: int) -> String:
 	if estado != "jugando":
-		return "El combate terminó."
+		return tr("El combate terminó.")
 	if not cartas.has(id):
-		return "Carta inválida."
+		return tr("Carta inválida.")
 	var c: Dictionary = cartas[id]
 	if i_actor < 0 or i_actor >= aliados.size() or not vivo(aliados[i_actor]):
-		return "Elige un tanque propio en pie."
+		return tr("Elige un tanque propio en pie.")
 	var actor: Dictionary = aliados[i_actor]
 	if actor.has("habilidades"):
 		if not cartas_de(i_actor).has(id):
-			return "%s no tiene esa carta." % actor["nombre"]
+			return tr("%s no tiene esa carta.") % actor["nombre"]
 		if actor["usadas"].has(id):
-			return "%s ya la usó este turno." % actor["nombre"]
+			return tr("%s ya la usó este turno.") % actor["nombre"]
 		var faltan := int(actor["recargas"].get(id, 0))
 		if faltan > 50:
-			return "Solo se puede usar una vez por batalla."
+			return tr("Solo se puede usar una vez por batalla.")
 		if faltan > 0:
-			return "Recargando: lista en %d turno%s." % [faltan, "" if faltan == 1 else "s"]
+			return tr("Recargando: lista en %d turno%s.") % [faltan, "" if faltan == 1 else "s"]
 	return _motivo_comun(c, actor, i_objetivo)
 
 
 ## Chequeos que valen para cualquier carta (propia, de la mano o de botín).
 func _motivo_comun(c: Dictionary, actor: Dictionary, i_objetivo: int) -> String:
 	if c.get("refuerzo", false) and (refuerzo.is_empty() or refuerzo_usado):
-		return "Ya no quedan refuerzos."
+		return tr("Ya no quedan refuerzos.")
 	if c.get("aereo", false) and aereo_usado:
-		return "El avión ya vino en esta batalla."
+		return tr("El avión ya vino en esta batalla.")
 	if coste_de(c, actor) > energia:
-		return "No hay energía suficiente."
+		return tr("No hay energía suficiente.")
 	var hay_objetivo := i_objetivo >= 0 and i_objetivo < enemigos.size() and vivo(enemigos[i_objetivo])
 	if c.get("tipo") == "ataque":
 		if en_panico(actor):
-			return "La tripulación está en pánico."
+			return tr("La tripulación está en pánico.")
 		if actor.get("mania") == "recarga_lenta" and int(actor.get("ataques_turno", 0)) >= 1:
-			return "%s recarga lento: un ataque por turno." % actor["nombre"]
+			return tr("%s recarga lento: un ataque por turno.") % actor["nombre"]
 		if not hay_objetivo:
-			return "Elige un enemigo en pie."
+			return tr("Elige un enemigo en pie.")
 		var dist := Mapa.distancia(actor["pos"], enemigos[i_objetivo]["pos"])
 		var alc: Array = alcance_de(c)
 		if evento_activo("niebla") and dist > ALCANCE_NIEBLA:
-			return "Hay niebla: este turno no se ve a más de %d casillas." % ALCANCE_NIEBLA
+			return tr("Hay niebla: este turno no se ve a más de %d casillas.") % ALCANCE_NIEBLA
 		if dist < alc[0] or dist > alc[1]:
-			return "Fuera de alcance: distancia %d, alcance %d-%d." % [dist, alc[0], alc[1]]
+			return tr("Fuera de alcance: distancia %d, alcance %d-%d.") % [dist, alc[0], alc[1]]
 		if not ve_a(c, actor["pos"], enemigos[i_objetivo]["pos"]):
-			return "Sin línea de visión: hay una roca en medio."
+			return tr("Sin línea de visión: hay una roca en medio.")
 		if actor.get("sin_torreta", false) and penalizacion_punteria(actor, enemigos[i_objetivo]) > 0:
-			return "Sin torreta: no lo tiene al frente. Usa Encarar primero."
+			return tr("Sin torreta: no lo tiene al frente. Usa Encarar primero.")
 	if c.get("requiere_objetivo", false) and not hay_objetivo:
-		return "Elige un enemigo en pie."
+		return tr("Elige un enemigo en pie.")
 	return ""
 
 
@@ -379,7 +379,7 @@ func _reparar(u: Dictionary, cuanto: int) -> void:
 	var antes: int = u["casco"]
 	u["casco"] = mini(u["casco"] + cuanto, u["casco_max"])
 	if u["casco"] > antes:
-		_avisar(u, "+%d vida" % (u["casco"] - antes), "vida")
+		_avisar(u, tr("+%d vida") % (u["casco"] - antes), "vida")
 
 
 ## "¡Refuerzos!": llega el tanque de refuerzo del batallón por una casilla libre del
@@ -402,8 +402,8 @@ func _llamar_refuerzo() -> void:
 	var u := _crear_unidad(refuerzo, "aliado", libre, Vector2i.RIGHT)
 	u["clave"] = "a%d" % aliados.size()
 	aliados.append(u)
-	_anotar("¡Refuerzos! Llega %s en su %s." % [u["nombre"], u.get("inspirado_en", "tanque")])
-	_avisar(u, "¡Refuerzos!", "moral")
+	_anotar(tr("¡Refuerzos! Llega %s en su %s.") % [u["nombre"], u.get("inspirado_en", "tanque")])
+	_avisar(u, tr("¡Refuerzos!"), "moral")
 
 
 ## Al derribar un enemigo con cartas propias, queda pendiente elegir una de ellas como botín.
@@ -415,7 +415,7 @@ func _capturar_de(u: Dictionary) -> void:
 	if opciones.is_empty():
 		return
 	capturas.append({"de": u["nombre"], "opciones": opciones})
-	_anotar("  ¡Botín! Puedes quedarte con una carta de %s." % u["nombre"])
+	_anotar(tr("  ¡Botín! Puedes quedarte con una carta de %s.") % u["nombre"])
 
 
 ## Elige la carta `id` de la primera captura pendiente y la pasa al botín.
@@ -424,18 +424,18 @@ func elegir_botin(id: String) -> bool:
 		return false
 	capturas.pop_front()
 	botin.append(id)
-	_anotar("Botín: %s. Cualquier tanque puede usarla una vez." % cartas[id]["nombre"])
+	_anotar(tr("Botín: %s. Cualquier tanque puede usarla una vez.") % cartas[id]["nombre"])
 	cambio.emit()
 	return true
 
 
 func motivo_botin(i_botin: int, i_actor: int, i_objetivo: int) -> String:
 	if estado != "jugando":
-		return "El combate terminó."
+		return tr("El combate terminó.")
 	if i_botin < 0 or i_botin >= botin.size():
-		return "Carta inválida."
+		return tr("Carta inválida.")
 	if i_actor < 0 or i_actor >= aliados.size() or not vivo(aliados[i_actor]):
-		return "Elige un tanque propio en pie."
+		return tr("Elige un tanque propio en pie.")
 	return _motivo_comun(cartas[botin[i_botin]], aliados[i_actor], i_objetivo)
 
 
@@ -492,7 +492,7 @@ func _aplicar(id: String, i_actor: int, i_objetivo: int) -> void:
 	var c: Dictionary = cartas[id]
 	var actor: Dictionary = aliados[i_actor]
 	energia -= coste_de(c, actor)
-	_anotar("%s usa %s." % [actor["nombre"], c["nombre"]])
+	_anotar(tr("%s usa %s.") % [actor["nombre"], c["nombre"]])
 	if c.get("aereo", false):
 		_pedir_aereo(id, i_objetivo)
 		_comprobar_fin()
@@ -511,15 +511,15 @@ func _aplicar(id: String, i_actor: int, i_objetivo: int) -> void:
 		var lado := lado_de_impacto(objetivo, actor["pos"])
 		var penal := penalizacion_punteria(actor, objetivo)
 		if penal > 0:
-			_anotar("  (dispara sin encarar: -%d de daño)" % penal)
+			_anotar(tr("  (dispara sin encarar: -%d de daño)") % penal)
 		var dano := maxi(dano_de_carta(c, lado) + bonus_de_ataque(actor, c, objetivo) - penal, 1)
 		# Puntería (Veterano y As): de lejos el disparo puede rozar y hacer la mitad.
 		var prob := 1.0 if c.get("sin_roce", false) else probabilidad_acierto(actor, objetivo)
 		var tirada: float = forzar_tirada if forzar_tirada >= 0.0 else rng.randf()
 		if tirada >= prob:
 			dano = maxi(dano / 2, 1)
-			_anotar("  ¡Roce! El disparo apenas lo toca (mitad de daño).")
-			_avisar(objetivo, "¡Roce!", "malo")
+			_anotar(tr("  ¡Roce! El disparo apenas lo toca (mitad de daño)."))
+			_avisar(objetivo, tr("¡Roce!"), "malo")
 		_atacante = actor
 		golpear(objetivo, dano, int(c.get("penetracion", 0)), lado, _cobertura_para(c, objetivo))
 		var salpicadura := int(c.get("salpicadura", 0))
@@ -536,15 +536,15 @@ func _aplicar(id: String, i_actor: int, i_objetivo: int) -> void:
 	if c.has("escudo"):
 		for u in receptores:
 			u["escudo"] += int(c["escudo"])
-			_avisar(u, "+%d escudo" % int(c["escudo"]), "escudo")
+			_avisar(u, tr("+%d escudo") % int(c["escudo"]), "escudo")
 	if c.has("moral"):
 		for u in receptores:
 			u["moral"] = clampi(u["moral"] + int(c["moral"]), 0, u["moral_max"])
 			var m := int(c["moral"])
-			_avisar(u, ("+%d moral" if m > 0 else "%d moral") % m, "moral" if m > 0 else "malo")
+			_avisar(u, (tr("+%d moral") if m > 0 else tr("%d moral")) % m, "moral" if m > 0 else "malo")
 	if c.get("camuflaje", false):
 		actor["camuflado"] = true
-		_avisar(actor, "Camuflado", "escudo")
+		_avisar(actor, tr("Camuflado"), "escudo")
 	if c.get("encarar", false):
 		actor["orientacion"] = direccion_hacia(actor["pos"], enemigos[i_objetivo]["pos"])
 		accion.emit({"tipo": "girar", "clave": actor["clave"], "orientacion": actor["orientacion"]})
@@ -579,7 +579,7 @@ func terminar_turno() -> void:
 		if vivo(marcado):
 			_ataque_aereo(aereo_pendiente["carta"], marcado["pos"], "aliado")
 		else:
-			_anotar("El %s llega, pero %s ya estaba fuera de combate." % [cartas[aereo_pendiente["carta"]]["nombre"], marcado["nombre"]])
+			_anotar(tr("El %s llega, pero %s ya estaba fuera de combate.") % [cartas[aereo_pendiente["carta"]]["nombre"], marcado["nombre"]])
 	aereo_pendiente = {}
 	_comprobar_fin()
 	if estado == "jugando":
@@ -629,25 +629,25 @@ func golpear(u: Dictionary, dano: int, penetracion: int, lado: String, cobertura
 		salvado = true
 	u["moral"] = maxi(u["moral"] - i["moral_perdida"], 0)
 	var entra_en_panico: bool = moral_antes > 0 and u["moral"] == 0 and vivo(u)
-	var texto := "  %s recibe %d en %s" % [u["nombre"], i["al_casco"], _nombre_lado(lado)]
+	var texto := tr("  %s recibe %d en %s") % [u["nombre"], i["al_casco"], _nombre_lado(lado)]
 	if i["absorbido"] > 0:
-		texto += " (%d absorbido)" % i["absorbido"]
+		texto += tr(" (%d absorbido)") % i["absorbido"]
 	if not vivo(u):
-		texto += ". ¡Fuera de combate! El gato escapa a salvo."
+		texto += tr(". ¡Fuera de combate! El gato escapa a salvo.")
 		evento.emit("explosion")
 		_capturar_de(u)
 		if u["bando"] == "enemigo":
 			_hazanas_de_derribo(u, lado)
 	_anotar(texto)
 	if salvado:
-		_anotar("  ¡%s se salva por los bigotes! Queda con 1 de vida." % u["nombre"])
+		_anotar(tr("  ¡%s se salva por los bigotes! Queda con 1 de vida.") % u["nombre"])
 	if u.get("mania") == "dramatico" and vivo(u) and i["al_casco"] >= DANO_QUE_BAJA_MORAL:
 		_drama(u)
 	accion.emit({"tipo": "golpe", "clave": u.get("clave", ""), "al_casco": i["al_casco"],
 		"absorbido": i["absorbido"], "casco": u["casco"], "escudo": u["escudo"], "moral": u["moral"],
 		"derriba": not vivo(u), "voz": "susto" if entra_en_panico or salvado else "", "lado": lado})
 	if salvado:
-		_avisar(u, "¡Salvado por los bigotes!", "moral")
+		_avisar(u, tr("¡Salvado por los bigotes!"), "moral")
 		hazana.emit("por_los_bigotes")
 	return i["al_casco"]
 
@@ -672,12 +672,12 @@ func _hazanas_de_derribo(u: Dictionary, lado: String) -> void:
 ## Manía "dramático": tras un golpe fuerte grita y el resto de su bando gana 1 de moral.
 func _drama(u: Dictionary) -> void:
 	var propios: Array = aliados if u["bando"] == "aliado" else enemigos
-	_anotar("  ¡%s grita «¡Avanti!»! Su pelotón gana 1 de moral." % u["nombre"])
-	_avisar(u, "¡Avanti!", "moral")
+	_anotar(tr("  ¡%s grita «¡Avanti!»! Su pelotón gana 1 de moral.") % u["nombre"])
+	_avisar(u, tr("¡Avanti!"), "moral")
 	for otro in propios:
 		if not is_same(otro, u) and vivo(otro) and otro["moral"] < otro["moral_max"]:
 			otro["moral"] += 1
-			_avisar(otro, "+1 moral", "moral")
+			_avisar(otro, tr("+1 moral"), "moral")
 
 
 ## Texto flotante sobre una unidad (escudo, moral...), con su estado ya actualizado.
@@ -810,18 +810,18 @@ func texto_intencion(u: Dictionary) -> String:
 	if a.is_empty():
 		return ""
 	if a.get("paralizado", false):
-		return "En pánico: pierde el turno"
+		return tr("En pánico: pierde el turno")
 	if a.get("averia", false):
-		return "Avería: este turno no actúa"
+		return tr("Avería: este turno no actúa")
 	if a.get("reserva", false):
-		return "En reserva: este turno no actúa (solo actúan %d)" % acciones_max()
+		return tr("En reserva: este turno no actúa (solo actúan %d)") % acciones_max()
 	if a.has("dano"):
 		var alc: Array = alcance_de(a)
-		return "%s: %d daño, alcance %d-%d, al más cercano" % [a["nombre"], int(a["dano"]), alc[0], alc[1]]
+		return tr("%s: %d daño, alcance %d-%d, al más cercano") % [a["nombre"], int(a["dano"]), alc[0], alc[1]]
 	if a.has("moral"):
-		return "%s: -%d moral a quien esté a %d o menos" % [a["nombre"], int(a["moral"]), int(a.get("radio", 99))]
+		return tr("%s: -%d moral a quien esté a %d o menos") % [a["nombre"], int(a["moral"]), int(a.get("radio", 99))]
 	if a.has("escudo"):
-		return "%s: +%d escudo" % [a["nombre"], int(a["escudo"])]
+		return tr("%s: +%d escudo") % [a["nombre"], int(a["escudo"])]
 	return a["nombre"]
 
 
@@ -856,8 +856,8 @@ func _pedir_aereo(id: String, i_objetivo: int) -> void:
 		_ataque_aereo(id, celda, "aliado")
 		return
 	aereo_pendiente = {"carta": id, "indice": i_objetivo, "celda": celda}
-	_anotar("  El %s viene en camino: buscará a %s al empezar tu próximo turno." % [c["nombre"], enemigos[i_objetivo]["nombre"]])
-	_avisar(enemigos[i_objetivo], "¡Marcado!", "malo")
+	_anotar(tr("  El %s viene en camino: buscará a %s al empezar tu próximo turno.") % [c["nombre"], enemigos[i_objetivo]["nombre"]])
+	_avisar(enemigos[i_objetivo], tr("¡Marcado!"), "malo")
 
 
 ## Pasa el avión de `bando` sobre `celda`: pega desde arriba (techo: ignora cobertura y
@@ -872,16 +872,16 @@ func _ataque_aereo(id: String, celda: Vector2i, bando: String) -> void:
 		if vivo(u) and u["pos"] == celda:
 			blanco = u
 	if blanco.is_empty():
-		_anotar("  ¡El %s ataca (%d, %d), pero ahí ya no hay nadie!" % [c["nombre"], celda.x, celda.y])
+		_anotar(tr("  ¡El %s ataca (%d, %d), pero ahí ya no hay nadie!") % [c["nombre"], celda.x, celda.y])
 		if bando == "enemigo":
 			hazana.emit("esquivado")
 	else:
-		_anotar("  ¡El %s ataca a %s desde el aire!" % [c["nombre"], blanco["nombre"]])
+		_anotar(tr("  ¡El %s ataca a %s desde el aire!") % [c["nombre"], blanco["nombre"]])
 		_atacante = {"aereo": true} if bando == "aliado" else {}
 		golpear(blanco, int(c["dano"]), int(c.get("penetracion", 0)), "techo", 0)
 		if vivo(blanco) and c.has("baja_moral"):
 			blanco["moral"] = maxi(blanco["moral"] - int(c["baja_moral"]), 0)
-			_avisar(blanco, "-%d moral" % int(c["baja_moral"]), "malo")
+			_avisar(blanco, tr("-%d moral") % int(c["baja_moral"]), "malo")
 	var salpicadura := int(c.get("salpicadura", 0))
 	if salpicadura > 0:
 		for u in victimas:
@@ -903,9 +903,9 @@ func _planear_aereo_enemigo() -> void:
 		return
 	aereo_rival_usado = true
 	aereo_enemigo_plan = {"carta": aereo_rival, "celda": blanco["pos"]}
-	_anotar("¡Avión enemigo a la vista! Atacará (%d, %d) al empezar su fase: ¡saca a %s de ahí!" % [
+	_anotar(tr("¡Avión enemigo a la vista! Atacará (%d, %d) al empezar su fase: ¡saca a %s de ahí!") % [
 		blanco["pos"].x, blanco["pos"].y, blanco["nombre"]])
-	_avisar(blanco, "¡Avión enemigo!", "malo", "susto")
+	_avisar(blanco, tr("¡Avión enemigo!"), "malo", "susto")
 
 
 ## Un tanque camuflado solo puede ser blanco desde menos de DISTANCIA_CAMUFLAJE casillas.
@@ -916,7 +916,7 @@ func puede_apuntar(blanco: Dictionary, desde: Vector2i) -> bool:
 func _descamuflar(u: Dictionary) -> void:
 	if u.get("camuflado", false):
 		u["camuflado"] = false
-		_anotar("  %s deja el camuflaje." % u["nombre"])
+		_anotar(tr("  %s deja el camuflaje.") % u["nombre"])
 
 
 ## Línea de visión para esta carta o acción (la artillería dispara por encima: no la necesita).
@@ -941,7 +941,7 @@ func _iniciar_turno() -> void:
 				u["recargas"].erase(id)
 	_robar(CARTAS_POR_TURNO)
 	_elegir_intenciones()
-	_anotar("== Turno %d ==" % turno)
+	_anotar(tr("== Turno %d ==") % turno)
 	_tirar_dado()
 	_dar_orden()
 
@@ -953,10 +953,12 @@ func _tirar_dado() -> void:
 	var minimo := 3 if dificultad.get("dado_amable", false) else 1
 	var valor := forzar_dado if forzar_dado > 0 else _rng_dado.randi_range(minimo, 6)
 	var ev: Dictionary = EVENTOS_FRENTE[valor].duplicate()
+	ev["nombre"] = tr(ev["nombre"])
+	ev["texto"] = tr(ev["texto"])
 	ev["valor"] = valor
 	ev["turno"] = turno
 	evento_frente = ev
-	_anotar("¡Dado del frente: %d! %s. %s" % [valor, ev["nombre"], ev["texto"]])
+	_anotar(tr("¡Dado del frente: %d! %s. %s") % [valor, ev["nombre"], ev["texto"]])
 	accion.emit({"tipo": "dado", "clave": "", "valor": valor, "nombre": ev["nombre"], "texto": ev["texto"]})
 	evento.emit("dado")
 	match ev["id"]:
@@ -969,7 +971,7 @@ func _tirar_dado() -> void:
 			for u in aliados:
 				if vivo(u) and u["moral"] < u["moral_max"]:
 					u["moral"] += 1
-					_avisar(u, "+1 moral", "moral")
+					_avisar(u, tr("+1 moral"), "moral")
 		"averia":
 			var candidatos: Array = []
 			for e in enemigos:
@@ -977,11 +979,11 @@ func _tirar_dado() -> void:
 				if vivo(e) and not a.is_empty() and not a.get("reserva", false) and not a.get("paralizado", false):
 					candidatos.append(e)
 			if candidatos.is_empty():
-				_anotar("  Ningún enemigo iba a hacer nada: la avería no cambia nada.")
+				_anotar(tr("  Ningún enemigo iba a hacer nada: la avería no cambia nada."))
 			else:
 				var e: Dictionary = candidatos[_rng_dado.randi_range(0, candidatos.size() - 1)]
-				e["intencion"] = {"nombre": "Avería", "averia": true}
-				_avisar(e, "¡Avería!", "malo")
+				e["intencion"] = {"nombre": tr("Avería"), "averia": true}
+				_avisar(e, tr("¡Avería!"), "malo")
 		"pescado":
 			for u in aliados:
 				_reparar(u, 2)
@@ -1019,7 +1021,7 @@ func _dar_orden() -> void:
 	if candidatos.is_empty():
 		return
 	orden = candidatos[rng.randi_range(0, candidatos.size() - 1)]
-	_anotar("%s: «¡%s, dispara este turno!»" % [oficial["nombre"], aliados[orden]["nombre"]])
+	_anotar(tr("%s: «¡%s, dispara este turno!»") % [tr(oficial["nombre"]), aliados[orden]["nombre"]])
 
 
 ## Al terminar el turno: premio si la orden se cumplió, reto si no.
@@ -1030,11 +1032,11 @@ func _revisar_orden() -> void:
 	if orden_cumplida:
 		energia_extra = 1
 		hazana.emit("a_la_orden")
-		_anotar("%s: «Aceptable.» +1 energía el próximo turno." % oficial["nombre"])
+		_anotar(tr("%s: «Aceptable.» +1 energía el próximo turno.") % tr(oficial["nombre"]))
 	else:
 		u["moral"] = maxi(u["moral"] - 1, 0)
-		_anotar("%s: «¿Y ese disparo, recluta?» %s pierde 1 de moral." % [oficial["nombre"], u["nombre"]])
-		_avisar(u, "Michi: -1 moral", "malo", "michi_grunido")
+		_anotar(tr("%s: «¿Y ese disparo, recluta?» %s pierde 1 de moral.") % [tr(oficial["nombre"]), u["nombre"]])
+		_avisar(u, tr("Michi: -1 moral"), "malo", "michi_grunido")
 
 
 func _elegir_intenciones() -> void:
@@ -1044,9 +1046,9 @@ func _elegir_intenciones() -> void:
 		if not vivo(e):
 			e["intencion"] = {}
 		elif en_panico(e):
-			e["intencion"] = {"nombre": "Pánico", "paralizado": true}
+			e["intencion"] = {"nombre": tr("Pánico"), "paralizado": true}
 		elif reserva.has(i):
-			e["intencion"] = {"nombre": "En reserva", "reserva": true}
+			e["intencion"] = {"nombre": tr("En reserva"), "reserva": true}
 		else:
 			var acciones: Array = e["acciones"]
 			var a: Dictionary = acciones[rng.randi_range(0, acciones.size() - 1)].duplicate(true)
@@ -1096,12 +1098,12 @@ func _cerrar_turno_de(lista: Array) -> void:
 	for u in lista:
 		if vivo(u) and u.get("mania") == "ritual_te" and not u.get("se_movio", false) and u["moral"] < u["moral_max"]:
 			u["moral"] += 1
-			_anotar("%s se queda quieto tomando té: +1 moral." % u["nombre"])
-			_avisar(u, "té: +1 moral", "moral")
+			_anotar(tr("%s se queda quieto tomando té: +1 moral.") % u["nombre"])
+			_avisar(u, tr("té: +1 moral"), "moral")
 		if vivo(u) and u.get("mania") == "gloton" and int(u.get("ataques_turno", 0)) == 0 and u["moral"] < u["moral_max"]:
 			u["moral"] += 1
-			_anotar("%s no atacó y se come algo: +1 moral." % u["nombre"])
-			_avisar(u, "ñam: +1 moral", "moral")
+			_anotar(tr("%s no atacó y se come algo: +1 moral.") % u["nombre"])
+			_avisar(u, tr("ñam: +1 moral"), "moral")
 		if vivo(u) and u.get("mania") == "mecanico":
 			# Repara al compañero pegado más dañado.
 			var mejor := {}
@@ -1112,7 +1114,7 @@ func _cerrar_turno_de(lista: Array) -> void:
 					if otro["casco"] < otro["casco_max"] and (mejor.is_empty() or otro["casco"] < mejor["casco"]):
 						mejor = otro
 			if not mejor.is_empty():
-				_anotar("%s repara a %s." % [u["nombre"], mejor["nombre"]])
+				_anotar(tr("%s repara a %s.") % [u["nombre"], mejor["nombre"]])
 				_reparar(mejor, 2)
 
 
@@ -1172,27 +1174,27 @@ func _turno_enemigo_acciones() -> void:
 			continue
 		if a.get("paralizado", false):
 			e["moral"] = mini(e["moral"] + MORAL_RECUPERADA_EN_PANICO, e["moral_max"])
-			_anotar("%s está en pánico y no actúa." % e["nombre"])
+			_anotar(tr("%s está en pánico y no actúa.") % e["nombre"])
 			continue
 		if a.get("reserva", false):
-			_anotar("%s espera en reserva." % e["nombre"])
+			_anotar(tr("%s espera en reserva.") % e["nombre"])
 			continue
 		if a.get("averia", false):
-			_anotar("%s está arreglando su avería y no actúa." % e["nombre"])
+			_anotar(tr("%s está arreglando su avería y no actúa.") % e["nombre"])
 			continue
 		if a.has("dano"):
 			_atacar_como_enemigo(e, a)
 		if a.has("moral"):
-			_anotar("%s usa %s." % [e["nombre"], a["nombre"]])
+			_anotar(tr("%s usa %s.") % [e["nombre"], a["nombre"]])
 			_avisar(e, a["nombre"] + "!", "malo")
 			for u in aliados:
 				if vivo(u) and Mapa.distancia(u["pos"], e["pos"]) <= int(a.get("radio", 99)):
 					u["moral"] = maxi(u["moral"] - int(a["moral"]), 0)
-					_avisar(u, "-%d moral" % int(a["moral"]), "malo")
+					_avisar(u, tr("-%d moral") % int(a["moral"]), "malo")
 		if a.has("escudo"):
-			_anotar("%s usa %s." % [e["nombre"], a["nombre"]])
+			_anotar(tr("%s usa %s.") % [e["nombre"], a["nombre"]])
 			e["escudo"] += int(a["escudo"])
-			_avisar(e, "+%d escudo" % int(a["escudo"]), "escudo")
+			_avisar(e, tr("+%d escudo") % int(a["escudo"]), "escudo")
 		if _primer_vivo(aliados) < 0:
 			return
 
@@ -1214,10 +1216,10 @@ func _atacar_como_enemigo(e: Dictionary, a: Dictionary) -> void:
 	var dist_final := Mapa.distancia(e["pos"], objetivo["pos"])
 	if dist_final < alc[0] or dist_final > alc[1] or not ve_a(a, e["pos"], objetivo["pos"]) \
 			or not puede_apuntar(objetivo, e["pos"]):
-		_anotar("%s avanza." % e["nombre"])
+		_anotar(tr("%s avanza.") % e["nombre"])
 		return
 	e["orientacion"] = direccion_hacia(e["pos"], objetivo["pos"])
-	_anotar("%s usa %s." % [e["nombre"], a["nombre"]])
+	_anotar(tr("%s usa %s.") % [e["nombre"], a["nombre"]])
 	evento.emit("disparo")
 	e["ataques_turno"] = int(e.get("ataques_turno", 0)) + 1
 	accion.emit({"tipo": "disparo", "clave": e["clave"], "objetivo": objetivo["clave"],
@@ -1324,14 +1326,14 @@ func _pisar_mina(u: Dictionary, celda: Vector2i) -> void:
 	if u["bando"] == "aliado":
 		minas_pisadas += 1
 	if valor > MINA_EXPLOTA_HASTA:
-		_anotar("  %s pasa por el campo minado... dado %d: ¡uf, no explota!" % [u["nombre"], valor])
-		_avisar(u, "¡Uf! (dado %d)" % valor, "moral")
+		_anotar(tr("  %s pasa por el campo minado... dado %d: ¡uf, no explota!") % [u["nombre"], valor])
+		_avisar(u, tr("¡Uf! (dado %d)") % valor, "moral")
 		return
-	_anotar("  %s pisa una mina... dado %d: ¡BUM!" % [u["nombre"], valor])
+	_anotar(tr("  %s pisa una mina... dado %d: ¡BUM!") % [u["nombre"], valor])
 	if u["bando"] == "aliado":
 		minas_explotadas += 1
 	mapa.cambiar(celda, str(mapa_letra_crater()))
-	_avisar(u, "¡Mina! (dado %d)" % valor, "malo", "susto")
+	_avisar(u, tr("¡Mina! (dado %d)") % valor, "malo", "susto")
 	golpear(u, DANO_MINA, 99, "panza", 0)
 
 
@@ -1389,7 +1391,7 @@ func _comprobar_fin() -> void:
 		return
 	if _primer_vivo(enemigos) < 0:
 		estado = "victoria"
-		_anotar("Victoria!")
+		_anotar(tr("Victoria!"))
 		evento.emit("victoria")
 		hazana.emit("primera_victoria")
 		if aliados.all(func(a): return vivo(a)):
@@ -1400,7 +1402,7 @@ func _comprobar_fin() -> void:
 			hazana.emit("as_de_ases")
 	elif _primer_vivo(aliados) < 0:
 		estado = "derrota"
-		_anotar("Derrota...")
+		_anotar(tr("Derrota..."))
 		evento.emit("derrota")
 
 
@@ -1409,8 +1411,8 @@ func _anotar(texto: String) -> void:
 
 
 func _nombre_lado(lado: String) -> String:
-	return {"frente": "el frente", "flanco": "el flanco", "trasera": "la trasera", "techo": "el techo",
-		"panza": "la panza"}.get(lado, lado)
+	return {"frente": tr("el frente"), "flanco": tr("el flanco"), "trasera": tr("la trasera"), "techo": tr("el techo"),
+		"panza": tr("la panza")}.get(lado, lado)
 
 
 ## JSON entrega números como float; posiciones y rangos se pasan a int.

@@ -11,7 +11,7 @@ var _barra: HSlider
 func _init(color_texto: Color = Estilo.PAPEL) -> void:
 	add_theme_constant_override("separation", 10)
 	var etiqueta := Label.new()
-	etiqueta.text = "Sonido"
+	etiqueta.text = tr("Sonido")
 	etiqueta.add_theme_color_override("font_color", color_texto)
 	add_child(etiqueta)
 	_barra = HSlider.new()
@@ -39,5 +39,5 @@ func _ready() -> void:
 func _sincronizar() -> void:
 	_barra.set_value_no_signal(Sonido.volumen * 100.0)
 	_silencio.set_pressed_no_signal(Sonido.silencio)
-	_silencio.text = "Sin sonido" if Sonido.silencio else "Silenciar"
+	_silencio.text = tr("Sin sonido") if Sonido.silencio else tr("Silenciar")
 	_barra.editable = not Sonido.silencio

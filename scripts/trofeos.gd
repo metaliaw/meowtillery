@@ -16,6 +16,7 @@ var fichas_vistas: Dictionary = {}     # para "Gato de biblioteca"
 ## Sin cartel (pruebas y simulador).
 var silencioso := false
 var _lista: Array = []
+var _lista_idioma := ""
 var _avisos: Array = []
 var _capa: CanvasLayer
 var _cartel: PanelContainer
@@ -27,8 +28,10 @@ func _ready() -> void:
 
 
 func lista() -> Array:
-	if _lista.is_empty():
+	# Se recarga si cambió el idioma (los nombres vienen traducidos de Datos.leer).
+	if _lista.is_empty() or _lista_idioma != TranslationServer.get_locale():
 		_lista = Datos.leer("res://data/trofeos.json")
+		_lista_idioma = TranslationServer.get_locale()
 	return _lista
 
 
@@ -121,7 +124,7 @@ func _armar_cartel() -> void:
 	col.alignment = BoxContainer.ALIGNMENT_CENTER
 	fila.add_child(col)
 	var arriba := Label.new()
-	arriba.text = "¡Trofeo nuevo!"
+	arriba.text = tr("¡Trofeo nuevo!")
 	arriba.theme = Estilo.tema()
 	arriba.add_theme_font_size_override("font_size", 15)
 	arriba.add_theme_color_override("font_color", Estilo.ACENTO)

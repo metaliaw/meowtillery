@@ -29,7 +29,7 @@ func _ready() -> void:
 	var columna := VBoxContainer.new()
 	columna.add_theme_constant_override("separation", 8)
 	centro.add_child(columna)
-	columna.add_child(Estilo.titulo("ELIGE TU BATALLÓN", 34))
+	columna.add_child(Estilo.titulo(tr("ELIGE TU BATALLÓN"), 34))
 	var opciones := HBoxContainer.new()
 	opciones.alignment = BoxContainer.ALIGNMENT_CENTER
 	opciones.add_theme_constant_override("separation", 40)
@@ -49,7 +49,7 @@ func _ready() -> void:
 	pie.add_theme_constant_override("separation", 16)
 	columna.add_child(pie)
 	var volver := Button.new()
-	volver.text = "Volver"
+	volver.text = tr("Volver")
 	volver.custom_minimum_size = Vector2(140, 44)
 	volver.pressed.connect(func(): get_tree().change_scene_to_file(ESCENA_MENU))
 	pie.add_child(volver)
@@ -69,9 +69,9 @@ func _refrescar_arsenal() -> void:
 	titulo.add_theme_color_override("font_color", Estilo.ACENTO)
 	_arsenal.add_child(titulo)
 	if Partida.arsenal.is_empty():
-		titulo.text = "Arsenal vacío: derriba tanques enemigos y quédate con sus cartas."
+		titulo.text = tr("Arsenal vacío: derriba tanques enemigos y quédate con sus cartas.")
 		return
-	titulo.text = "Arsenal (llevas %d/%d):" % [Partida.llevar.size(), Partida.LLEVAR_MAX]
+	titulo.text = tr("Arsenal (llevas %d/%d):") % [Partida.llevar.size(), Partida.LLEVAR_MAX]
 	for i in Partida.arsenal.size():
 		var id: String = Partida.arsenal[i]
 		var b := Button.new()
@@ -96,13 +96,13 @@ func _selector_rival() -> Control:
 	fila.add_theme_constant_override("separation", 8)
 	caja.add_child(fila)
 	var etiqueta := Label.new()
-	etiqueta.text = "Rival:"
+	etiqueta.text = tr("Rival:")
 	fila.add_child(etiqueta)
 	var grupo := ButtonGroup.new()
-	var nombres := {"": "Al azar"}
+	var nombres := {"": tr("Al azar")}
 	var batallones: Dictionary = Partida.batallones()
 	for id in batallones:
-		nombres[id] = String(batallones[id]["nombre"]).replace("Batallón ", "")
+		nombres[id] = batallones[id]["nombre_corto"]
 	for id in nombres:
 		var b := Button.new()
 		b.text = nombres[id]
@@ -124,12 +124,12 @@ func _fila_mapas() -> Control:
 	var fila := HBoxContainer.new()
 	fila.add_theme_constant_override("separation", 8)
 	var etiqueta := Label.new()
-	etiqueta.text = "Mapa:"
+	etiqueta.text = tr("Mapa:")
 	fila.add_child(etiqueta)
 	var grupo := ButtonGroup.new()
 	for nombre in [""] + Partida.MAPAS.keys():
 		var b := Button.new()
-		b.text = "Al azar" if nombre == "" else nombre
+		b.text = tr("Al azar") if nombre == "" else tr(nombre)
 		b.toggle_mode = true
 		b.button_group = grupo
 		b.custom_minimum_size = Vector2(0, 30)
@@ -151,7 +151,7 @@ func _selector_dificultad() -> Control:
 	fila.add_theme_constant_override("separation", 10)
 	caja.add_child(fila)
 	var etiqueta := Label.new()
-	etiqueta.text = "Dificultad:"
+	etiqueta.text = tr("Dificultad:")
 	fila.add_child(etiqueta)
 	var explicacion := Label.new()
 	explicacion.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -163,7 +163,7 @@ func _selector_dificultad() -> Control:
 	for id in Partida.DIFICULTADES:
 		var d: Dictionary = Partida.DIFICULTADES[id]
 		var b := Button.new()
-		b.text = d["nombre"]
+		b.text = tr(d["nombre"])
 		b.toggle_mode = true
 		b.button_group = grupo
 		b.custom_minimum_size = Vector2(130, 36)
@@ -171,9 +171,9 @@ func _selector_dificultad() -> Control:
 		b.toggled.connect(func(activo: bool):
 			if activo:
 				Partida.dificultad = id
-				explicacion.text = d["texto"])
+				explicacion.text = tr(d["texto"]))
 		fila.add_child(b)
-	explicacion.text = Partida.DIFICULTADES[Partida.dificultad]["texto"]
+	explicacion.text = tr(Partida.DIFICULTADES[Partida.dificultad]["texto"])
 	caja.add_child(explicacion)
 	return caja
 
@@ -208,14 +208,14 @@ func _carta(id: String, b: Dictionary) -> Control:
 		datos.add_child(Estilo.texto_en_papel(u["mania_texto"], 12))
 		var nombres_cartas: Array = u.get("habilidades", []).map(func(id): return _nombres_cartas.get(id, id))
 		if not nombres_cartas.is_empty():
-			var cartas_gato := Estilo.texto_en_papel("Cartas: " + ", ".join(nombres_cartas), 12)
+			var cartas_gato := Estilo.texto_en_papel(tr("Cartas: ") + ", ".join(nombres_cartas), 12)
 			cartas_gato.add_theme_color_override("font_color", Color("3b6fb0"))
 			datos.add_child(cartas_gato)
 		fila.add_child(datos)
 		caja.add_child(fila)
 
 	var elegir := Button.new()
-	elegir.text = "Jugar con este batallón"
+	elegir.text = tr("Jugar con este batallón")
 	elegir.custom_minimum_size = Vector2(0, 48)
 	elegir.pressed.connect(func():
 		Partida.preparar_partida_libre()

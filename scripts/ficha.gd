@@ -92,13 +92,13 @@ func mostrar(u: Dictionary, combate, extra: String = "", resaltar: String = "") 
 	_barras.configurar(u, combate)
 	var terreno: Dictionary = combate.mapa.terreno(u["pos"])
 	var cob: int = combate.cobertura_de(u)  # terreno + perfil bajo
-	_terreno.text = "Terreno: %s%s" % [terreno["nombre"], " (+%d de blindaje)" % cob if cob > 0 else ""]
+	_terreno.text = tr("Terreno: %s%s") % [terreno["nombre"], tr(" (+%d de blindaje)") % cob if cob > 0 else ""]
 	if u.get("camuflado", false):
-		_terreno.text += " · camuflado"
+		_terreno.text += tr(" · camuflado")
 	_mania.text = u.get("mania_texto", "")
 	_mania.visible = _mania.text != ""
 	if not vivo:
-		extra = "Fuera de combate · el gato escapó a salvo"
+		extra = tr("Fuera de combate · el gato escapó a salvo")
 	_extra.text = extra
 	_extra.visible = extra != ""
 
@@ -190,12 +190,12 @@ class Barras extends Control:
 	func _draw() -> void:
 		var fuente := get_theme_default_font()
 		var ancho_barra := size.x - 112
-		_barra(fuente, 0, "Vida", float(casco) / casco_max, Color("7ee08a") if aliado else Color("ff7a7a"),
+		_barra(fuente, 0, tr("Vida"), float(casco) / casco_max, Color("7ee08a") if aliado else Color("ff7a7a"),
 			"%d/%d" % [casco, casco_max], ancho_barra)
-		var texto_moral := "¡PÁNICO!" if panico else "%d/%d" % [moral, moral_max]
-		_barra(fuente, 21, "Moral", float(moral) / moral_max, Color("e84a5f") if panico else Color("ffd166"),
+		var texto_moral := tr("¡PÁNICO!") if panico else "%d/%d" % [moral, moral_max]
+		_barra(fuente, 21, tr("Moral"), float(moral) / moral_max, Color("e84a5f") if panico else Color("ffd166"),
 			texto_moral, ancho_barra)
-		draw_string(fuente, Vector2(0, 54), "Mover", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Estilo.PAPEL)
+		draw_string(fuente, Vector2(0, 54), tr("Mover"), HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Estilo.PAPEL)
 		for i in mov_max:
 			var centro := Vector2(58 + i * 14, 49)
 			if i < mov:

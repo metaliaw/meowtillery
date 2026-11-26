@@ -1,6 +1,7 @@
 {
   "britanico": {
     "nombre": "Batallón Británico",
+    "nombre_corto": "Británico",
     "raza": "British Shorthair",
     "lema": "Primero el té, después la guerra.",
     "descripcion": "Gatos flemáticos y puntuales. Disparan lejos y con precisión, se esconden bien y recuperan la moral con té.",
@@ -131,6 +132,7 @@
   },
   "sovietico": {
     "nombre": "Batallón Soviético",
+    "nombre_corto": "Soviético",
     "raza": "Azul ruso",
     "lema": "Somos muchos y no nos da frío.",
     "descripcion": "Gatos serios, pintados para la nieve. Atacan en grupo, se cubren con humo y, cuando hace falta, llaman refuerzos.",
@@ -311,6 +313,7 @@
   },
   "estadounidense": {
     "nombre": "Batallón Estadounidense",
+    "nombre_corto": "Estadounidense",
     "raza": "Maine Coon",
     "lema": "Siempre hay repuestos.",
     "descripcion": "Gatos grandes, ruidosos y con la mochila llena de comida. Reparan sus tanques en plena batalla, piden artillería y tienen el cazatanques más rápido de la guerra.",
@@ -446,6 +449,7 @@
   },
   "italiano": {
     "nombre": "Batallón Italiano",
+    "nombre_corto": "Italiano",
     "raza": "Soriano (atigrado italiano)",
     "lema": "Primero un espresso, después la emboscada.",
     "descripcion": "Atigrados, dramáticos y pacientes: blindaje delgado, pero esperan camuflados y pegan fuerte de cerca.",

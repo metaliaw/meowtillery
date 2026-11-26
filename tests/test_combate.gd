@@ -60,6 +60,7 @@ func _init() -> void:
 	_probar_dado()
 	_probar_trofeos()
 	_probar_mapas_nuevos()
+	_probar_ingles()
 	print("\nTODO OK" if _fallos == 0 else "\n%d FALLOS" % _fallos)
 	quit(1 if _fallos > 0 else 0)
 
@@ -1030,6 +1031,30 @@ func _probar_mapas_nuevos() -> void:
 	_comprobar(not r.mapa.transitable(Vector2i(6, 3)) and r.mapa.linea_de_vision(Vector2i(4, 3), Vector2i(8, 3)),
 		"río: no se cruza, pero se ve por encima")
 	_comprobar(r.mapa.transitable(Vector2i(6, 1)) and r.mapa.coste(Vector2i(6, 5)) == 3, "río: puente y vado (cuesta 3)")
+
+
+## Inglés: con la traducción cargada, los datos y el registro salen en inglés.
+func _probar_ingles() -> void:
+	var tr_en := Translation.new()
+	tr_en.locale = "en"
+	var dic: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://data/idioma/en.json"))
+	for es in dic:
+		tr_en.add_message(es, dic[es])
+	TranslationServer.add_translation(tr_en)
+	var antes := TranslationServer.get_locale()
+	TranslationServer.set_locale("en")
+	var cartas: Array = Datos.leer("res://data/cartas.json")
+	var ap: Dictionary = cartas.filter(func(c): return c["id"] == "disparo_ap")[0]
+	_comprobar(ap["nombre"] == "AP Shot" and ap["texto"].begins_with("6 damage"), "inglés: las cartas se traducen al cargar")
+	var b: Dictionary = Datos.leer("res://data/batallones.json")
+	_comprobar(b["britanico"]["nombre_corto"] == "British" and b["britanico"]["unidades"][0]["nombre"] == "Earl Grey",
+		"inglés: batallones traducidos, los gatos conservan su nombre")
+	var c := Combate.new()
+	PartidaScript.iniciar_combate(c, "britanico", "sovietico", 1, false, "recluta")
+	_comprobar("== Turn 1 ==" in c.registro, "inglés: el registro de batalla")
+	TranslationServer.set_locale(antes)
+	TranslationServer.remove_translation(tr_en)
+	_comprobar(Datos.leer("res://data/cartas.json")[0]["nombre"] == "Disparo AP", "y de vuelta en español")
 
 
 func _probar_cartas_de_batallon() -> void:

@@ -79,6 +79,16 @@ godot --headless --path . -s tests/test_combate.gd
   `user://trofeos.json`), con una vitrina en el menú. El combate avisa las hazañas con la
   señal `hazana` y la escena las anuncia al terminar la animación (cartel arriba de la
   pantalla, con su sonido). La copa se dibuja con `tools/generar_trofeo.py`.
+- **Inglés.** Botón *English / Español* arriba a la derecha del menú (parte siempre en
+  español y recuerda la elección en `user://idioma.cfg`). Todo se escribe en español y
+  `data/idioma/en.json` trae la traducción de cada texto (la clave es el texto en español):
+  en el código se usa `tr("...")` y `Datos.leer()` traduce los campos de texto de `data/`.
+  Al agregar o cambiar un texto, `python tools/revisar_traduccion.py` avisa qué falta
+  traducir (y que los `%s`/`%d` coincidan); con `--faltantes` los deja en un archivo.
+  Glosario: moral → morale, vida → health, blindaje → armor, cobertura → cover, perfora →
+  pierce, roce → graze, botín → loot, manía → quirk, Recluta/Veterano/As →
+  Recruit/Veteran/Ace, dado del frente → Frontline Die, Encarar → Face Target. Los nombres
+  de los gatos y los gritos («¡Avanti!», «¡Urá!») no se traducen.
 - **Línea de visión.** Las rocas tapan: no se puede disparar si la línea entre los dos
   tanques pasa por una (rozar la esquina no cuenta). La *Artillería* sí, porque cae
   desde arriba. La zona roja de amenaza enemiga también la respeta.

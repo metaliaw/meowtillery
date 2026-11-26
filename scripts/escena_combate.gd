@@ -74,7 +74,7 @@ func _nueva_partida() -> void:
 	_fila_michi.visible = con_michi
 	_orden_anterior = -2
 	if con_michi:
-		combate.registro.insert(0, "¡Inspección sorpresa! La teniente Michi toma el mando.")
+		combate.registro.insert(0, tr("¡Inspección sorpresa! La teniente Michi toma el mando."))
 	actor_sel = 0
 	objetivo_sel = 0
 	_tablero.preparar(combate)
@@ -137,7 +137,7 @@ func _construir_interfaz() -> void:
 	lado.add_child(scroll)
 	_fila_michi = fila_michi
 	_michi = Gato.new(2, load(Partida.OFICIAL["gato"]))
-	_michi.tooltip_text = Partida.OFICIAL["mania_texto"]
+	_michi.tooltip_text = tr(Partida.OFICIAL["mania_texto"])
 	_michi.mouse_filter = Control.MOUSE_FILTER_STOP
 	fila_michi.add_child(_michi)
 	# Lo que dice Michi va en un globo de cómic que apunta a ella.
@@ -171,12 +171,12 @@ func _construir_interfaz() -> void:
 	_mano.add_theme_constant_override("separation", 8)
 	abajo.add_child(_mano)
 	var menu := Button.new()
-	menu.text = "Menú\n(Esc)"
+	menu.text = tr("Menú\n(Esc)")
 	menu.custom_minimum_size = Vector2(90, 100)
 	menu.pressed.connect(_abrir_pausa)
 	abajo.add_child(menu)
 	_boton_turno = Button.new()
-	_boton_turno.text = "Terminar turno"
+	_boton_turno.text = tr("Terminar turno")
 	_boton_turno.custom_minimum_size = Vector2(160, 100)
 	_boton_turno.pressed.connect(_al_terminar_turno)
 	abajo.add_child(_boton_turno)
@@ -189,11 +189,11 @@ func _construir_interfaz() -> void:
 	_texto_final = Estilo.titulo("", 64)
 	caja_final.add_child(_texto_final)
 	_boton_otra = Button.new()
-	_boton_otra.text = "Jugar de nuevo"
+	_boton_otra.text = tr("Jugar de nuevo")
 	_boton_otra.pressed.connect(_nueva_partida)
 	caja_final.add_child(_boton_otra)
 	_boton_volver = Button.new()
-	_boton_volver.text = "Volver al menú"
+	_boton_volver.text = tr("Volver al menú")
 	_boton_volver.pressed.connect(_salir_del_final)
 	caja_final.add_child(_boton_volver)
 
@@ -231,7 +231,7 @@ func _construir_pausa() -> void:
 	var caja := VBoxContainer.new()
 	caja.add_theme_constant_override("separation", 12)
 	panel.add_child(caja)
-	var titulo := Estilo.texto_en_papel("Pausa", 30)
+	var titulo := Estilo.texto_en_papel(tr("Pausa"), 30)
 	titulo.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	caja.add_child(titulo)
 	var fila := HBoxContainer.new()
@@ -239,12 +239,12 @@ func _construir_pausa() -> void:
 	fila.alignment = BoxContainer.ALIGNMENT_CENTER
 	caja.add_child(fila)
 	fila.add_child(Gato.new(3))
-	var globo := Globo.new("¿Te vas tan pronto?\nLa batalla te espera.", 15, "izquierda")
+	var globo := Globo.new(tr("¿Te vas tan pronto?\nLa batalla te espera."), 15, "izquierda")
 	globo.cola_pos = 0.6
 	globo.custom_minimum_size = Vector2(220, 0)  # sin ancho mínimo el texto se apila en columna
 	fila.add_child(globo)
-	for opcion in [["Seguir jugando", _cerrar_pausa], ["Reiniciar batalla", _reiniciar_desde_pausa],
-			["Volver al menú", _ir_al_menu]]:
+	for opcion in [[tr("Seguir jugando"), _cerrar_pausa], [tr("Reiniciar batalla"), _reiniciar_desde_pausa],
+			[tr("Volver al menú"), _ir_al_menu]]:
 		var b := Button.new()
 		b.text = opcion[0]
 		b.custom_minimum_size = Vector2(0, 46)
@@ -253,7 +253,7 @@ func _construir_pausa() -> void:
 	var sonido := ControlSonido.new(Estilo.TINTA)
 	sonido.alignment = BoxContainer.ALIGNMENT_CENTER
 	caja.add_child(sonido)
-	var aviso := Estilo.texto_en_papel("Reiniciar o salir pierde la batalla en curso.", 13)
+	var aviso := Estilo.texto_en_papel(tr("Reiniciar o salir pierde la batalla en curso."), 13)
 	aviso.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	caja.add_child(aviso)
 
@@ -269,7 +269,7 @@ func _construir_captura() -> void:
 	var caja := VBoxContainer.new()
 	caja.add_theme_constant_override("separation", 12)
 	panel.add_child(caja)
-	var titulo := Estilo.texto_en_papel("¡Botín!", 30)
+	var titulo := Estilo.texto_en_papel(tr("¡Botín!"), 30)
 	titulo.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	caja.add_child(titulo)
 	_texto_captura = Estilo.texto_en_papel("", 16)
@@ -285,9 +285,9 @@ func _refrescar_captura() -> void:
 		_capa_captura.visible = false
 		return
 	var captura: Dictionary = combate.capturas[0]
-	_texto_captura.text = "Derribaste a %s. Quédate con una de sus cartas:
+	_texto_captura.text = tr("Derribaste a %s. Quédate con una de sus cartas:
 se usa una vez y cualquier tanque tuyo la puede jugar.
-Si no la usas, se guarda en tu Arsenal." % captura["de"]
+Si no la usas, se guarda en tu Arsenal.") % captura["de"]
 	_vaciar(_opciones_captura)
 	for id in captura["opciones"]:
 		var c: Dictionary = combate.cartas[id]
@@ -309,8 +309,8 @@ func _boton_botin(i_botin: int) -> Button:
 	var id: String = combate.botin[i_botin]
 	var c: Dictionary = combate.cartas[id]
 	var b := Button.new()
-	b.text = "BOTÍN · %s  [%d]
-%s" % [c["nombre"], int(c["coste"]), c["texto"]]
+	b.text = tr("BOTÍN · %s  [%d]
+%s") % [c["nombre"], int(c["coste"]), c["texto"]]
 	b.custom_minimum_size = Vector2(120, 100)
 	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -321,7 +321,7 @@ func _boton_botin(i_botin: int) -> Button:
 	var motivo := combate.motivo_botin(i_botin, actor_sel, objetivo_sel)
 	b.disabled = motivo != ""
 	b.set_meta("sonido", "carta")
-	b.tooltip_text = motivo if motivo != "" else "Botín de un solo uso. " + c["texto"]
+	b.tooltip_text = motivo if motivo != "" else tr("Botín de un solo uso. ") + c["texto"]
 	b.pressed.connect(combate.usar_botin.bind(i_botin, actor_sel, objetivo_sel))
 	b.mouse_entered.connect(_mostrar_prevision.bind(id, i_botin))
 	b.mouse_exited.connect(_ocultar_prevision)
@@ -338,19 +338,19 @@ func _construir_confirmacion() -> void:
 	var caja := VBoxContainer.new()
 	caja.add_theme_constant_override("separation", 12)
 	panel.add_child(caja)
-	var titulo := Estilo.texto_en_papel("¿Terminar el turno?", 26)
+	var titulo := Estilo.texto_en_papel(tr("¿Terminar el turno?"), 26)
 	titulo.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	caja.add_child(titulo)
 	_texto_confirmar = Estilo.texto_en_papel("", 16)
 	_texto_confirmar.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	caja.add_child(_texto_confirmar)
 	var seguir := Button.new()
-	seguir.text = "Seguir jugando"
+	seguir.text = tr("Seguir jugando")
 	seguir.custom_minimum_size = Vector2(0, 46)
 	seguir.pressed.connect(func(): _capa_confirmar.visible = false)
 	caja.add_child(seguir)
 	var terminar := Button.new()
-	terminar.text = "Terminar de todos modos"
+	terminar.text = tr("Terminar de todos modos")
 	terminar.custom_minimum_size = Vector2(0, 46)
 	terminar.pressed.connect(func():
 		_capa_confirmar.visible = false
@@ -364,10 +364,9 @@ func _al_terminar_turno() -> void:
 		combate.terminar_turno()
 		return
 	var cuantos := pendientes.size()
-	_texto_confirmar.text = "Todavía %s %d tanque%s con cartas por usar: %s.
-Te queda %d de energía." % [
-		"te queda" if cuantos == 1 else "te quedan", cuantos, "" if cuantos == 1 else "s",
-		", ".join(pendientes), combate.energia]
+	var plantilla := tr("Todavía te queda %d tanque con cartas por usar: %s.\nTe queda %d de energía.") \
+		if cuantos == 1 else tr("Todavía te quedan %d tanques con cartas por usar: %s.\nTe queda %d de energía.")
+	_texto_confirmar.text = plantilla % [cuantos, ", ".join(pendientes), combate.energia]
 	_capa_confirmar.visible = true
 
 
@@ -454,14 +453,14 @@ func _refrescar() -> void:
 	var objetivo: Dictionary = combate.enemigos[objetivo_sel]
 	var jugando := combate.estado == "jugando"
 
-	var energia := "Energía %d" % combate.energia
+	var energia := tr("Energía %d") % combate.energia
 	if combate.energia > Combate.ENERGIA_POR_TURNO:
-		energia += " (+%d extra)" % (combate.energia - Combate.ENERGIA_POR_TURNO)  # Michi o Recarga
+		energia += tr(" (+%d extra)") % (combate.energia - Combate.ENERGIA_POR_TURNO)  # Michi o Recarga
 	var evento_dado := ""
 	if not combate.evento_frente.is_empty() and combate.evento_activo(combate.evento_frente["id"]):
-		evento_dado = "   ·   Dado: %s" % combate.evento_frente["nombre"]
-	_info.text = "%s   ·   Turno %d   ·   %s%s   ·   Elige un tanque para ver sus cartas" % [
-		combate.dificultad.get("nombre", ""), combate.turno, energia, evento_dado]
+		evento_dado = tr("   ·   Dado: %s") % combate.evento_frente["nombre"]
+	_info.text = tr("%s   ·   Turno %d   ·   %s%s   ·   Elige un tanque para ver sus cartas") % [
+		tr(combate.dificultad.get("nombre", "")), combate.turno, energia, evento_dado]
 
 	_tablero.actor_pos = actor["pos"] if combate.vivo(actor) else Vector2i(-1, -1)
 	_tablero.objetivo_pos = objetivo["pos"] if combate.vivo(objetivo) else Vector2i(-1, -1)
@@ -483,19 +482,19 @@ func _refrescar() -> void:
 	var aviso := ""
 	var en_riesgo := combate.dano_en_peligro(actor) if jugando else 0
 	if en_riesgo >= actor["casco"]:
-		aviso = "¡PELIGRO! Si se queda aquí, los enemigos le pueden quitar hasta %d de vida." % en_riesgo
+		aviso = tr("¡PELIGRO! Si se queda aquí, los enemigos le pueden quitar hasta %d de vida.") % en_riesgo
 		if combate.dificultad.get("salvavidas", false) and actor["casco"] == actor["casco_max"]:
-			aviso += " Está sano: si cae, se salva por los bigotes."
+			aviso += tr(" Está sano: si cae, se salva por los bigotes.")
 	elif en_riesgo > 0:
-		aviso = "Si se queda aquí, le pueden quitar hasta %d de vida." % en_riesgo
+		aviso = tr("Si se queda aquí, le pueden quitar hasta %d de vida.") % en_riesgo
 	_ficha_actor.mostrar(actor, combate, aviso)
 	# Ficha del blanco: qué planea y, desde el tanque elegido, por qué lado le pegarías
 	# (ese lado queda marcado con un anillo amarillo en el dibujo del blindaje).
-	var extra := "Planea: " + combate.texto_intencion(objetivo)
+	var extra := tr("Planea: ") + combate.texto_intencion(objetivo)
 	var lado := ""
 	if combate.vivo(actor) and combate.vivo(objetivo):
 		lado = combate.lado_de_impacto(objetivo, actor["pos"])
-		extra += "\nDesde %s (a %d casillas) le das por %s." % [
+		extra += tr("\nDesde %s (a %d casillas) le das por %s.") % [
 			actor["nombre"], Mapa.distancia(actor["pos"], objetivo["pos"]), _lado_con_articulo(lado)]
 	_ficha_objetivo.mostrar(objetivo, combate, extra, lado)
 	# Lo más nuevo arriba: si no cabe todo, lo que se recorta es lo más viejo.
@@ -524,15 +523,15 @@ func _refrescar() -> void:
 	_boton_turno.disabled = not jugando
 	# El botón cuenta cuántos tanques todavía pueden jugar alguna carta.
 	var pendientes := combate.tanques_con_acciones() if jugando else []
-	_boton_turno.text = "Terminar turno" if pendientes.is_empty() else "Terminar turno
-(%d con cartas)" % pendientes.size()
+	_boton_turno.text = tr("Terminar turno") if pendientes.is_empty() else tr("Terminar turno
+(%d con cartas)") % pendientes.size()
 	_capa_final.visible = not jugando
-	_texto_final.text = "¡Victoria!" if combate.estado == "victoria" else "Derrota"
+	_texto_final.text = tr("¡Victoria!") if combate.estado == "victoria" else tr("Derrota")
 	# En campaña: la victoria suma medallas y avanza; la derrota permite reintentar.
 	if Partida.modo_campana:
-		_boton_otra.text = "Reintentar batalla"
+		_boton_otra.text = tr("Reintentar batalla")
 		_boton_otra.visible = combate.estado != "victoria"
-		_boton_volver.text = "Continuar campaña" if combate.estado == "victoria" else "Volver a la campaña"
+		_boton_volver.text = tr("Continuar campaña") if combate.estado == "victoria" else tr("Volver a la campaña")
 	if not jugando and not _fin_sonado:
 		_fin_sonado = true
 		if combate.estado == "victoria":
@@ -551,11 +550,11 @@ func _refrescar_orden(ordenado: Dictionary) -> void:
 	if combate.oficial.is_empty():
 		return  # esta batalla no hubo inspección
 	if ordenado.is_empty():
-		_orden.texto = "Hoy no hay órdenes. No te acostumbres."
+		_orden.texto = tr("Hoy no hay órdenes. No te acostumbres.")
 	elif combate.orden_cumplida:
-		_orden.texto = "Aceptable. +1 energía el próximo turno."
+		_orden.texto = tr("Aceptable. +1 energía el próximo turno.")
 	else:
-		_orden.texto = "¡%s, dispara este turno! Si no, -1 moral." % ordenado["nombre"]
+		_orden.texto = tr("¡%s, dispara este turno! Si no, -1 moral.") % ordenado["nombre"]
 	# Gestos: enojada al dar una orden nueva, feliz (a su manera) cuando la cumplen.
 	var estado_orden := combate.orden + (100 if combate.orden_cumplida else 0)
 	if estado_orden != _orden_anterior and _michi.is_inside_tree():
@@ -588,10 +587,10 @@ func _boton_carta(id: String) -> Button:
 	var c: Dictionary = combate.cartas[id]
 	var b := Button.new()
 	# El coste puede depender del tanque elegido (manías).
-	b.text = "%s  [%d]\n%s" % [c["nombre"], combate.coste_de(c, combate.aliados[actor_sel]), c["texto"]]
+	b.text = tr("%s  [%d]\n%s") % [c["nombre"], combate.coste_de(c, combate.aliados[actor_sel]), c["texto"]]
 	var recarga := int(c.get("recarga", 0))
 	if recarga > 0 and recarga < 50:  # recargas enormes = "una vez por batalla" (ya lo dice el texto)
-		b.text += "\nRecarga: %d turno%s" % [recarga, "" if recarga == 1 else "s"]
+		b.text += tr("\nRecarga: %d turno%s") % [recarga, "" if recarga == 1 else "s"]
 	# Ancho repartido, texto en varias líneas y alto fijo: el texto no puede agrandar la carta
 	# (clip_text), así la fila de abajo nunca se corre.
 	b.custom_minimum_size = Vector2(120, 100)
@@ -625,48 +624,48 @@ func _mostrar_prevision(id: String, i_botin: int = -1) -> void:
 		var e: Dictionary = combate.enemigos[imp["indice"]]
 		var marca := "-%d" % imp["al_casco"]
 		if imp["derriba"]:
-			marca += " KO"
+			marca += tr(" KO")
 		if imp.get("acierto", 1.0) < 1.0:
 			marca += " %d%%" % roundi(imp["acierto"] * 100)
 		marcas[e["pos"]] = {"texto": marca, "derriba": imp["derriba"]}
 		if imp["principal"]:
-			lineas.append("%s de %s a %s, por %s:" % [c["nombre"], actor["nombre"], e["nombre"], _lado_con_articulo(imp["lado"])])
-			lineas.append("  %d daño - (blindaje %d + cobertura %d - penetración %d) = %d" % [
+			lineas.append(tr("%s de %s a %s, por %s:") % [c["nombre"], actor["nombre"], e["nombre"], _lado_con_articulo(imp["lado"])])
+			lineas.append(tr("  %d daño - (blindaje %d + cobertura %d - penetración %d) = %d") % [
 				imp["dano"], imp["blindaje"], imp["cobertura"], imp["penetracion"], imp["al_casco"] + imp["absorbido"]])
 			if imp.get("acierto", 1.0) < 1.0:
-				lineas.append("  %d%% de pegar de lleno; si roza, hace %d." % [roundi(imp["acierto"] * 100), imp["roce"]])
+				lineas.append(tr("  %d%% de pegar de lleno; si roza, hace %d.") % [roundi(imp["acierto"] * 100), imp["roce"]])
 			if imp.get("penal", 0) > 0:
-				lineas.append("  Ya incluye -%d por disparar sin encararlo: usa Encarar primero." % imp["penal"])
+				lineas.append(tr("  Ya incluye -%d por disparar sin encararlo: usa Encarar primero.") % imp["penal"])
 			if imp["absorbido"] > 0:
-				lineas.append("  El escudo absorbe %d." % imp["absorbido"])
-			var final := "  Vida %d, queda en %d" % [e["casco"], imp["casco_final"]]
+				lineas.append(tr("  El escudo absorbe %d.") % imp["absorbido"])
+			var final := tr("  Vida %d, queda en %d") % [e["casco"], imp["casco_final"]]
 			if imp["derriba"]:
-				final += "   ¡Lo deja fuera de combate!"
+				final += tr("   ¡Lo deja fuera de combate!")
 			elif imp["baja_moral"]:
-				final += "   (baja 1 de moral)"
+				final += tr("   (baja 1 de moral)")
 			lineas.append(final)
 			var pl: Dictionary = imp["por_lado"]
-			lineas.append("  Por el frente %d · flanco %d · trasera %d" % [pl["frente"], pl["flanco"], pl["trasera"]])
+			lineas.append(tr("  Por el frente %d · flanco %d · trasera %d") % [pl["frente"], pl["flanco"], pl["trasera"]])
 		else:
-			lineas.append("  Salpica a %s: %s" % [e["nombre"], marca])
+			lineas.append(tr("  Salpica a %s: %s") % [e["nombre"], marca])
 	var motivo := combate.motivo_botin(i_botin, actor_sel, objetivo_sel) if i_botin >= 0 		else combate.motivo_uso(id, actor_sel, objetivo_sel)
 	if motivo != "":
-		lineas.append("No se puede jugar: " + motivo)
+		lineas.append(tr("No se puede jugar: ") + motivo)
 	_vista_previa.text = "\n".join(lineas)
 	_tablero.prevision = marcas
 	_tablero.queue_redraw()
 
 
 func _ocultar_prevision() -> void:
-	_vista_previa.text = "Pasa el mouse sobre una carta para ver qué haría."
+	_vista_previa.text = tr("Pasa el mouse sobre una carta para ver qué haría.")
 	if not _tablero.prevision.is_empty():
 		_tablero.prevision = {}
 		_tablero.queue_redraw()
 
 
 func _lado_con_articulo(lado: String) -> String:
-	return {"frente": "el frente", "flanco": "el flanco", "trasera": "la trasera",
-		"techo": "el techo (desde el aire)"}.get(lado, lado)
+	return {"frente": tr("el frente"), "flanco": tr("el flanco"), "trasera": tr("la trasera"),
+		"techo": tr("el techo (desde el aire)")}.get(lado, lado)
 
 
 func _al_pulsar_celda(celda: Vector2i) -> void:

@@ -13,6 +13,7 @@ config/windows_native_icon="res://icon.ico"
 
 [autoload]
 
+Idioma="*res://scripts/idioma.gd"
 Sonido="*res://scripts/sonido.gd"
 Partida="*res://scripts/partida.gd"
 Trofeos="*res://scripts/trofeos.gd"

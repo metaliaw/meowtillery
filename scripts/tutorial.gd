@@ -85,7 +85,7 @@ func _ready() -> void:
 	var columna := VBoxContainer.new()
 	columna.add_theme_constant_override("separation", 20)
 	centro.add_child(columna)
-	columna.add_child(Estilo.titulo("CÓMO SE JUEGA", 44))
+	columna.add_child(Estilo.titulo(tr("CÓMO SE JUEGA"), 44))
 
 	var fila := HBoxContainer.new()
 	fila.add_theme_constant_override("separation", 30)  # espacio para la colita del globo
@@ -113,14 +113,14 @@ func _ready() -> void:
 	var botones := HBoxContainer.new()
 	botones.add_theme_constant_override("separation", 12)
 	derecha.add_child(botones)
-	_boton(botones, "Saltar", func(): get_tree().change_scene_to_file(ESCENA_MENU))
+	_boton(botones, tr("Saltar"), func(): get_tree().change_scene_to_file(ESCENA_MENU))
 	var espacio := Control.new()
 	espacio.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	botones.add_child(espacio)
 	_contador = Label.new()
 	botones.add_child(_contador)
-	_anterior = _boton(botones, "Anterior", func(): _ir_a(_pagina - 1))
-	_siguiente = _boton(botones, "Siguiente", _avanzar)
+	_anterior = _boton(botones, tr("Anterior"), func(): _ir_a(_pagina - 1))
+	_siguiente = _boton(botones, tr("Siguiente"), _avanzar)
 
 	# Michi a la derecha, mirando hacia Muffy.
 	_michi = Gato.new(7, load(HOJA_MICHI))
@@ -154,9 +154,9 @@ func _avanzar() -> void:
 func _ir_a(indice: int) -> void:
 	_pagina = clampi(indice, 0, PAGINAS.size() - 1)
 	var p: Dictionary = PAGINAS[_pagina]
-	_globo.texto = p["texto"]
+	_globo.texto = tr(p["texto"])
 	_globo.cola = "derecha" if p.get("habla", "muffy") == "michi" else "izquierda"
-	_quien.text = NOMBRES[p.get("habla", "muffy")]
+	_quien.text = tr(NOMBRES[p.get("habla", "muffy")])
 	_quien.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT if _globo.cola == "derecha" else HORIZONTAL_ALIGNMENT_LEFT
 	for hijo in _imagenes.get_children():
 		_imagenes.remove_child(hijo)
@@ -167,7 +167,7 @@ func _ir_a(indice: int) -> void:
 		_imagenes.add_child(Gato.new(4, load(ruta)))
 	_contador.text = "%d / %d" % [_pagina + 1, PAGINAS.size()]
 	_anterior.disabled = _pagina == 0
-	_siguiente.text = "¡A jugar!" if _pagina == PAGINAS.size() - 1 else "Siguiente"
+	_siguiente.text = tr("¡A jugar!") if _pagina == PAGINAS.size() - 1 else tr("Siguiente")
 	# Habla un rato y luego hace el gesto de la página (si tiene) o vuelve a reposo.
 	var otro := _muffy if _hablante() == _michi else _michi
 	otro.animar("idle")
