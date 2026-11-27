@@ -85,6 +85,11 @@ def textos():
 
 
 def main():
+    # Un salto de línea de Windows (CR LF) dentro de un texto de varias líneas cambia la
+    # clave y la deja sin traducir.
+    for ruta in glob.glob(os.path.join(RAIZ, "scripts", "*.gd")):
+        if b"\r\n" in open(ruta, "rb").read():
+            print("  finales de línea de Windows (CR LF) en", os.path.basename(ruta), "- conviértelo a LF")
     claves = textos()
     en = json.load(open(EN, encoding="utf-8")) if os.path.exists(EN) else {}
     faltan = [c for c in claves if not en.get(c)]

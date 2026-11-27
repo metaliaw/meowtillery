@@ -42,6 +42,16 @@ const TURNO_AVION_ENEMIGO := 3
 const GOLPE_QUE_SALTA_REMACHES := 7
 const DISTANCIA_CAMUFLAJE := 3
 const PENALIZACION_FUERA_DEL_FRENTE := 2
+## IA lista: con este daño (fracción de la vida perdida) y tanques tuyos cerca, se cubre.
+const HERIDO_PARA_CUBRIRSE := 0.55
+## Alcance que la IA le supone a tus cañones para saber si una casilla es peligrosa.
+const ALCANCE_TIPICO := 4
+const PASOS_PARA_ESQUIVAR := 4
+const COBERTURA_ESQUIVA := 1
+## IA lista con cautela: puntos que resta cada tanque tuyo que alcanzaría la casilla.
+## Bajo a propósito: elige casillas más protegidas, pero no deja de acercarse (si se
+## escondiera, la batalla no terminaría).
+const RIESGO_POR_AMENAZA := 3.0
 ## Dado de eventos del frente: al empezar el turno TURNO_DADO se tira un dado de 6 y pasa
 ## algo que dura ese turno (el tuyo y la fase enemiga que le sigue).
 ## Minas (mapa del desierto): al pasar por una se tira un dado; con 1 o 2, explota.
@@ -363,13 +373,21 @@ func probabilidad_acierto(actor: Dictionary, objetivo: Dictionary) -> float:
 ## Cobertura de `u` donde está: la del terreno más su perfil bajo (el Semovente, sin
 ## torreta, es tan bajo que siempre tiene +1).
 func cobertura_de(u: Dictionary) -> int:
-	return mapa.cobertura(u["pos"]) + int(u.get("perfil_bajo", 0))
+	return mapa.cobertura(u["pos"]) + int(u.get("perfil_bajo", 0)) + _esquiva(u)
+
+
+## Manía "velocista" (el Hellcat): si en su turno se movió PASOS_PARA_ESQUIVAR casillas o
+## más, es difícil de acertar: +COBERTURA_ESQUIVA hasta su próximo turno.
+func _esquiva(u: Dictionary) -> int:
+	if u.get("mania") == "velocista" and int(u.get("pasos_turno", 0)) >= PASOS_PARA_ESQUIVAR:
+		return COBERTURA_ESQUIVA
+	return 0
 
 
 ## Cobertura de `u` contra este ataque (la artillería ignora la del terreno, no el perfil).
 func _cobertura_para(c: Dictionary, u: Dictionary) -> int:
 	var terreno := 0 if c.get("ignora_cobertura", false) else mapa.cobertura(u["pos"])
-	return terreno + int(u.get("perfil_bajo", 0))
+	return terreno + int(u.get("perfil_bajo", 0)) + _esquiva(u)
 
 
 ## Repara vida (sin pasar del máximo) y lo avisa con un texto verde.
@@ -633,6 +651,7 @@ func golpear(u: Dictionary, dano: int, penetracion: int, lado: String, cobertura
 	if i["absorbido"] > 0:
 		texto += tr(" (%d absorbido)") % i["absorbido"]
 	if not vivo(u):
+		u["turno_caida"] = turno  # el tablero deja los restos en llamas solo ese turno
 		texto += tr(". ¡Fuera de combate! El gato escapa a salvo.")
 		evento.emit("explosion")
 		_capturar_de(u)
@@ -932,6 +951,7 @@ func _iniciar_turno() -> void:
 		u["escudo"] = 0
 		u["mov_restante"] = u["movimiento"]
 		u["se_movio"] = false
+		u["pasos_turno"] = 0
 		u["ataques_turno"] = 0
 		# Habilidades: se pueden volver a usar y las recargas avanzan un turno.
 		u["usadas"] = {}
@@ -1051,7 +1071,10 @@ func _elegir_intenciones() -> void:
 			e["intencion"] = {"nombre": tr("En reserva"), "reserva": true}
 		else:
 			var acciones: Array = e["acciones"]
-			var a: Dictionary = acciones[rng.randi_range(0, acciones.size() - 1)].duplicate(true)
+			var indice := rng.randi_range(0, acciones.size() - 1)
+			if dificultad.get("ia_lista", false):
+				indice = _accion_pensada(e, acciones, indice)
+			var a: Dictionary = acciones[indice].duplicate(true)
 			if a.has("alcance"):
 				a["alcance"] = _rango(a["alcance"])
 			if a.has("dano"):
@@ -1059,6 +1082,89 @@ func _elegir_intenciones() -> void:
 				a["dano"] = maxi(int(a["dano"]) + int(dificultad.get("bonus_dano", 0)), 1)
 			e["intencion"] = a
 	_planear_aereo_enemigo()
+
+
+## IA lista (Veterano y As): en vez de elegir la acción al azar, piensa.
+##   - muy dañado y con tanques tuyos cerca: se cubre con escudo (y se retira, ver _celda_segura);
+##   - si su ataque alcanza a alguien este turno: dispara con el mejor;
+##   - si no llega, y tiene un grito, baja la moral de los que estén cerca;
+##   - si no, avanza con su ataque.
+func _accion_pensada(e: Dictionary, acciones: Array, por_defecto: int) -> int:
+	var ataque := -1
+	var escudo := -1
+	var grito := -1
+	for k in acciones.size():
+		var a: Dictionary = acciones[k]
+		if a.has("dano") and (ataque < 0 or int(a["dano"]) > int(acciones[ataque]["dano"])):
+			ataque = k
+		elif a.has("escudo"):
+			escudo = k
+		elif a.has("moral"):
+			grito = k
+	var herido := 1.0 - float(e["casco"]) / float(e["casco_max"])
+	if escudo >= 0 and herido >= HERIDO_PARA_CUBRIRSE and amenaza_aliada(e["pos"]) >= 1:
+		return escudo
+	if ataque >= 0 and _ataque_alcanza(e, acciones[ataque]):
+		return ataque
+	if grito >= 0:
+		var radio := int(acciones[grito].get("radio", 99)) + int(e["movimiento"])
+		for u in aliados:
+			if vivo(u) and Mapa.distancia(u["pos"], e["pos"]) <= radio:
+				return grito
+	return ataque if ataque >= 0 else por_defecto
+
+
+## ¿Este ataque alcanzaría a algún tanque tuyo en la próxima fase (moviéndose primero)?
+func _ataque_alcanza(e: Dictionary, accion_def: Dictionary) -> bool:
+	var a: Dictionary = accion_def.duplicate(true)
+	a["alcance"] = _rango(a["alcance"])
+	var antes: Dictionary = e["intencion"]
+	e["intencion"] = a
+	var zona := celdas_amenaza(e)
+	e["intencion"] = antes
+	for u in aliados:
+		if vivo(u) and zona.has(u["pos"]):
+			return true
+	return false
+
+
+## Cuántos tanques tuyos podrían pegarle a quien esté en `celda` (moverse + un alcance típico).
+func amenaza_aliada(celda: Vector2i) -> int:
+	var n := 0
+	for u in aliados:
+		if vivo(u) and Mapa.distancia(u["pos"], celda) <= int(u["movimiento"]) + ALCANCE_TIPICO:
+			n += 1
+	return n
+
+
+## Casilla a la que se retira un enemigo que se cubre: la menos amenazada, mejor con
+## cobertura y lejos de tus tanques.
+func _celda_segura(e: Dictionary, opciones: Dictionary) -> Vector2i:
+	var mejor: Vector2i = e["pos"]
+	var mejor_puntaje := -INF
+	for celda in opciones:
+		var cerca := 1 << 20
+		for u in aliados:
+			if vivo(u):
+				cerca = mini(cerca, Mapa.distancia(u["pos"], celda))
+		var puntaje: float = -amenaza_aliada(celda) * 10.0 + mapa.cobertura(celda) * 4.0 + cerca \
+			- int(opciones[celda][0]) * 0.1
+		if puntaje > mejor_puntaje:
+			mejor_puntaje = puntaje
+			mejor = celda
+	return mejor
+
+
+## Cuánto le importa a un enemigo quedar expuesto (0 = nada). Crece si está dañado o si su
+## bando va perdiendo (menos tanques en pie que los tuyos).
+func _cautela(e: Dictionary) -> float:
+	var herido := 1.0 - float(e["casco"]) / float(e["casco_max"])
+	var mios := enemigos.filter(func(x): return vivo(x)).size()
+	var tuyos := aliados.filter(func(x): return vivo(x)).size()
+	var c := herido if herido >= 0.5 else 0.0
+	if mios < tuyos:
+		c = maxf(c, 0.5)
+	return c
 
 
 ## Cuántos enemigos actúan por turno con la dificultad actual.
@@ -1121,6 +1227,7 @@ func _cerrar_turno_de(lista: Array) -> void:
 func _turno_enemigo() -> void:
 	for e in enemigos:
 		e["se_movio"] = false
+		e["pasos_turno"] = 0
 		e["ataques_turno"] = 0
 	_sanos_en_fase.clear()
 	if dificultad.get("salvavidas", false):
@@ -1192,6 +1299,12 @@ func _turno_enemigo_acciones() -> void:
 					u["moral"] = maxi(u["moral"] - int(a["moral"]), 0)
 					_avisar(u, tr("-%d moral") % int(a["moral"]), "malo")
 		if a.has("escudo"):
+			if dificultad.get("ia_lista", false) and not a.has("dano"):
+				var opciones := casillas_de_movimiento(e, movimiento_de(e))
+				var segura := _celda_segura(e, opciones)
+				if segura != e["pos"]:
+					_mover_a(e, segura, opciones)
+					_anotar(tr("%s se repliega a cubierto.") % e["nombre"])
 			_anotar(tr("%s usa %s.") % [e["nombre"], a["nombre"]])
 			e["escudo"] += int(a["escudo"])
 			_avisar(e, tr("+%d escudo") % int(a["escudo"]), "escudo")
@@ -1255,8 +1368,10 @@ func _plan_listo(e: Dictionary, a: Dictionary, opciones: Dictionary) -> Dictiona
 	var original: Vector2i = e["pos"]
 	var mejor := {}
 	var mejor_puntaje := -INF
+	var cautela := _cautela(e)
 	for celda in opciones:
 		var coste: int = opciones[celda][0]
+		var riesgo := amenaza_aliada(celda) * RIESGO_POR_AMENAZA * cautela
 		e["pos"] = celda  # para que el bono de "camarada" mire desde la casilla candidata
 		e["se_movio"] = celda != original  # y el de "emboscador" sepa si se movió
 		var cerca := 1 << 20
@@ -1271,12 +1386,12 @@ func _plan_listo(e: Dictionary, a: Dictionary, opciones: Dictionary) -> Dictiona
 			var imp := calcular_impacto(u, int(a["dano"]) + bonus_de_ataque(e, a, u), pen, lado, cobertura_de(u))
 			var herido := 1.0 - float(u["casco"]) / float(u["casco_max"])
 			var puntaje: float = 1000.0 + imp["al_casco"] * 10.0 + (300.0 if imp["derriba"] else 0.0) \
-				+ herido * 20.0 + mapa.cobertura(celda) * 4.0 - coste
+				+ herido * 20.0 + mapa.cobertura(celda) * 4.0 - coste - riesgo
 			if puntaje > mejor_puntaje:
 				mejor_puntaje = puntaje
 				mejor = {"celda": celda, "objetivo": u}
 		# Sin blanco a tiro: acercarse, mejor si es a cubierto.
-		var acercarse := -cerca * 10.0 + mapa.cobertura(celda) * 3.0 - coste
+		var acercarse := -cerca * 10.0 + mapa.cobertura(celda) * 3.0 - coste - riesgo
 		if mejor_puntaje < 1000.0 and acercarse > mejor_puntaje:
 			mejor_puntaje = acercarse
 			mejor = {"celda": celda, "objetivo": _aliado_mas_cercano(celda)}
@@ -1312,6 +1427,7 @@ func _mover_a(u: Dictionary, celda: Vector2i, opciones: Dictionary) -> void:
 	u["orientacion"] = celda - anterior
 	u["pos"] = celda
 	u["se_movio"] = true
+	u["pasos_turno"] = int(u.get("pasos_turno", 0)) + camino.size() - 1
 	_descamuflar(u)
 	accion.emit({"tipo": "mover", "clave": u.get("clave", ""), "camino": camino, "orientacion": u["orientacion"]})
 	for paso in camino.slice(1):

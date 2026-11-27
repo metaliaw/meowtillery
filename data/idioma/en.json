@@ -207,9 +207,6 @@
  "Salir": "Quit",
  "Teniente Michi": "Lieutenant Michi",
  "Mandona: cada turno ordena a un tanque que ataque. Si obedece, +1 energía el turno siguiente; si no, ese tanque pierde 1 de moral.": "Bossy: every turn she orders one tank to attack. If it obeys, +1 energy next turn; if not, that tank loses 1 morale.",
- "Para aprender. Actúan 2 enemigos por turno y pegan 2 menos.": "For learning. 2 enemies act per turn and they hit 2 less.",
- "El enemigo piensa: remata, flanquea, se cubre y pega 2 más. Un tanque sano no cae en un solo turno. De lejos puedes rozar. Tienes un avión de apoyo.": "The enemy thinks: it finishes off, flanks, takes cover and hits 2 more. A healthy tank can't fall in a single turn. From far away you can graze. You get a support plane.",
- "Sin piedad: actúan todos, pegan 2 más y no hay red de seguridad. El rival también pide un avión.": "No mercy: they all act, hit 2 more and there's no safety net. The rival calls in a plane too.",
  "Pradera": "Meadow",
  "Colinas": "Hills",
  "Bosque": "Forest",
@@ -282,7 +279,6 @@
  "Cañón de 75": "75 mm Gun",
  "Taller": "Workshop",
  "Waffles": "Waffles",
- "Velocista: el tanque más rápido de la guerra (6 de movimiento), pero de blindaje muy delgado.": "Speedster: the fastest tank of the war (6 movement), but with very thin armor.",
  "Cañón de 76": "76 mm Gun",
  "Donut": "Donut",
  "Glotón: si en su turno no ataca, se come algo y recupera 1 de moral.": "Glutton: if he doesn't attack on his turn, he grabs a snack and regains 1 morale.",
@@ -502,5 +498,13 @@
  "Termina la campaña con los italianos.": "Finish the campaign with the Italians.",
  "Gato de biblioteca": "Library cat",
  "Mira todas las fichas técnicas.": "Read all the tech sheets.",
- "Haz clic para empezar": "Click to start"
+ "Haz clic para empezar": "Click to start",
+ "Ligero": "Light",
+ "Medio": "Medium",
+ "Pesado": "Heavy",
+ "%s se repliega a cubierto.": "%s falls back to cover.",
+ "Velocista: el tanque más rápido de la guerra (6 de movimiento) y de blindaje muy delgado. Si en su turno se mueve 4 casillas o más, es difícil de acertar: +1 de cobertura hasta su próximo turno.": "Speedster: the fastest tank of the war (6 movement) with very thin armor. If it moves 4 or more squares on its turn, it's hard to hit: +1 cover until its next turn.",
+ "Para aprender. Actúan 2 enemigos por turno y pegan 1 menos.": "For learning. 2 enemies act per turn and they hit 1 less.",
+ "El enemigo piensa: remata, flanquea, se cubre cuando está dañado y pega 1 más. Un tanque sano no cae en un solo turno. De lejos puedes rozar. Tienes un avión de apoyo.": "The enemy thinks: it finishes off, flanks, takes cover when damaged and hits 1 more. A healthy tank can't fall in a single turn. From far away you can graze. You get a support plane.",
+ "Sin piedad: actúan todos, piensan, pegan 1 más y no hay red de seguridad. El rival también pide un avión.": "No mercy: they all act, they think, hit 1 more and there's no safety net. The rival calls in a plane too."
 }

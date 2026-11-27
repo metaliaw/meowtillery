@@ -512,6 +512,13 @@ func _dibujar_avion() -> void:
 func _dibujar_restos(u: Dictionary, e: Dictionary) -> void:
 	var esquina: Vector2 = e["celda"] * TAM
 	var centro := esquina + Vector2(TAM, TAM) / 2
+	# Desde el turno siguiente quedan solo las marcas de quemado: la casilla se ve libre
+	# (los restos en llamas daban la sensación de que no se podía pasar).
+	if int(u.get("turno_caida", combate.turno)) < combate.turno and not animando:
+		for k in 3:
+			var p := centro + Vector2(-10 + k * 10, 6 + (k % 2) * 4)
+			draw_circle(p, 9.0 - k, Color(0.12, 0.1, 0.1, 0.22))
+		return
 	var tex := _textura(u["sprite"])
 	var tam_sprite := tex.get_size() * maxi(1, TAM / int(tex.get_size().x))
 	var escala := Vector2(-1, 1) if e["orientacion"] == Vector2i.LEFT else Vector2(1, 1)
@@ -698,6 +705,14 @@ func _dibujar_unidad(u: Dictionary, e: Dictionary) -> void:
 		esquina.x += sin(_temblor[u["clave"]] * 70.0) * 3.0
 	var centro := esquina + Vector2(TAM, TAM) / 2
 
+	# Base de color del bando bajo el tanque (azul tuyo, rojo enemigo), como las fichas
+	# de cada jugador en un juego de mesa: se sabe de un vistazo de quién es cada uno.
+	var color_bando := Color("4da3ff") if u["bando"] == "aliado" else Color("ff5a5a")
+	draw_set_transform(centro + Vector2(0, 12), 0.0, Vector2(1.0, 0.42))
+	draw_circle(Vector2.ZERO, TAM * 0.44, Color(color_bando, 0.55))
+	draw_arc(Vector2.ZERO, TAM * 0.44, 0, TAU, 32, color_bando.darkened(0.25), 3.0)
+	draw_set_transform(Vector2.ZERO)
+
 	# El sprite mira a la derecha; se voltea si la unidad mira a la izquierda.
 	var tex := _textura(u["sprite"])
 	# Escala entera: los sprites chicos (32 px) se duplican; los realistas (80 px) van a ×1
@@ -736,13 +751,25 @@ func _dibujar_unidad(u: Dictionary, e: Dictionary) -> void:
 	var fraccion := float(e["casco"]) / float(u["casco_max"])
 	var color_barra := Color("7ee08a") if u["bando"] == "aliado" else Color("ff7a7a")
 	draw_rect(Rect2(barra.position, Vector2(barra.size.x * fraccion, barra.size.y)), color_barra)
+	_galones(esquina + Vector2(3, 3), int(u.get("clase", 2)), color_bando)
 	if e["escudo"] > 0:
-		draw_string(get_theme_default_font(), esquina + Vector2(4, 14), "+%d" % e["escudo"],
+		draw_string(get_theme_default_font(), esquina + Vector2(20, 14), "+%d" % e["escudo"],
 			HORIZONTAL_ALIGNMENT_LEFT, -1, 12, COLORES_TEXTO["escudo"])
 
 	# Qué piensa hacer el enemigo, siempre a la vista (se oculta mientras se anima).
 	if u["bando"] == "enemigo" and not animando:
 		_icono_intencion(esquina, intencion)
+
+
+## Galones de clase (1 ligero, 2 medio, 3 pesado) en una plaquita del color del bando.
+func _galones(pos: Vector2, clase: int, color_bando: Color) -> void:
+	var alto := 5.0 + 5.0 * clase
+	draw_rect(Rect2(pos, Vector2(15, alto)), COLOR_TINTA)
+	draw_rect(Rect2(pos + Vector2(1, 1), Vector2(13, alto - 2)), color_bando.darkened(0.35))
+	for k in clase:
+		var y := pos.y + 4.0 + k * 5.0
+		var pts := PackedVector2Array([Vector2(pos.x + 3, y + 3), Vector2(pos.x + 7.5, y), Vector2(pos.x + 12, y + 3)])
+		draw_polyline(pts, Color("ffe08a"), 2.0)
 
 
 ## Cartelito sobre cada enemigo: mira + daño (ataque), escudo, grito (baja moral),

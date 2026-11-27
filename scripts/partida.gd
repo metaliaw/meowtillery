@@ -20,13 +20,13 @@ const BATALLAS_SIN_MICHI_MAX := 3
 
 ## Niveles de dificultad (ver Combate.dificultad). Calibrados con tools/qa/simular.gd.
 const DIFICULTADES := {
-	"recluta": {"nombre": "Recluta", "texto": "Para aprender. Actúan 2 enemigos por turno y pegan 2 menos.",
-		"acciones_max": 2, "bonus_dano": -2, "ia_lista": false, "salvavidas": true, "dado_amable": true},
-	"veterano": {"nombre": "Veterano", "texto": "El enemigo piensa: remata, flanquea, se cubre y pega 2 más. Un tanque sano no cae en un solo turno. De lejos puedes rozar. Tienes un avión de apoyo.",
-		"acciones_max": 3, "bonus_dano": 2, "ia_lista": true, "salvavidas": true, "punteria": true,
+	"recluta": {"nombre": "Recluta", "texto": "Para aprender. Actúan 2 enemigos por turno y pegan 1 menos.",
+		"acciones_max": 2, "bonus_dano": -1, "ia_lista": false, "salvavidas": true, "dado_amable": true},
+	"veterano": {"nombre": "Veterano", "texto": "El enemigo piensa: remata, flanquea, se cubre cuando está dañado y pega 1 más. Un tanque sano no cae en un solo turno. De lejos puedes rozar. Tienes un avión de apoyo.",
+		"acciones_max": 3, "bonus_dano": 1, "ia_lista": true, "salvavidas": true, "punteria": true,
 		"aereo": true},
-	"as": {"nombre": "As", "texto": "Sin piedad: actúan todos, pegan 2 más y no hay red de seguridad. El rival también pide un avión.",
-		"acciones_max": 4, "bonus_dano": 2, "ia_lista": true, "punteria": true,
+	"as": {"nombre": "As", "texto": "Sin piedad: actúan todos, piensan, pegan 1 más y no hay red de seguridad. El rival también pide un avión.",
+		"acciones_max": 4, "bonus_dano": 1, "ia_lista": true, "punteria": true,
 		"aereo": true, "aereo_enemigo": true},
 }
 

@@ -1,0 +1,10 @@
+# Finales de línea Unix siempre: los textos de varias líneas del código son claves de
+# traducción (data/idioma/en.json), y un salto de línea de Windows las rompería.
+*.gd text eol=lf
+*.json text eol=lf
+*.py text eol=lf
+*.tscn text eol=lf
+*.cfg text eol=lf
+*.godot text eol=lf
+*.md text eol=lf
+*.txt text eol=lf

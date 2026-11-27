@@ -87,7 +87,9 @@ func mostrar(u: Dictionary, combate, extra: String = "", resaltar: String = "") 
 		_retrato.visible = false
 	_retrato.modulate = Color(1, 1, 1, 1) if vivo else Color(1, 1, 1, 0.5)
 	_nombre.text = u["nombre"]
-	_tanque.text = u.get("inspirado_en", "")
+	var clase := int(u.get("clase", 0))
+	var nombre_clase: String = [tr("Ligero"), tr("Medio"), tr("Pesado")][clamp(clase, 1, 3) - 1] if clase > 0 else ""
+	_tanque.text = u.get("inspirado_en", "") + ("  ·  %s %s" % [nombre_clase, "▲".repeat(clase)] if clase > 0 else "")
 	_diagrama.configurar(u["blindaje"], u["orientacion"], resaltar if vivo else "")
 	_barras.configurar(u, combate)
 	var terreno: Dictionary = combate.mapa.terreno(u["pos"])

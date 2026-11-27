@@ -64,11 +64,21 @@ func poner_silencio(s: bool) -> void:
 	_guardar_ajustes()
 
 
+## Silencio sin usar set_bus_mute: en la versión web (audio por "samples" del navegador),
+## silenciar el bus y volver a activarlo dejaba el juego mudo para siempre. Ahora, en
+## silencio no se toca nada y se cortan los sonidos que estuvieran sonando.
 func _aplicar() -> void:
 	var bus := AudioServer.get_bus_index("Master")
+	AudioServer.set_bus_mute(bus, false)
 	AudioServer.set_bus_volume_db(bus, linear_to_db(maxf(volumen, 0.0001)))
-	AudioServer.set_bus_mute(bus, silencio or volumen <= 0.001)
+	if mudo():
+		for r in _reproductores:
+			r.stop()
 	ajustes_cambiados.emit()
+
+
+func mudo() -> bool:
+	return silencio or volumen <= 0.001
 
 
 func _cargar_ajustes() -> void:
@@ -87,7 +97,7 @@ func _guardar_ajustes() -> void:
 
 
 func tocar(nombre: String) -> void:
-	if not _flujos.has(nombre):
+	if not _flujos.has(nombre) or mudo():
 		return
 	# Reparte entre varios reproductores para que un sonido no corte al anterior.
 	var r := _reproductores[_siguiente]

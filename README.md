@@ -138,16 +138,21 @@ godot --headless --path . -s tests/test_combate.gd
 - **Roces (Veterano y As).** De lejos se puede rozar: a 1-2 casillas se acierta siempre,
   a 3-4 un 85% y a 5 o más un 70%. Un roce hace la mitad del daño. La vista previa de la
   carta muestra el % de acierto y el daño del roce. En Recluta nunca se roza.
-- **Dificultad.** Se elige junto al batallón. *Recluta*: actúan 2 enemigos por turno y
-  pegan 1 menos. *Veterano*: la IA elige blanco y casilla por daño esperado (remata,
-  flanquea, se cubre) y pega 1 más. *As*: además actúan todos los enemigos y pegan 2 más.
-  En Recluta pegan 2 menos. En Recluta y Veterano hay **red de seguridad**: un tanque
-  que empieza sano la fase enemiga no cae en ella (queda con 1, "¡salvado por los
-  bigotes!"). Una **calavera roja** sobre un tanque propio avisa que los enemigos que
-  lo alcanzan podrían destruirlo si se queda ahí. Con el bot de QA (100 batallas por caso), jugando bien:
-  Recluta ~100%, Veterano ~90% (británicos) / ~97% (soviéticos), As ~59-64% (con botín). Jugando
-  al azar en Recluta: ~83% / ~65%. Una batalla dura ~6-10 turnos.
-  `tools/qa/cartas.gd` mide cuánto aporta cada carta (quitándola y comparando).
+- **Dificultad.** Se elige junto al batallón. *Recluta*: actúan 2 enemigos por turno,
+  pegan 1 menos y eligen su acción al azar. *Veterano*: la IA piensa (pega 1 más): elige
+  blanco y casilla por daño esperado, remata, flanquea; si está muy dañada y amenazada se
+  pone escudo y se repliega a cubierto, y cuando su bando va perdiendo dispara desde
+  casillas más protegidas (sin dejar de acercarse, para que la batalla termine). *As*:
+  además actúan todos y no hay red de seguridad. En Recluta y Veterano hay **red de
+  seguridad**: un tanque que empieza sano la fase enemiga no cae en ella ("¡salvado por los
+  bigotes!"). Una **calavera roja** avisa qué tanque propio podrían destruir. Con el bot
+  de QA (100 batallas por caso): Recluta ~100% jugando bien y 45-100% al azar; Veterano
+  45-100% según el batallón (~77%); As 26-95% (~60%). `tools/qa/cartas.gd` mide cuánto
+  aporta cada carta.
+- **Lectura del tablero.** Cada tanque tiene una base del color de su bando (azul tuyo,
+  rojo enemigo) y galones de clase según su fuerza: 1 ligero, 2 medio, 3 pesado (campo
+  `clase` en `data/batallones.json`). Los restos en llamas duran el turno del derribo;
+  después queda solo una mancha de quemado y la casilla se ve libre.
 - **Inspección sorpresa de la teniente Michi.** En cada batalla hay 1 probabilidad en 3
   de que Michi tome el mando (y viene segura si lleva 3 batallas sin aparecer). Su manía,
   *mandona*: cada turno ordena a un tanque que ataque (se marca con "!"). Si obedece,

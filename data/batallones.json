@@ -9,6 +9,7 @@
     "unidades": [
       {
         "id": "earl_grey",
+        "clase": 3,
         "nombre": "Earl Grey",
         "inspirado_en": "Centurion Mk1",
         "sprite": "res://assets/centurion.png",
@@ -50,6 +51,7 @@
       },
       {
         "id": "crumpet",
+        "clase": 2,
         "nombre": "Crumpet",
         "inspirado_en": "Sherman Firefly",
         "sprite": "res://assets/firefly.png",
@@ -87,6 +89,7 @@
       },
       {
         "id": "marmalade",
+        "clase": 3,
         "nombre": "Lady Marmalade",
         "inspirado_en": "Churchill Mk VII",
         "sprite": "res://assets/churchill.png",
@@ -140,6 +143,7 @@
     "unidades": [
       {
         "id": "boris",
+        "clase": 3,
         "nombre": "Boris",
         "inspirado_en": "IS-2",
         "sprite": "res://assets/is2.png",
@@ -182,6 +186,7 @@
       },
       {
         "id": "kasha",
+        "clase": 2,
         "nombre": "Kasha",
         "inspirado_en": "T-34-85",
         "sprite": "res://assets/t34_85.png",
@@ -223,6 +228,7 @@
       },
       {
         "id": "pelmeni",
+        "clase": 2,
         "nombre": "Pelmeni",
         "inspirado_en": "T-34-85",
         "sprite": "res://assets/t34_85.png",
@@ -265,6 +271,7 @@
     ],
     "refuerzo": {
       "id": "mishka",
+      "clase": 2,
       "nombre": "Mishka",
       "inspirado_en": "T-34-85",
       "sprite": "res://assets/t34_85.png",
@@ -321,6 +328,7 @@
     "unidades": [
       {
         "id": "pancake",
+        "clase": 2,
         "nombre": "Pancake",
         "inspirado_en": "M4 Sherman",
         "sprite": "res://assets/sherman.png",
@@ -362,6 +370,7 @@
       },
       {
         "id": "waffles",
+        "clase": 1,
         "nombre": "Waffles",
         "inspirado_en": "M18 Hellcat",
         "sprite": "res://assets/hellcat.png",
@@ -379,7 +388,7 @@
         "movimiento": 6,
         "moral": 5,
         "mania": "velocista",
-        "mania_texto": "Velocista: el tanque más rápido de la guerra (6 de movimiento), pero de blindaje muy delgado.",
+        "mania_texto": "Velocista: el tanque más rápido de la guerra (6 de movimiento) y de blindaje muy delgado. Si en su turno se mueve 4 casillas o más, es difícil de acertar: +1 de cobertura hasta su próximo turno.",
         "habilidades": [
           "disparo_76",
           "disparar_y_huir",
@@ -399,6 +408,7 @@
       },
       {
         "id": "donut",
+        "clase": 3,
         "nombre": "Donut",
         "inspirado_en": "M26 Pershing",
         "sprite": "res://assets/pershing.png",
@@ -457,6 +467,7 @@
     "unidades": [
       {
         "id": "tiramisu",
+        "clase": 2,
         "nombre": "Tiramisù",
         "inspirado_en": "M13/40",
         "sprite": "res://assets/m13_40.png",
@@ -498,6 +509,7 @@
       },
       {
         "id": "cannoli",
+        "clase": 1,
         "nombre": "Cannoli",
         "inspirado_en": "Semovente da 75/18",
         "sprite": "res://assets/semovente.png",
@@ -537,6 +549,7 @@
       },
       {
         "id": "panettone",
+        "clase": 3,
         "nombre": "Panettone",
         "inspirado_en": "Carro Armato P26/40",
         "sprite": "res://assets/p40.png",

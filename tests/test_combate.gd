@@ -61,6 +61,7 @@ func _init() -> void:
 	_probar_trofeos()
 	_probar_mapas_nuevos()
 	_probar_ingles()
+	_probar_ia_cuidadosa()
 	print("\nTODO OK" if _fallos == 0 else "\n%d FALLOS" % _fallos)
 	quit(1 if _fallos > 0 else 0)
 
@@ -493,8 +494,8 @@ func _probar_dificultad() -> void:
 		var e: Dictionary = c.enemigos[0]
 		e["acciones"] = [{"nombre": "Prueba", "dano": 6, "alcance": [1, 4]}]
 		c._elegir_intenciones()
-	_comprobar(recluta.enemigos[0]["intencion"]["dano"] == 4, "Recluta: el enemigo pega 2 menos (y lo anuncia)")
-	_comprobar(as_.enemigos[0]["intencion"]["dano"] == 8, "As: el enemigo pega 2 más (y lo anuncia)")
+	_comprobar(recluta.enemigos[0]["intencion"]["dano"] == 5, "Recluta: el enemigo pega 1 menos (y lo anuncia)")
+	_comprobar(as_.enemigos[0]["intencion"]["dano"] == 7, "As: el enemigo pega 1 más (y lo anuncia)")
 
 	# IA lista: entre dos blancos a tiro, remata al que puede derribar.
 	var v := _con_dificultad("veterano")
@@ -1058,6 +1059,40 @@ func _probar_ingles() -> void:
 	TranslationServer.set_locale(antes)
 	TranslationServer.remove_translation(tr_en)
 	_comprobar(Datos.leer("res://data/cartas.json")[0]["nombre"] == "Disparo AP", "y de vuelta en español")
+
+
+## IA lista: se cubre y se retira si está muy dañada; si alcanza a alguien, dispara.
+func _probar_ia_cuidadosa() -> void:
+	var c := Combate.new()
+	PartidaScript.iniciar_combate(c, "britanico", "sovietico", 4, false, "veterano")
+	var kasha: Dictionary = c.enemigos[1]  # Disparo de 85 o Cortina térmica
+	var acciones: Array = kasha["acciones"]
+	kasha["pos"] = c.aliados[0]["pos"] + Vector2i(3, 0)
+	var disparo := c._accion_pensada(kasha, acciones, 1)
+	_comprobar(acciones[disparo].has("dano"), "IA: sana y con un blanco a tiro, dispara")
+	kasha["casco"] = 3
+	var cubre := c._accion_pensada(kasha, acciones, 0)
+	_comprobar(acciones[cubre].has("escudo"), "IA: muy dañada y amenazada, se cubre")
+	var opciones := c.casillas_de_movimiento(kasha, kasha["movimiento"])
+	var segura := c._celda_segura(kasha, opciones)
+	_comprobar(c.amenaza_aliada(segura) <= c.amenaza_aliada(kasha["pos"]), "IA: al cubrirse se retira a una casilla menos expuesta")
+	c.aliados[1]["casco"] = 0
+	c.aliados[2]["casco"] = 0
+	_comprobar(c._cautela(c.enemigos[0]) == 0.0, "IA: sana y ganando, no se esconde")
+	for e in c.enemigos.slice(1):
+		e["casco"] = 0
+	c.aliados[1]["casco"] = 10
+	_comprobar(c._cautela(c.enemigos[0]) >= 0.5, "IA: si su bando va perdiendo, juega con cautela")
+
+	# Waffles (velocista): si se mueve 4 o más casillas, +1 de cobertura hasta su próximo turno.
+	var w := Combate.new()
+	PartidaScript.iniciar_combate(w, "estadounidense", "sovietico", 2, false, "recluta")
+	var waffles: Dictionary = w.aliados[1]
+	var cob_quieto := w.cobertura_de(waffles)
+	waffles["pasos_turno"] = 4
+	_comprobar(w.cobertura_de(waffles) == cob_quieto + w.COBERTURA_ESQUIVA, "Waffles: moverse 4 lo hace difícil de acertar")
+	waffles["pasos_turno"] = 3
+	_comprobar(w.cobertura_de(waffles) == cob_quieto, "Waffles: con 3 pasos, no")
 
 
 func _probar_cartas_de_batallon() -> void:

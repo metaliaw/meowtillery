@@ -122,9 +122,10 @@ func _construir_interfaz() -> void:
 	var scroll := ScrollContainer.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	var margen_scroll := MarginContainer.new()  # que la barra de scroll no tape el final de las líneas
+	# Sin barra a la vista (distraía): lo que no cabe, que es el registro, se ve con la rueda.
+	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
+	var margen_scroll := MarginContainer.new()
 	margen_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	margen_scroll.add_theme_constant_override("margin_right", 14)
 	scroll.add_child(margen_scroll)
 	var lateral := VBoxContainer.new()
 	lateral.size_flags_horizontal = Control.SIZE_EXPAND_FILL
